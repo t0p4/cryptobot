@@ -6,14 +6,17 @@ import pandas as pd
 import datetime
 from time import sleep
 
-MAX_BTC_PER_BUY = 0.1
+MAX_BTC_PER_BUY = 0.05
+BUY_DECREMENT_COEFFICIENT = 0.75
 BASE_CURRENCIES = ['BTC', 'ETH']
 TICK_SIZE = 20
+EXECUTE_TRADES = False
 
 class CryptoBot:
     def __init__(self):
         self.psql = PostgresConnection()
         self.btrx = bittrex(BITTREX_API_KEY, BITTREX_API_SECRET)
+        self.trades = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
         self.RATE_LIMIT = datetime.timedelta(0, 60, 0)
         self.api_tick = datetime.datetime.now()
         self.currencies = []
@@ -74,17 +77,17 @@ class CryptoBot:
     def get_ticker(self, market):
         return self.btrx.getticker(market)
 
-    def get_buy_order_book(self, market):
-        return self.btrx.getorderbook(market, 'buy')
-
-    def get_sell_order_book(self, market):
-        return self.btrx.getorderbook(market, 'sell')
-
         ## ORDERS ##
 
-    def BUY_instant(self, market, quantity):
+    def buy_instant(self, market, quantity):
+        self.trade_instant('buy', market, quantity)
+
+    def sell_instant(self, market, quantity):
+        self.trade_instant('sell', market, quantity)
+
+    def trade_instant(self, order_type, market, quantity):
         try:
-            order_book = self.get_sell_order_book(market)
+            order_book = self.get_order_book(market, order_type, 20)
             current_total = 0
             rate = 0
             # calculate an instant buy price
@@ -93,14 +96,10 @@ class CryptoBot:
                 rate = order['Rate']
                 if current_total >= quantity:
                     break
-            trade_resp = self.btrx.buylimit(market, quantity, rate)
+
+            trade_resp = self.trades[order_type](market, quantity, rate)
             if not isinstance(trade_resp, basestring):
-                self.psql.save_trade('BUY', market, quantity, rate, trade_resp['uuid'])
-                print('*** BUY Successful! ***')
-                print('market: ' + market)
-                print('quantity: ' + quantity)
-                print('rate: ' + rate)
-                print('trade id: ' + trade_resp['uuid'])
+                self.trade_success(order_type, market, quantity, rate, trade_resp['uuid'])
                 return trade_resp
             else:
                 print trade_resp
@@ -110,67 +109,19 @@ class CryptoBot:
             print(e)
             return None
 
-    def BUY_market(self, market, quantity):
+    def buy_market(self, market, quantity):
+        self.trade_market('buy', market, quantity)
+
+    def sell_market(self, market, quantity):
+        self.trade_market('sell', market, quantity)
+
+    def trade_market(self, order_type, market, quantity):
         try:
             ticker = self.btrx.getticker(market)
             rate = ticker['Last']
-            trade_resp = self.btrx.buylimit(market, quantity, rate)
+            trade_resp = self.trades[order_type](market, quantity, rate)
             if not isinstance(trade_resp, basestring):
-                self.psql.save_trade('BUY', market, quantity, rate, trade_resp['uuid'])
-                print('*** BUY Successful! ***')
-                print('market: ' + market)
-                print('quantity: ' + quantity)
-                print('rate: ' + rate)
-                print('trade id: ' + trade_resp['uuid'])
-                return trade_resp
-            else:
-                print trade_resp
-                return None
-        except Exception as e:
-            print("*** !!! TRADE FAILED !!! ***")
-            print(e)
-            return None
-
-    def SELL_instant(self, market, quantity):
-        try:
-            order_book = self.get_buy_order_book(market)
-            current_total = 0
-            rate = 0
-            # calculate an instant sell price
-            for order in order_book:
-                current_total += order['Quantity']
-                rate = order['Rate']
-                if current_total >= quantity:
-                    break
-            trade_resp = self.btrx.selllimit(market, quantity, rate)
-            if not isinstance(trade_resp, basestring):
-                self.psql.save_trade('SELL', market, quantity, rate, trade_resp['uuid'])
-                print('*** SELL Successful! ***')
-                print('market: ' + market)
-                print('quantity: ' + quantity)
-                print('rate: ' + rate)
-                print('trade id: ' + trade_resp['uuid'])
-                return trade_resp
-            else:
-                print trade_resp
-                return None
-        except Exception as e:
-            print("*** !!! TRADE FAILED !!! ***")
-            print(e)
-            return None
-
-    def SELL_market(self, market, quantity):
-        try:
-            ticker = self.btrx.getticker(market)
-            rate = ticker['Last']
-            trade_resp = self.btrx.selllimit(market, quantity, rate)
-            if not isinstance(trade_resp, basestring):
-                self.psql.save_trade('SELL', market, quantity, rate, trade_resp['uuid'])
-                print('*** BUY Successful! ***')
-                print('market: ' + market)
-                print('quantity: ' + quantity)
-                print('rate: ' + rate)
-                print('trade id: ' + trade_resp['uuid'])
+                self.trade_success(order_type, market, quantity, rate, trade_resp['uuid'])
                 return trade_resp
             else:
                 print trade_resp
@@ -189,6 +140,14 @@ class CryptoBot:
             print("*** !!! TRADE FAILED !!! ***")
             print(e)
             return None
+
+    def trade_success(self, order_type, market, quantity, rate, uuid):
+        self.psql.save_trade(order_type, market, quantity, rate, uuid)
+        print('*** ' + order_type.upper() + ' Successful! ***')
+        print('market: ' + market)
+        print('quantity: ' + quantity)
+        print('rate: ' + rate)
+        print('trade id: ' + uuid)
 
 
         ## ACCOUNT ##

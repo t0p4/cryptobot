@@ -53,7 +53,7 @@ class PostgresConnection:
     def save_trade(self, order_type, market, quantity, rate, uuid):
         timestamp = datetime.datetime.now()
         params = {
-            "order_type": order_type,
+            "order_type": order_type.upper(),
             "market": market,
             "quantity": quantity,
             "rate": rate,
