@@ -7,6 +7,7 @@ import io
 import pandas as pd
 import datetime
 import dateutil.relativedelta
+from time import mktime
 
 
 class PostgresConnection:
@@ -18,7 +19,7 @@ class PostgresConnection:
         ###
         # EXECUTES A QUERY ON THE DATABASE, RETURNS NO DATA
         ###
-        self.conn = psycopg2.connect("dbname=instabot user=patrickmckelvy")
+        self.conn = psycopg2.connect("dbname=cryptobot user=patrickmckelvy")
         self.cur = self.conn.cursor()
         try:
             self.cur.execute(query, params)
@@ -34,7 +35,7 @@ class PostgresConnection:
         ###
         # EXECUTES A FETCHING QUERY ON THE DATABASE, RETURNS A DATAFRAME
         ###
-        self.conn = psycopg2.connect("dbname=instabot user=patrickmckelvy")
+        self.conn = psycopg2.connect("dbname=cryptobot user=patrickmckelvy")
         self.cur = self.conn.cursor()
         result = None
         try:
@@ -51,17 +52,39 @@ class PostgresConnection:
         return result
 
     def save_trade(self, order_type, market, quantity, rate, uuid):
+        print('== SAVE trade ==')
+        fmt_str = "('{order_type}','{market}',{quantity},{rate},'{uuid}','{base_currency}','{market_currency}','{timestamp}')"
+        columns = "(order_type, market, quantity, rate, uuid, base_currency, market_currency, timestamp)"
         timestamp = datetime.datetime.now()
-        params = {
-            "order_type": order_type.upper(),
+        market_currencies = market.split('-')
+        values = {
+            "order_type": order_type,
             "market": market,
             "quantity": quantity,
             "rate": rate,
-            "timestamp": timestamp,
-            "uuid": uuid
+            "uuid": uuid,
+            "base_currency": market_currencies[0],
+            "market_currency": market_currencies[1],
+            "timestamp": timestamp
         }
-        query = """UPDATE orders
-                    SET order_type = %(order_type)s, market = %(market)s, quantity=%(quantity),
-                     rate = %(rate)s, timestamp = %(timestamp)s, uuid = %(uuid)s
-                """
+        params = {
+            "columns": AsIs(columns),
+            "values": fmt_str.format(**values)
+        }
+        query = """ INSERT INTO orders (%(columns)s) VALUES %(values)s; """
+        self._exec_query(query, params)
+
+    def save_summaries(self, summaries):
+        print('== SAVE market summaries ==')
+        fmt_str = "({PrevDay},{Volume},{Last},{OpenSellOrders},'{TimeStamp}',{Bid},'{Created}',{OpenBuyOrders},{High},'{MarketName}',{Low},{Ask},{BaseVolume})"
+        columns = "prevday,volume,last,opensellorders,timestamp,bid,created,openbuyorders,high,marketname,low,ask,basevolume"
+        for idx, summary in enumerate(summaries):
+            summaries[idx]['TimeStamp'] = summary['TimeStamp'].replace('T', ' ').split('.')[0]
+            summaries[idx]['Created'] = summary['Created'].replace('T', ' ').split('.')[0]
+        values = AsIs(','.join(fmt_str.format(**summary) for summary in summaries))
+        params = {
+            "columns": AsIs(columns),
+            "values": values
+        }
+        query = """ INSERT INTO summaries (%(columns)s) VALUES %(values)s; """
         self._exec_query(query, params)

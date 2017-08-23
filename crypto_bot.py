@@ -38,17 +38,21 @@ class CryptoBot:
 
         ## RATE LIMITER ##
 
-    def rate_limiter_start(self):
+    def rate_limiter_reset(self):
+        print('reset')
         self.api_tick = datetime.datetime.now()
 
     def rate_limiter_check(self):
         current_tick = datetime.datetime.now()
-        return (current_tick - self.api_tick) >= self.RATE_LIMIT
+        return (current_tick - self.api_tick) < self.RATE_LIMIT
 
     def rate_limiter_limit(self):
         current_tick = datetime.datetime.now()
-        sleep_for = current_tick - self.api_tick
-        sleep(sleep_for.seconds)
+        if self.rate_limiter_check():
+            sleep_for = self.RATE_LIMIT - (current_tick - self.api_tick)
+            print('[WARNING] Rate Limit :: sleeping for ' + str(sleep_for) + ' seconds')
+            sleep(sleep_for.seconds)
+            self.rate_limiter_reset()
 
 
         ## TICKER ##
@@ -66,23 +70,29 @@ class CryptoBot:
         ## MARKET ##
 
     def get_market_summaries(self):
+        print('== GET market summaries ==')
         return self.btrx.getmarketsummaries()
 
     def get_market_history(self, market):
+        print('== GET market history ==')
         return self.btrx.getmarkethistory(market)
 
     def get_order_book(self, market, order_type, depth):
+        print('== GET order book ==')
         return self.btrx.getorderbook(market, order_type, depth)
 
     def get_ticker(self, market):
+        print('== GET ticker ==')
         return self.btrx.getticker(market)
 
         ## ORDERS ##
 
     def buy_instant(self, market, quantity):
+        print('== BUY instant ==')
         self.trade_instant('buy', market, quantity)
 
     def sell_instant(self, market, quantity):
+        print('== SELL instant ==')
         self.trade_instant('sell', market, quantity)
 
     def trade_instant(self, order_type, market, quantity):
@@ -110,9 +120,11 @@ class CryptoBot:
             return None
 
     def buy_market(self, market, quantity):
+        print('== BUY market ==')
         self.trade_market('buy', market, quantity)
 
     def sell_market(self, market, quantity):
+        print('== SELL market ==')
         self.trade_market('sell', market, quantity)
 
     def trade_market(self, order_type, market, quantity):
@@ -132,6 +144,7 @@ class CryptoBot:
             return None
 
     def CANCEL(self, uuid):
+        print('== CANCEL bid ==')
         try:
             trade_resp = self.btrx.cancel(uuid)
             self.psql.save_trade('CANCEL', 'market', 0, 0, trade_resp['uuid'])
@@ -153,14 +166,17 @@ class CryptoBot:
         ## ACCOUNT ##
 
     def get_balances(self):
+        print('== GET balances ==')
         balances = self.btrx.getbalances()
         return balances
 
     def get_balance(self, currency):
+        print('== GET balance ==')
         balance = self.btrx.getbalance(currency)
         return balance
 
     def get_order_history(self, market, count):
+        print('== GET order history ==')
         history = self.btrx.getorderhistory(market, count)
         return history
 
@@ -181,10 +197,33 @@ class CryptoBot:
                         self.markets_to_watch[mkt_name] = True
                     else:
                         buy_quantity = summary['Last'] / MAX_BTC_PER_BUY
-                        self.BUY_market(mkt_name, buy_quantity)
+                        self.buy_market(mkt_name, buy_quantity)
 
     def calc_bollinger_bounds(self, df):
         df['MA20'] = pd.stats.moments.rolling_mean(df['Last'], TICK_SIZE)
         df['STDDEV'] = pd.stats.moments.rolling_std(df['Last'], TICK_SIZE)
         df['UPPER_BB'] = df['MA20'] + 2 * df['STDDEV']
         df['LOWER_BB'] = df['MA20'] - 2 * df['STDDEV']
+
+
+        ## SANDBOX ###
+
+    def collect_order_books(self):
+        order_books = {}
+        for market in self.markets:
+            order_books[market['MarketName']] = []
+        self.rate_limiter_reset()
+        while True:
+            for market in self.markets:
+                market_name = market['MarketName']
+                print('Collecting order book for: ' + market_name)
+                order_book = self.get_order_book(market_name, 'both', 50)
+                order_books[market_name].append(order_book)
+            self.rate_limiter_limit()
+
+    def collect_summaries(self):
+        self.rate_limiter_reset()
+        while True:
+            summaries = self.get_market_summaries()
+            self.psql.save_summaries(summaries)
+            self.rate_limiter_limit()
