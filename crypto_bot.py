@@ -14,11 +14,22 @@ import json
 MAX_BTC_PER_BUY = 0.05
 BUY_DECREMENT_COEFFICIENT = 0.75
 BASE_CURRENCIES = ['BTC', 'ETH']
-TICK_SIZE = 20
+MAJOR_TICK_SIZE = 15
 EXECUTE_TRADES = False
+TESTING = True
+
+bb_options = {
+    'active': True,
+    'market_names': [],
+    'num_standard_devs': 2,
+    'sma_window': 15,
+    'sma_stat_key': 'Low',
+    'minor_tick': 1,
+    'major_tick': 15
+}
 
 class CryptoBot:
-    def __init__(self):
+    def __init__(self, strat):
         self.psql = PostgresConnection()
         self.btrx = bittrex(BITTREX_API_KEY, BITTREX_API_SECRET)
         self.trades = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
@@ -32,6 +43,8 @@ class CryptoBot:
         self.balances = self.get_balances()
         self.accounts = []
         self.tick = 0
+        bb_options['market_names'] = self.markets
+        self.strat = strat(bb_options)
 
     def init_markets(self):
         self.currencies = self.btrx.getcurrencies()
@@ -40,11 +53,29 @@ class CryptoBot:
             mkt_name = market['MarketName']
             self.summary_tickers[mkt_name] = pd.DataFrame()
 
+    def run(self):
+        while (True):
+            self.rate_limiter_limit()
+            self.minor_tick_step()
+            self.execute_trades()
+
+        ## QUANT ##
+
+    def minor_tick_step(self):
+        self.increment_tick()
+        # get the ticker for all the markets
+        summaries = self.get_market_summaries()
+        for summary in summaries:
+            mkt_name = summary.MarketName
+            if is_valid_market(mkt_name, BASE_CURRENCIES):
+                self.summary_tickers[mkt_name].append(summary)
+
+    def major_tick_step(self):
+        self.strat.handle_data(self.summary_tickers, self.tick)
 
         ## RATE LIMITER ##
 
     def rate_limiter_reset(self):
-        print('reset')
         self.api_tick = datetime.datetime.now()
 
     def rate_limiter_check(self):
@@ -52,12 +83,13 @@ class CryptoBot:
         return (current_tick - self.api_tick) < self.RATE_LIMIT
 
     def rate_limiter_limit(self):
-        current_tick = datetime.datetime.now()
-        if self.rate_limiter_check():
-            sleep_for = self.RATE_LIMIT - (current_tick - self.api_tick)
-            print('[WARNING] Rate Limit :: sleeping for ' + str(sleep_for) + ' seconds')
-            sleep(sleep_for.seconds)
-            self.rate_limiter_reset()
+        if not TESTING:
+            current_tick = datetime.datetime.now()
+            if self.rate_limiter_check():
+                sleep_for = self.RATE_LIMIT - (current_tick - self.api_tick)
+                print('[WARNING] Rate Limit :: sleeping for ' + str(sleep_for) + ' seconds')
+                sleep(sleep_for.seconds)
+                self.rate_limiter_reset()
 
 
         ## TICKER ##
@@ -69,7 +101,7 @@ class CryptoBot:
             self.tick += 1
 
     def check_tick(self):
-        return self.tick == TICK_SIZE
+        return self.tick == MAJOR_TICK_SIZE
 
 
         ## MARKET ##
@@ -167,6 +199,13 @@ class CryptoBot:
         print('rate: ' + rate)
         print('trade id: ' + uuid)
 
+    def execute_trades(self):
+        for market in self.markets:
+            mkt_name = market['MarketName']
+            if self.strat.should_buy(mkt_name):
+                self.buy_instant(mkt_name, .1)
+            elif self.strat.should_sell(mkt_name):
+                self.sell_instant(mkt_name)
 
         ## ACCOUNT ##
 
@@ -184,31 +223,6 @@ class CryptoBot:
         print('== GET order history ==')
         history = self.btrx.getorderhistory(market, count)
         return history
-
-
-        ## QUANT ##
-
-    def tick(self):
-        self.increment_tick()
-        # get the ticker for all the markets
-        summaries = self.get_market_summaries()
-        for summary in summaries:
-            mkt_name = summary.MarketName
-            if is_valid_market(mkt_name, BASE_CURRENCIES):
-                self.summary_tickers[mkt_name].append(summary)
-                self.summary_tickers[mkt_name] = self.calc_bollinger_bounds(self.summary_tickers[mkt_name])
-                if summary['Last'] >= self.summary_tickers[mkt_name]['UPPER_BB']:
-                    if not self.markets_to_watch[mkt_name]:
-                        self.markets_to_watch[mkt_name] = True
-                    else:
-                        buy_quantity = summary['Last'] / MAX_BTC_PER_BUY
-                        self.buy_market(mkt_name, buy_quantity)
-
-    def calc_bollinger_bounds(self, df):
-        df['MA20'] = pd.stats.moments.rolling_mean(df['Last'], TICK_SIZE)
-        df['STDDEV'] = pd.stats.moments.rolling_std(df['Last'], TICK_SIZE)
-        df['UPPER_BB'] = df['MA20'] + 2 * df['STDDEV']
-        df['LOWER_BB'] = df['MA20'] - 2 * df['STDDEV']
 
 
         ## SANDBOX ###

@@ -1,6 +1,7 @@
 from crypto_bot import CryptoBot
+from strats.bollinger_bands_strat import BollingerBandsStrat
 
-bot = CryptoBot()
+bot = CryptoBot(BollingerBandsStrat)
 
 # bot.get_balance('ETH')
 # bot.get_balances()
