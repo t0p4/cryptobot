@@ -1,8 +1,8 @@
 class BaseStrategy:
     def __init__(self, options):
         self.active = options['active']
-        self.buy_positions = {mkt_name: False for (_, mkt_name) in options['market_names']}
-        self.sell_positions = {mkt_name: False for (_, mkt_name) in options['market_names']}
+        self.buy_positions = {mkt_name: False for mkt_name in options['market_names']}
+        self.sell_positions = {mkt_name: False for mkt_name in options['market_names']}
 
     def handle_data(self, data, tick):
         raise Exception('HANDLE_DATA function should be overwritten')

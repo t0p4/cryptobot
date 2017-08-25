@@ -1,23 +1,36 @@
+from db.psql import PostgresConnection
+
+
 class BacktestExchange:
-    def __init__(self, key1, key2):
+    def __init__(self, start_date, end_date):
+        self.start_date = start_date
+        self.end_date = end_date
+        self.psql = PostgresConnection()
         self.balances = {
             'USD': 20000,
             'BTC': 3
         }
+        self.starting_balances = self.balances.copy()
         self.trades = {
             'USD': [],
             'BTC': []
         }
+        self.tick = -1
+        self.market_summaries = self.load_market_summaries()
+
+    def load_market_summaries(self):
+        summary = {'BTC-USD': self.psql.get_historical_data(self.start_date, self.end_date)}
+        return summary
 
     def getmarkets(self):
         return [
             {
                 "MarketCurrency": "USD",
                 "BaseCurrency": "BTC",
-                "MarketCurrencyLong": "Litecoin",
+                "MarketCurrencyLong": "USDollars",
                 "BaseCurrencyLong": "Bitcoin",
                 "MinTradeSize": 0.01000000,
-                "MarketName": "BTC-LTC",
+                "MarketName": "BTC-USD",
                 "IsActive": True,
                 "Created": "2014-02-13T00:00:00"
             }
@@ -36,11 +49,14 @@ class BacktestExchange:
             }
         ]
 
-    def getticker(self, market):
-        return self.query('getticker', {'market': market})
+    # def getticker(self, market):
+    #     return self.query('getticker', {'market': market})
 
-    # def getmarketsummaries(self):
-    #     pull market summaries from database
+    def getmarketsummaries(self):
+        self.tick += 1
+        summary = self.market_summaries['BTC-USD'].iloc[[self.tick]]
+        summary['MarketName'] = 'BTC-USD'
+        return [summary]
 
     # def getmarketsummary(self, market):
     #     return self.query('getmarketsummary', {'market': market})
@@ -61,7 +77,7 @@ class BacktestExchange:
     #
     def selllimit(self, market, quantity, rate):
         trade = {'order_type': 'sell', 'market': market, 'quantity': quantity, 'rate': rate}
-        return self.trades[market].tail
+        return self.trades[market].append(trade)
     #
     # # DEPRECATED
     # # def sellmarket(self, market, quantity):
@@ -72,12 +88,12 @@ class BacktestExchange:
     #
     # def getopenorders(self, market):
     #     return self.query('getopenorders', {'market': market})
-    #
-    # def getbalances(self):
-    #     return self.query('getbalances')
-    #
-    # def getbalance(self, currency):
-    #     return self.query('getbalance', {'currency': currency})
+
+    def getbalances(self):
+        return self.balances
+
+    def getbalance(self, currency):
+        return self.balances[currency]
     #
     # def getdepositaddress(self, currency):
     #     return self.query('getdepositaddress', {'currency': currency})

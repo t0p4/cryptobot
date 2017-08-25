@@ -100,3 +100,16 @@ class PostgresConnection:
         }
         query = """ INSERT INTO btc_historical (%(columns)s) VALUES %(values)s; """
         self._exec_query(query, params)
+
+    def get_historical_data(self, start_date, end_date):
+        print('== GET historical data ==')
+        params = {
+            "start_date": mktime(start_date.timetuple()),
+            "end_date": mktime(end_date.timetuple())
+        }
+        query = """
+            SELECT * from btc_historical
+            WHERE timestamp >= %(start_date)s AND timestamp < %(end_date)s
+            ORDER BY timestamp ASC;
+        """
+        return self._fetch_query(query, params)

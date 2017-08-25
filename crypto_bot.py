@@ -19,6 +19,8 @@ BASE_CURRENCIES = ['BTC', 'ETH']
 MAJOR_TICK_SIZE = 15
 EXECUTE_TRADES = False
 TESTING = True
+TESTING_START_DATE = datetime.datetime(2015, 1, 1)
+TESTING_END_DATE = datetime.datetime(2015, 1, 5)
 
 bb_options = {
     'active': True,
@@ -33,7 +35,10 @@ bb_options = {
 class CryptoBot:
     def __init__(self, strat):
         self.psql = PostgresConnection()
-        self.btrx = ExchangeFactory().get_exchange(TESTING)(BITTREX_API_KEY, BITTREX_API_SECRET)
+        if TESTING:
+            self.btrx = ExchangeFactory().get_exchange(TESTING)(TESTING_START_DATE, TESTING_END_DATE)
+        else:
+            self.btrx = ExchangeFactory().get_exchange(TESTING)(BITTREX_API_KEY, BITTREX_API_SECRET)
         self.trades = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
         self.RATE_LIMIT = datetime.timedelta(0, 60, 0)
         self.api_tick = datetime.datetime.now()
@@ -45,7 +50,7 @@ class CryptoBot:
         self.balances = self.get_balances()
         self.accounts = []
         self.tick = 0
-        bb_options['market_names'] = self.markets
+        bb_options['market_names'] = list(map(lambda market: market['MarketName'], self.markets))
         self.strat = strat(bb_options)
 
     def init_markets(self):
@@ -56,19 +61,38 @@ class CryptoBot:
             self.summary_tickers[mkt_name] = pd.DataFrame()
 
     def run(self):
+        if TESTING:
+            self.run_test()
+        else:
+            self.run_prod()
+
+    def run_prod(self):
         while (True):
             self.rate_limiter_limit()
             self.minor_tick_step()
             self.execute_trades()
 
+    def run_test(self):
+        while (True):
+            self.tick_step()
+
+        self.analyze_performance()
+
         ## QUANT ##
+
+    def tick_step(self):
+        self.minor_tick_step()
+        if self.major_tick():
+            self.major_tick_step()
+            self.execute_trades()
 
     def minor_tick_step(self):
         self.increment_tick()
         # get the ticker for all the markets
         summaries = self.get_market_summaries()
         for summary in summaries:
-            mkt_name = summary.MarketName
+            idx = summary.first_valid_index()
+            mkt_name = summary['MarketName'][idx]
             if is_valid_market(mkt_name, BASE_CURRENCIES):
                 self.summary_tickers[mkt_name].append(summary)
 
@@ -97,14 +121,10 @@ class CryptoBot:
         ## TICKER ##
 
     def increment_tick(self):
-        if self.check_tick():
-            self.tick = 1
-        else:
-            self.tick += 1
+        self.tick += 1
 
-    def check_tick(self):
-        return self.tick == MAJOR_TICK_SIZE
-
+    def major_tick(self):
+        return (self.tick % MAJOR_TICK_SIZE) == 0
 
         ## MARKET ##
 
@@ -271,3 +291,16 @@ class CryptoBot:
             except Exception as e:
                 print(e)
             current_date = current_date + timedelta(days=1)
+
+        ## BACKTESTING TOOLS ##
+    def analyze_performance(self):
+        starting_balances = self.btrx.starting_balances
+        current_balances = self.btrx.getbalances()
+        print('*** PERFORMANCE RESULTS ***')
+        for currency in starting_balances:
+            start = starting_balances[currency]
+            end = current_balances[currency]
+            print(' == ' + currency + ' == ')
+            print('Start    :: ' + str(start))
+            print('End      :: ' + str(end))
+            print('% diff   :: ' + str((end - start) / start))

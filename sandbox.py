@@ -13,4 +13,5 @@ bot = CryptoBot(BollingerBandsStrat)
 # bot.rate_limiter_start()
 # bot.rate_limiter_limit()
 
-bot.get_historical_data()
+# bot.get_historical_data()
+bot.run()
