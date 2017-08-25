@@ -1,15 +1,17 @@
-from bittrex import bittrex
-from secrets import BITTREX_API_KEY, BITTREX_API_SECRET
-from db.psql import PostgresConnection
-from utils import is_valid_market
-import pandas as pd
 import datetime
+import json
+import urllib
 from datetime import timedelta
 from time import sleep
-from bs4 import BeautifulSoup
-import urllib
-import json
 
+import pandas as pd
+from bs4 import BeautifulSoup
+
+from db.psql import PostgresConnection
+from exchange.bittrex import bittrex
+from secrets import BITTREX_API_KEY, BITTREX_API_SECRET
+from utils import is_valid_market
+from exchange.exchange_factory import ExchangeFactory
 
 MAX_BTC_PER_BUY = 0.05
 BUY_DECREMENT_COEFFICIENT = 0.75
@@ -31,7 +33,7 @@ bb_options = {
 class CryptoBot:
     def __init__(self, strat):
         self.psql = PostgresConnection()
-        self.btrx = bittrex(BITTREX_API_KEY, BITTREX_API_SECRET)
+        self.btrx = ExchangeFactory().get_exchange(TESTING)(BITTREX_API_KEY, BITTREX_API_SECRET)
         self.trades = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
         self.RATE_LIMIT = datetime.timedelta(0, 60, 0)
         self.api_tick = datetime.datetime.now()
