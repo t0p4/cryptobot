@@ -4,7 +4,12 @@ from db.psql import PostgresConnection
 from utils import is_valid_market
 import pandas as pd
 import datetime
+from datetime import timedelta
 from time import sleep
+from bs4 import BeautifulSoup
+import urllib
+import json
+
 
 MAX_BTC_PER_BUY = 0.05
 BUY_DECREMENT_COEFFICIENT = 0.75
@@ -227,3 +232,26 @@ class CryptoBot:
             summaries = self.get_market_summaries()
             self.psql.save_summaries(summaries)
             self.rate_limiter_limit()
+
+    def get_historical_data(self):
+        # HISTORICAL BTC DATA SCRAPER FOR bitcoincharts.com
+        endpoint = 'https://bitcoincharts.com/charts/chart.json?m=bitstampUSD&SubmitButton=Draw&r=2&i=1-min&c=1&s='
+        start_date = datetime.datetime(2015, 1, 1)
+        current_date = start_date
+        end_date = datetime.datetime(2017, 8, 24)
+
+        while current_date.date() < end_date.date():
+            next_date = current_date + timedelta(days=1)
+            cd = current_date.strftime('%Y-%m-%d')
+            nd = next_date.strftime('%Y-%m-%d')
+            print('** getting BTC historical data ** ' + cd + ' :: ' + nd)
+            url = endpoint + cd + '&e=' + nd + '&Prev=&Next=&t=S&b=&a1=&m1=10&a2=&m2=25&x=0&i1=&i2=&i3=&i4=&v=1&cv=0&ps=0&l=0&p=0&'
+            resp = urllib.urlopen(url)
+            html = resp.read()
+            bs = BeautifulSoup(html)
+            try:
+                data = json.loads(bs.contents[0])
+                self.psql.save_historical_data(data)
+            except Exception as e:
+                print(e)
+            current_date = current_date + timedelta(days=1)

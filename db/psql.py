@@ -88,3 +88,15 @@ class PostgresConnection:
         }
         query = """ INSERT INTO summaries (%(columns)s) VALUES %(values)s; """
         self._exec_query(query, params)
+
+    def save_historical_data(self, data):
+        print('== SAVE historical data ==')
+        fmt_str = '(%s,%s,%s,%s,%s,%s,%s,%s)'
+        columns = 'timestamp,open,high,low,close,volume_btc,volume_usd,weighted_price'
+        values = AsIs(','.join(fmt_str % tuple(row) for row in data))
+        params = {
+            "columns": AsIs(columns),
+            "values": values
+        }
+        query = """ INSERT INTO btc_historical (%(columns)s) VALUES %(values)s; """
+        self._exec_query(query, params)
