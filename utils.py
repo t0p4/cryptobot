@@ -1,4 +1,5 @@
 from logger import Logger
+import datetime
 log = Logger(__name__)
 
 INF = 999999999999999
@@ -18,6 +19,7 @@ def ohlc_hack(data):
 
 
 def normalize_columns(data):
+    data.columns = map(str, data.columns)
     data.columns = map(str.lower, data.columns)
     return data
 
@@ -39,4 +41,19 @@ def normalize_inf_rows(data):
                     idx += 1
                 idx += 1
             data.loc[index] = data.loc[idx - 1]
+    return data
+
+
+def normalize_inf_rows_dicts(data):
+    log.info('NORMALIZING DATA')
+    for index, row in enumerate(data):
+        if row[1] > INF:
+            idx = index
+            if idx == 0:
+                while data[idx][1] > INF:
+                    idx += 1
+                idx += 1
+            data[index] = data[idx - 1][:]
+        # if isinstance(data[index][0], float) or isinstance(data[index][0], int):
+        #     data[index][0] = datetime.datetime.fromtimestamp(data[index][0])
     return data

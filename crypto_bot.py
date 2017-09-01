@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 
 from db.psql import PostgresConnection
 from secrets import BITTREX_API_KEY, BITTREX_API_SECRET
-from utils import is_valid_market, ohlc_hack
+from utils import is_valid_market, ohlc_hack, normalize_inf_rows_dicts
 from exchange.exchange_factory import ExchangeFactory
 from logger import Logger
 log = Logger(__name__)
@@ -17,7 +17,7 @@ MAX_BTC_PER_BUY = 0.05
 BUY_DECREMENT_COEFFICIENT = 0.75
 MAJOR_TICK_SIZE = 15
 EXECUTE_TRADES = False
-TESTING = True
+TESTING = False
 if TESTING:
     BASE_CURRENCIES = ['USD', 'BTC']
 else:
@@ -168,6 +168,21 @@ class CryptoBot:
         balance = self.get_balance(coin)
         return balance * quantity
 
+    def calculate_order_rate(self, market, order_type, quantity, order_book_depth):
+        if TESTING:
+            return self.btrx.get_order_rate(market, self.tick)
+        else:
+            order_book = self.get_order_book(market, order_type, order_book_depth)
+            current_total = 0
+            rate = 0
+            # calculate an instant price
+            for order in order_book:
+                current_total += order['Quantity']
+                rate = order['Rate']
+                if current_total >= quantity:
+                    break
+            return rate
+
     def buy_instant(self, market, quantity):
         log.info('== BUY instant ==')
         self.trade_instant('buy', market, quantity)
@@ -179,15 +194,7 @@ class CryptoBot:
     def trade_instant(self, order_type, market, pct_holdings):
         quantity = self.calculate_num_coins(order_type, market, pct_holdings)
         try:
-            order_book = self.get_order_book(market, order_type, 20)
-            current_total = 0
-            rate = 0
-            # calculate an instant price
-            for order in order_book:
-                current_total += order['Quantity']
-                rate = order['Rate']
-                if current_total >= quantity:
-                    break
+            rate = self.calculate_order_rate(market, order_type, quantity, 20)
             if EXECUTE_TRADES:
                 trade_resp = self.trades[order_type](market, quantity, rate)
             if not isinstance(trade_resp, basestring):
@@ -284,6 +291,8 @@ class CryptoBot:
                 order_books[market_name].append(order_book)
             self.rate_limiter_limit()
 
+        # BITTREX MARKET DATA COLLECTOR #
+
     def collect_summaries(self):
         self.rate_limiter_reset()
         while True:
@@ -296,11 +305,12 @@ class CryptoBot:
 
     def get_historical_data(self):
         endpoint = 'https://bitcoincharts.com/charts/chart.json?m=bitstampUSD&SubmitButton=Draw&r=2&i=1-min&c=1&s='
-        start_date = datetime.datetime(2017, 1, 1)
+        start_date = datetime.datetime(2017, 2, 8)
         current_date = start_date
         end_date = datetime.datetime(2017, 8, 24)
 
         while current_date.date() < end_date.date():
+            sleep(3)
             next_date = current_date + timedelta(days=1)
             cd = current_date.strftime('%Y-%m-%d')
             nd = next_date.strftime('%Y-%m-%d')
@@ -308,13 +318,15 @@ class CryptoBot:
             url = endpoint + cd + '&e=' + nd + '&Prev=&Next=&t=S&b=&a1=&m1=10&a2=&m2=25&x=0&i1=&i2=&i3=&i4=&v=1&cv=0&ps=0&l=0&p=0&'
             resp = urllib.urlopen(url)
             html = resp.read()
-            bs = BeautifulSoup(html)
+            bs = BeautifulSoup(html, 'html.parser')
             try:
                 data = json.loads(bs.contents[0])
+                data = normalize_inf_rows_dicts(data)
                 self.psql.save_historical_data(data)
             except Exception as e:
                 log.error(e)
             current_date = current_date + timedelta(days=1)
+
 
         ## BACKTESTING TOOLS ##
 

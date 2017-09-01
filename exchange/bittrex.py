@@ -60,7 +60,7 @@ class bittrex(object):
         summaries = self.query('getmarketsummaries')
         results = []
         for summary in summaries:
-            results.append(normalize_columns(pandas.DataFrame(summary)))
+            results.append(normalize_columns(pandas.DataFrame(summary, [0])))
         return results
     
     def getmarketsummary(self, market):

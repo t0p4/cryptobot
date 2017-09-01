@@ -79,12 +79,9 @@ class PostgresConnection:
 
     def save_summaries(self, summaries):
         log.info('== SAVE market summaries ==')
-        fmt_str = "({PrevDay},{Volume},{Last},{OpenSellOrders},'{TimeStamp}',{Bid},'{Created}',{OpenBuyOrders},{High},'{MarketName}',{Low},{Ask},{BaseVolume})"
+        fmt_str = "({prevday},{volume},{last},{opensellorders},'{timestamp}',{bid},'{created}',{openbuyorders},{high},'{marketname}',{low},{ask},{basevolume})"
         columns = "prevday,volume,last,opensellorders,timestamp,bid,created,openbuyorders,high,marketname,low,ask,basevolume"
-        for idx, summary in enumerate(summaries):
-            summaries[idx]['TimeStamp'] = summary['TimeStamp'].replace('T', ' ').split('.')[0]
-            summaries[idx]['Created'] = summary['Created'].replace('T', ' ').split('.')[0]
-        values = AsIs(','.join(fmt_str.format(**summary) for summary in summaries))
+        values = AsIs(','.join(fmt_str.format(**summary.loc[0]) for summary in summaries))
         params = {
             "columns": AsIs(columns),
             "values": values

@@ -70,8 +70,7 @@ class BacktestExchange:
         ]
 
     def getticker(self, market):
-        summary = self.market_summaries[market].loc[self.tick]
-        return [summary]
+        return self.market_summaries[market].loc[self.tick]
 
     def getmarketsummaries(self):
         self.tick += 1
@@ -83,10 +82,14 @@ class BacktestExchange:
     #
     # def getorderbook(self, market, type, depth=20):
     #     return self.query('getorderbook', {'market': market, 'type': type, 'depth': depth})
+
+    def get_order_rate(self, market):
+        return self.market_summaries[market].loc[tick, 'Last']
     #
     # def getmarkethistory(self, market, count=20):
     #     return self.query('getmarkethistory', {'market': market, 'count': count})
     #
+
     def buylimit(self, market, quantity, rate):
         trade = {'order_type': 'buy', 'market': market, 'quantity': quantity, 'rate': rate}
         self.update_buy_balances(market, quantity, rate)
@@ -96,6 +99,7 @@ class BacktestExchange:
     # # def buymarket(self, market, quantity):
     # #     return self.query('buymarket', {'market': market, 'quantity': quantity})
     #
+
     def selllimit(self, market, quantity, rate):
         trade = {'order_type': 'sell', 'market': market, 'quantity': quantity, 'rate': rate}
         self.update_sell_balances(market, quantity, rate)
