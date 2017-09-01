@@ -14,14 +14,17 @@ class BollingerBandsStrat(BaseStrategy):
     def handle_data(self, data, tick):
         if tick % self.major_tick == 0:
             for mkt_name, mkt_data in data.iteritems():
-                mkt_data.drop(['MarketName', 'TimeStamp', 'PrevDay', 'Created', 'DisplayMarketName'], axis=1, inplace=True)
-                mkt_data = mkt_data.groupby(mkt_data.index / 10).mean()
+                if self.testing:
+                    mkt_data.drop(['MarketName', 'timestamp'], axis=1, inplace=True)
+                else:
+                    mkt_data.drop(['MarketName', 'TimeStamp', 'PrevDay', 'Created', 'DisplayMarketName'], axis=1, inplace=True)
+                mkt_data = mkt_data.groupby(mkt_data.index / self.sma_window).mean()
                 mkt_data = self.calc_bollinger_bands(mkt_data)
-                tail = mkt_data.tail
-                if tail['Last'] >= tail['UPPER_BB']:
+                tail = mkt_data.tail()
+                if tail['close'].values[0] >= tail['UPPER_BB'].values[0]:
                     self.buy_positions[mkt_name] = True
                     self.sell_positions[mkt_name] = False
-                elif tail['Last'] < tail['UPPER_BB']:
+                elif tail['close'].values[0] < tail['UPPER_BB'].values[0]:
                     self.buy_positions[mkt_name] = False
                     self.sell_positions[mkt_name] = True
 

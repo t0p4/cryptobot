@@ -9,6 +9,9 @@ import datetime
 import dateutil.relativedelta
 from time import mktime
 
+from logger import Logger
+log = Logger(__name__)
+
 
 class PostgresConnection:
     def __init__(self):
@@ -24,8 +27,8 @@ class PostgresConnection:
         try:
             self.cur.execute(query, params)
         except Exception as e:
-            print('*** POSTGRES ERROR ***')
-            print(e)
+            log.error('*** POSTGRES ERROR ***')
+            log.error(e)
 
         self.conn.commit()
         self.cur.close()
@@ -43,8 +46,8 @@ class PostgresConnection:
             column_names = [desc[0] for desc in self.cur.description]
             result = pd.DataFrame(self.cur.fetchall(), columns=column_names)
         except Exception as e:
-            print('*** POSTGRES ERROR ***')
-            print(e)
+            log.error('*** POSTGRES ERROR ***')
+            log.error(e)
 
         self.conn.commit()
         self.cur.close()
@@ -52,7 +55,7 @@ class PostgresConnection:
         return result
 
     def save_trade(self, order_type, market, quantity, rate, uuid):
-        print('== SAVE trade ==')
+        log.info('== SAVE trade ==')
         fmt_str = "('{order_type}','{market}',{quantity},{rate},'{uuid}','{base_currency}','{market_currency}','{timestamp}')"
         columns = "(order_type, market, quantity, rate, uuid, base_currency, market_currency, timestamp)"
         timestamp = datetime.datetime.now()
@@ -75,7 +78,7 @@ class PostgresConnection:
         self._exec_query(query, params)
 
     def save_summaries(self, summaries):
-        print('== SAVE market summaries ==')
+        log.info('== SAVE market summaries ==')
         fmt_str = "({PrevDay},{Volume},{Last},{OpenSellOrders},'{TimeStamp}',{Bid},'{Created}',{OpenBuyOrders},{High},'{MarketName}',{Low},{Ask},{BaseVolume})"
         columns = "prevday,volume,last,opensellorders,timestamp,bid,created,openbuyorders,high,marketname,low,ask,basevolume"
         for idx, summary in enumerate(summaries):
@@ -90,7 +93,7 @@ class PostgresConnection:
         self._exec_query(query, params)
 
     def save_historical_data(self, data):
-        print('== SAVE historical data ==')
+        log.info('== SAVE historical data ==')
         fmt_str = '(%s,%s,%s,%s,%s,%s,%s,%s)'
         columns = 'timestamp,open,high,low,close,volume_btc,volume_usd,weighted_price'
         values = AsIs(','.join(fmt_str % tuple(row) for row in data))
@@ -102,13 +105,13 @@ class PostgresConnection:
         self._exec_query(query, params)
 
     def get_historical_data(self, start_date, end_date):
-        print('== GET historical data ==')
+        log.info('== GET historical data ==')
         params = {
             "start_date": mktime(start_date.timetuple()),
             "end_date": mktime(end_date.timetuple())
         }
         query = """
-            SELECT * from btc_historical
+            SELECT open, high, low, close, volume_btc, volume_usd, timestamp FROM btc_historical
             WHERE timestamp >= %(start_date)s AND timestamp < %(end_date)s
             ORDER BY timestamp ASC;
         """

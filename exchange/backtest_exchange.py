@@ -1,8 +1,12 @@
 from db.psql import PostgresConnection
-
+from utils import get_coins_from_market, normalize_inf_rows
+import pandas as pd
+from logger import Logger
+log = Logger(__name__)
 
 class BacktestExchange:
     def __init__(self, start_date, end_date):
+        log.info('Initializing backtest exchange...')
         self.start_date = start_date
         self.end_date = end_date
         self.psql = PostgresConnection()
@@ -12,15 +16,31 @@ class BacktestExchange:
         }
         self.starting_balances = self.balances.copy()
         self.trades = {
-            'USD': [],
-            'BTC': []
+            'USD-BTC': []
         }
         self.tick = -1
         self.market_summaries = self.load_market_summaries()
+        log.info('backtest exchange successfully initialized')
 
     def load_market_summaries(self):
-        summary = {'BTC-USD': self.psql.get_historical_data(self.start_date, self.end_date)}
+        data = self.psql.get_historical_data(self.start_date, self.end_date)
+        length = len(data)
+        mkt_name_series = pd.Series(['USD-BTC'] * length)
+        data = data.assign(MarketName=mkt_name_series.values)
+        data = data.assign(Last=data['close'].values)
+        data = normalize_inf_rows(data)
+        summary = {'USD-BTC': data}
         return summary
+
+    def update_buy_balances(self, market, quantity, rate):
+        base_coin, mkt_coin = get_coins_from_market(market)
+        self.balances[base_coin] -= (quantity * rate)
+        self.balances[mkt_coin] += quantity
+
+    def update_sell_balances(self, market, quantity, rate):
+        base_coin, mkt_coin = get_coins_from_market(market)
+        self.balances[base_coin] += (quantity * rate)
+        self.balances[mkt_coin] -= quantity
 
     def getmarkets(self):
         return [
@@ -30,7 +50,7 @@ class BacktestExchange:
                 "MarketCurrencyLong": "USDollars",
                 "BaseCurrencyLong": "Bitcoin",
                 "MinTradeSize": 0.01000000,
-                "MarketName": "BTC-USD",
+                "MarketName": "USD-BTC",
                 "IsActive": True,
                 "Created": "2014-02-13T00:00:00"
             }
@@ -49,13 +69,13 @@ class BacktestExchange:
             }
         ]
 
-    # def getticker(self, market):
-    #     return self.query('getticker', {'market': market})
+    def getticker(self, market):
+        summary = self.market_summaries[market].loc[self.tick]
+        return [summary]
 
     def getmarketsummaries(self):
         self.tick += 1
-        summary = self.market_summaries['BTC-USD'].iloc[[self.tick]]
-        summary['MarketName'] = 'BTC-USD'
+        summary = self.market_summaries['USD-BTC'].loc[self.tick]
         return [summary]
 
     # def getmarketsummary(self, market):
@@ -69,6 +89,7 @@ class BacktestExchange:
     #
     def buylimit(self, market, quantity, rate):
         trade = {'order_type': 'buy', 'market': market, 'quantity': quantity, 'rate': rate}
+        self.update_buy_balances(market, quantity, rate)
         return self.trades[market].append(trade)
     #
     # # DEPRECATED
@@ -77,6 +98,7 @@ class BacktestExchange:
     #
     def selllimit(self, market, quantity, rate):
         trade = {'order_type': 'sell', 'market': market, 'quantity': quantity, 'rate': rate}
+        self.update_sell_balances(market, quantity, rate)
         return self.trades[market].append(trade)
     #
     # # DEPRECATED

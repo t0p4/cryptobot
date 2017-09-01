@@ -5,6 +5,8 @@ import json
 import time
 import hmac
 import hashlib
+import pandas
+from utils import normalize_columns
 
 class bittrex(object):
     
@@ -55,7 +57,11 @@ class bittrex(object):
         return self.query('getticker', {'market': market})
     
     def getmarketsummaries(self):
-        return self.query('getmarketsummaries')
+        summaries = self.query('getmarketsummaries')
+        results = []
+        for summary in summaries:
+            results.append(normalize_columns(pandas.DataFrame(summary)))
+        return results
     
     def getmarketsummary(self, market):
         return self.query('getmarketsummary', {'market': market})

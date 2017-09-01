@@ -3,6 +3,7 @@ class BaseStrategy:
         self.active = options['active']
         self.buy_positions = {mkt_name: False for mkt_name in options['market_names']}
         self.sell_positions = {mkt_name: False for mkt_name in options['market_names']}
+        self.testing = options['testing']
 
     def handle_data(self, data, tick):
         raise Exception('HANDLE_DATA function should be overwritten')
