@@ -1,5 +1,5 @@
 from backtest_exchange import BacktestExchange
-from bittrex import bittrex
+from bittrex import Bittrex
 
 
 class ExchangeFactory:
@@ -7,4 +7,4 @@ class ExchangeFactory:
         if testing:
             return BacktestExchange
         else:
-            return bittrex
+            return Bittrex

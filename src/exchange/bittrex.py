@@ -11,7 +11,7 @@ import pandas
 from src.utils.utils import normalize_columns, normalize_index
 
 
-class bittrex(object):
+class Bittrex(object):
     
     def __init__(self, key, secret):
         self.key = key
@@ -19,8 +19,7 @@ class bittrex(object):
         self.public = ['getmarkets', 'getcurrencies', 'getticker', 'getmarketsummaries', 'getmarketsummary', 'getorderbook', 'getmarkethistory']
         self.market = ['buylimit', 'buymarket', 'selllimit', 'sellmarket', 'cancel', 'getopenorders']
         self.account = ['getbalances', 'getbalance', 'getdepositaddress', 'withdraw', 'getorder', 'getorderhistory', 'getwithdrawalhistory', 'getdeposithistory']
-    
-    
+
     def query(self, method, values={}):
         if method in self.public:
             url = 'https://bittrex.com/api/v1.1/public/'
@@ -48,8 +47,7 @@ class bittrex(object):
             return response["result"]
         else:
             return response["message"]
-    
-    
+
     def getmarkets(self):
         return self.query('getmarkets')
     
@@ -63,7 +61,9 @@ class bittrex(object):
         summaries = self.query('getmarketsummaries')
         results = []
         for summary in summaries:
-            results.append(normalize_index(pandas.Series(summary)))
+            summary_data = normalize_index(pandas.Series(summary))
+            summary_data.drop(['timestamp', 'prevday', 'created', 'high', 'low'], inplace=True)
+            results.append(summary_data)
         return results
     
     def getmarketsummary(self, market):

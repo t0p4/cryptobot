@@ -41,13 +41,11 @@ bb_options = {
 
 
 class CryptoBot:
-    def __init__(self, strat):
+    def __init__(self, strat, exchange):
         log.info('Initializing bot...')
         self.psql = PostgresConnection()
-        if TESTING:
-            self.btrx = ExchangeFactory().get_exchange(TESTING)(TESTING_START_DATE, TESTING_END_DATE)
-        else:
-            self.btrx = ExchangeFactory().get_exchange(TESTING)(BITTREX_API_KEY, BITTREX_API_SECRET)
+        self.strat = strat
+        self.btrx = exchange
         self.trades = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
         self.RATE_LIMIT = datetime.timedelta(0, 60, 0)
         self.api_tick = datetime.datetime.now()
@@ -61,7 +59,6 @@ class CryptoBot:
         self.tick = 0
         self.major_tick = 0
         bb_options['market_names'] = list(map(lambda market: market['MarketName'], self.markets))
-        self.strat = strat(bb_options)
         log.info('bot successfully initialized')
 
     def init_markets(self):

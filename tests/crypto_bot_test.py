@@ -1,0 +1,26 @@
+from src.bot.crypto_bot import CryptoBot
+from src.strats.base_strat import BaseStrategy
+from tests.mocks.btrx_mock import MockBittrex
+import pandas as pd
+
+strat_options = {
+    'active': False,
+    'market_names': [],
+    'testing': True
+}
+
+class TestCryptoBot:
+    def setup_class(self):
+        strat = BaseStrategy(strat_options)
+        exchange = MockBittrex('TEST_KEY', 'TEST_SECRET')
+        self.bot = CryptoBot(strat, exchange)
+
+    def teardown_class(self):
+        self.bot = None
+
+    def test_get_market_summaries(self):
+        expected_columns = ['marketname', 'volume', 'last', 'basevolume', 'bid', 'ask', 'openbuyorders', 'opensellorders']
+        market_summaries = self.bot.get_market_summaries()
+        assert(isinstance(market_summaries, list))
+        for summary in market_summaries:
+            assert(isinstance(summary, pd.Series))

@@ -1,7 +1,7 @@
 from src.strats.bollinger_bands_strat import BollingerBandsStrat
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
-from fixtures.market_summaries_fixture import MARKET_SUMMARIES_FIXTURE
+from fixtures.summary_tickers_fixture import SUMMARY_TICKERS_FIXTURE
 
 options = {
     'active': True,
@@ -29,5 +29,5 @@ class TestBBStrat:
             {'ask': 0.015521, 'basevolume': 3117.045112, 'bid': 0.015466, 'high': 0.0175, 'last': 0.015483,
              'low': 0.015106, 'openbuyorders': 2150.133333, 'opensellorders': 5755.133333, 'volume': 192502.723944}
         ])
-        result = self.strat.compress_and_calculate_mean(MARKET_SUMMARIES_FIXTURE)
+        result = self.strat.compress_and_calculate_mean(SUMMARY_TICKERS_FIXTURE)
         assert_frame_equal(result, expected_result, check_exact=False, check_less_precise=True)
