@@ -1,12 +1,15 @@
 #!/usr/bin/env python
-import urllib
-import urllib2
+import hashlib
+import hmac
 import json
 import time
-import hmac
-import hashlib
+import urllib
+import urllib2
+
 import pandas
-from utils import normalize_columns
+
+from src.utils.utils import normalize_columns, normalize_index
+
 
 class bittrex(object):
     
@@ -60,7 +63,7 @@ class bittrex(object):
         summaries = self.query('getmarketsummaries')
         results = []
         for summary in summaries:
-            results.append(normalize_columns(pandas.DataFrame(summary, [0])))
+            results.append(normalize_index(pandas.Series(summary)))
         return results
     
     def getmarketsummary(self, market):

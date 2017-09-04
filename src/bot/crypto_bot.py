@@ -3,39 +3,42 @@ import json
 import urllib
 from datetime import timedelta
 from time import sleep
+
 import pandas as pd
 from bs4 import BeautifulSoup
+from src.db.psql import PostgresConnection
 
-from db.psql import PostgresConnection
 from secrets import BITTREX_API_KEY, BITTREX_API_SECRET
-from utils import is_valid_market, ohlc_hack, normalize_inf_rows_dicts
-from exchange.exchange_factory import ExchangeFactory
-from logger import Logger
+from src.exchange.exchange_factory import ExchangeFactory
+from src.utils.logger import Logger
+from src.utils.utils import is_valid_market, ohlc_hack, normalize_inf_rows_dicts, add_saved_timestamp
+
 log = Logger(__name__)
 
 MAX_BTC_PER_BUY = 0.05
 BUY_DECREMENT_COEFFICIENT = 0.75
 MAJOR_TICK_SIZE = 15
+SMA_WINDOW = 20
 EXECUTE_TRADES = False
 TESTING = False
 if TESTING:
     BASE_CURRENCIES = ['USD', 'BTC']
 else:
     BASE_CURRENCIES = ['BTC', 'ETH']
-TESTING_START_DATE = datetime.datetime(2017, 8, 1)
-TESTING_END_DATE = datetime.datetime(2017, 8, 2)
-
+TESTING_START_DATE = datetime.datetime(2017, 1, 1)
+TESTING_END_DATE = datetime.datetime(2017, 8, 31)
 
 bb_options = {
     'active': True,
     'market_names': [],
     'num_standard_devs': 2,
-    'sma_window': 15,
+    'sma_window': SMA_WINDOW,
     'sma_stat_key': 'close',
     'minor_tick': 1,
     'major_tick': MAJOR_TICK_SIZE,
     'testing': TESTING
 }
+
 
 class CryptoBot:
     def __init__(self, strat):
@@ -56,6 +59,7 @@ class CryptoBot:
         self.balances = self.get_balances()
         self.accounts = []
         self.tick = 0
+        self.major_tick = 0
         bb_options['market_names'] = list(map(lambda market: market['MarketName'], self.markets))
         self.strat = strat(bb_options)
         log.info('bot successfully initialized')
@@ -77,7 +81,9 @@ class CryptoBot:
         while (True):
             self.rate_limiter_limit()
             self.minor_tick_step()
-            self.execute_trades()
+            if self.check_major_tick():
+                self.major_tick_step()
+                self.execute_trades()
 
     def run_test(self):
         while (True):
@@ -85,29 +91,31 @@ class CryptoBot:
 
         self.analyze_performance()
 
+
         ## QUANT ##
 
     def tick_step(self):
         self.minor_tick_step()
-        if self.major_tick():
+        if self.check_major_tick():
             log.info('MAJOR TICK')
             self.major_tick_step()
             self.execute_trades()
 
     def minor_tick_step(self):
-        self.increment_tick()
+        self.increment_minor_tick()
         # get the ticker for all the markets
         summaries = self.get_market_summaries()
         for summary in summaries:
-            idx = summary.first_valid_index()
-            mkt_name = summary['MarketName']
-            if is_valid_market(mkt_name, BASE_CURRENCIES):
-                self.summary_tickers[mkt_name] = self.summary_tickers[mkt_name].append(summary)
-                if not TESTING:
-                    self.summary_tickers[mkt_name] = ohlc_hack(self.summary_tickers[mkt_name])
+            mkt_name = summary['marketname']
+            if is_valid_market(mkt_name, BASE_CURRENCIES) and mkt_name in self.summary_tickers:
+                self.summary_tickers[mkt_name] = self.summary_tickers[mkt_name].append(summary, ignore_index=True)
+                # if not TESTING:
+                #     self.summary_tickers[mkt_name] = ohlc_hack(self.summary_tickers[mkt_name])
 
     def major_tick_step(self):
-        self.strat.handle_data(self.summary_tickers, self.tick)
+        self.increment_major_tick()
+        self.strat.handle_data(self.summary_tickers, self.major_tick)
+
 
         ## RATE LIMITER ##
 
@@ -130,11 +138,15 @@ class CryptoBot:
 
         ## TICKER ##
 
-    def increment_tick(self):
+    def increment_minor_tick(self):
         self.tick += 1
 
-    def major_tick(self):
+    def increment_major_tick(self):
+        self.major_tick += 1
+
+    def check_major_tick(self):
         return (self.tick % MAJOR_TICK_SIZE) == 0
+
 
         ## MARKET ##
 
@@ -153,6 +165,7 @@ class CryptoBot:
     def get_ticker(self, market):
         log.info('== GET ticker ==')
         return self.btrx.getticker(market)
+
 
         ## ORDERS ##
 
@@ -177,8 +190,8 @@ class CryptoBot:
             rate = 0
             # calculate an instant price
             for order in order_book:
-                current_total += order['Quantity']
-                rate = order['Rate']
+                current_total += order['quantity']
+                rate = order['rate']
                 if current_total >= quantity:
                     break
             return rate
@@ -197,7 +210,7 @@ class CryptoBot:
             rate = self.calculate_order_rate(market, order_type, quantity, 20)
             if EXECUTE_TRADES:
                 trade_resp = self.trades[order_type](market, quantity, rate)
-            if not isinstance(trade_resp, basestring):
+            if trade_resp and not isinstance(trade_resp, basestring):
                 self.trade_success(order_type, market, quantity, rate, trade_resp['uuid'])
                 return trade_resp
             else:
@@ -220,10 +233,10 @@ class CryptoBot:
         quantity = self.calculate_num_coins(order_type, market, pct_holdings)
         try:
             ticker = self.btrx.getticker(market)
-            rate = ticker['Last']
+            rate = ticker['last']
             if EXECUTE_TRADES:
                 trade_resp = self.trades[order_type](market, quantity, rate)
-            if not isinstance(trade_resp, basestring):
+            if trade_resp and not isinstance(trade_resp, basestring):
                 self.trade_success(order_type, market, quantity, rate, trade_resp['uuid'])
                 return trade_resp
             else:
@@ -252,11 +265,12 @@ class CryptoBot:
 
     def execute_trades(self):
         for market in self.markets:
-            mkt_name = market['MarketName']
+            mkt_name = market['marketname']
             if self.strat.should_buy(mkt_name):
                 self.buy_instant(mkt_name, .1)
             elif self.strat.should_sell(mkt_name):
                 self.sell_instant(mkt_name, 1)
+
 
         ## ACCOUNT ##
 
@@ -291,12 +305,15 @@ class CryptoBot:
                 order_books[market_name].append(order_book)
             self.rate_limiter_limit()
 
+
         # BITTREX MARKET DATA COLLECTOR #
 
     def collect_summaries(self):
         self.rate_limiter_reset()
         while True:
             summaries = self.get_market_summaries()
+            for idx, summary in enumerate(summaries):
+                summaries[idx] = add_saved_timestamp(summary)
             self.psql.save_summaries(summaries)
             self.rate_limiter_limit()
 

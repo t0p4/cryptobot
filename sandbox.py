@@ -1,5 +1,5 @@
-from crypto_bot import CryptoBot
-from strats.bollinger_bands_strat import BollingerBandsStrat
+from src.bot.crypto_bot import CryptoBot
+from src.strats.bollinger_bands_strat import BollingerBandsStrat
 
 bot = CryptoBot(BollingerBandsStrat)
 
@@ -9,9 +9,9 @@ bot = CryptoBot(BollingerBandsStrat)
 # bot.BUY_instant('ETH-NEO', 0.01)
 # bot.BUY_market('ETH-NEO', 0.01)
 # bot.sell_market('ETH-NEO', 0.01)
-bot.collect_summaries()
+# bot.collect_summaries()
 # bot.rate_limiter_start()
 # bot.rate_limiter_limit()
 
 # bot.get_historical_data()
-# bot.run()
+bot.run()

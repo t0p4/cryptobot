@@ -1,15 +1,12 @@
-import os
-import subprocess
-import psycopg2
-from psycopg2.extensions import AsIs
-from time import sleep
-import io
-import pandas as pd
 import datetime
-import dateutil.relativedelta
 from time import mktime
 
-from logger import Logger
+import pandas as pd
+import psycopg2
+from psycopg2.extensions import AsIs
+
+from src.utils.logger import Logger
+
 log = Logger(__name__)
 
 
@@ -79,8 +76,8 @@ class PostgresConnection:
 
     def save_summaries(self, summaries):
         log.info('== SAVE market summaries ==')
-        fmt_str = "({prevday},{volume},{last},{opensellorders},'{timestamp}',{bid},'{created}',{openbuyorders},{high},'{marketname}',{low},{ask},{basevolume})"
-        columns = "prevday,volume,last,opensellorders,timestamp,bid,created,openbuyorders,high,marketname,low,ask,basevolume"
+        fmt_str = "({prevday},{volume},{last},{opensellorders},'{timestamp}',{bid},'{created}',{openbuyorders},{high},'{marketname}',{low},{ask},{basevolume},{saved_timestamp})"
+        columns = "prevday,volume,last,opensellorders,timestamp,bid,created,openbuyorders,high,marketname,low,ask,basevolume,saved_timestamp,"
         values = AsIs(','.join(fmt_str.format(**summary.loc[0]) for summary in summaries))
         params = {
             "columns": AsIs(columns),
@@ -98,7 +95,7 @@ class PostgresConnection:
             "columns": AsIs(columns),
             "values": values
         }
-        query = """ INSERT INTO btc_historical (%(columns)s) VALUES %(values)s; """
+        query = """ INSERT INTO btc_historical (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
     def get_historical_data(self, start_date, end_date):
@@ -110,6 +107,17 @@ class PostgresConnection:
         query = """
             SELECT open, high, low, close, volume_btc, volume_usd, timestamp FROM btc_historical
             WHERE timestamp >= %(start_date)s AND timestamp < %(end_date)s
-            ORDER BY timestamp ASC;
+            ORDER BY timestamp ASC ;
+        """
+        return self._fetch_query(query, params)
+
+    def get_market_summaries_by_timestamp(self, target_timestamp):
+        log.info('== GET market summaries ==')
+        params = {
+            'target_timestamp': target_timestamp
+        }
+        query = """
+            SELECT marketname, last, bid, ask, saved_timestamp FROM summaries
+            WHERE saved_timestamp = {target_timestamp} ;
         """
         return self._fetch_query(query, params)

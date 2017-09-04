@@ -14,19 +14,27 @@ class BollingerBandsStrat(BaseStrategy):
     def handle_data(self, data, tick):
         if tick % self.major_tick == 0:
             for mkt_name, mkt_data in data.iteritems():
-                if self.testing:
-                    mkt_data.drop(['MarketName', 'timestamp'], axis=1, inplace=True)
-                else:
-                    mkt_data.drop(['MarketName', 'TimeStamp', 'PrevDay', 'Created', 'DisplayMarketName'], axis=1, inplace=True)
-                mkt_data = mkt_data.groupby(mkt_data.index / self.sma_window).mean()
+                mkt_data = self.compress_and_calculate_mean(mkt_data)
                 mkt_data = self.calc_bollinger_bands(mkt_data)
                 tail = mkt_data.tail()
-                if tail['close'].values[0] >= tail['UPPER_BB'].values[0]:
+                if tail['last'].values[0] >= tail['UPPER_BB'].values[0]:
                     self.buy_positions[mkt_name] = True
                     self.sell_positions[mkt_name] = False
-                elif tail['close'].values[0] < tail['UPPER_BB'].values[0]:
+                elif tail['last'].values[0] < tail['UPPER_BB'].values[0]:
                     self.buy_positions[mkt_name] = False
                     self.sell_positions[mkt_name] = True
+
+    def compress_and_calculate_mean(self, data):
+        if self.testing:
+            # data.drop(['marketname', 'timestamp'], axis=1, inplace=True)
+            data.drop(['marketname', 'timestamp', 'prevday', 'created'], axis=1, inplace=True)
+        else:
+            # mkt_data.drop(['MarketName', 'TimeStamp', 'PrevDay', 'Created', 'DisplayMarketName'], axis=1, inplace=True)
+            data.drop(['marketname', 'timestamp', 'prevday', 'created'], axis=1, inplace=True)
+        tail = data.tail(15).reset_index(drop=True)
+        data = data.drop(data.index[-15:])
+        tail = tail.groupby(tail.index / self.major_tick).mean()
+        return data.append(tail, ignore_index=True)
 
     def calc_bollinger_bands(self, df):
         df['SMA'] = pd.rolling_mean(df[self.sma_stat_key], self.sma_window)

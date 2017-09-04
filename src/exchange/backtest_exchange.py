@@ -1,7 +1,9 @@
-from db.psql import PostgresConnection
-from utils import get_coins_from_market, normalize_inf_rows
 import pandas as pd
-from logger import Logger
+
+from src.db.psql import PostgresConnection
+from src.utils.logger import Logger
+from src.utils.utils import get_coins_from_market, normalize_inf_rows
+
 log = Logger(__name__)
 
 class BacktestExchange:
@@ -72,10 +74,16 @@ class BacktestExchange:
     def getticker(self, market):
         return self.market_summaries[market].loc[self.tick]
 
-    def getmarketsummaries(self):
+    # def getmarketsummaries(self):
+    #     self.tick += 1
+    #     summary = self.market_summaries['USD-BTC'].loc[self.tick]
+    #     return [summary]
+
+    def getmarketsummaries(self, target_timestamp):
         self.tick += 1
-        summary = self.market_summaries['USD-BTC'].loc[self.tick]
-        return [summary]
+        summaries = self.psql.get_market_summaries_by_timestamp(target_timestamp)
+        ## transform summaries {DATAFRAME} into list of dicts ##
+        return summaries
 
     # def getmarketsummary(self, market):
     #     return self.query('getmarketsummary', {'market': market})
@@ -83,7 +91,7 @@ class BacktestExchange:
     # def getorderbook(self, market, type, depth=20):
     #     return self.query('getorderbook', {'market': market, 'type': type, 'depth': depth})
 
-    def get_order_rate(self, market):
+    def get_order_rate(self, market, tick):
         return self.market_summaries[market].loc[tick, 'Last']
     #
     # def getmarkethistory(self, market, count=20):

@@ -2,3 +2,4 @@ psycopg2
 pandas
 beautifulsoup4
 html5lib
+pytest>=1.4.33
