@@ -309,8 +309,7 @@ class CryptoBot:
         self.rate_limiter_reset()
         while True:
             summaries = self.get_market_summaries()
-            for idx, summary in enumerate(summaries):
-                summaries[idx] = add_saved_timestamp(summary)
+            summaries = add_saved_timestamp(summaries)
             self.psql.save_summaries(summaries)
             self.rate_limiter_limit()
 

@@ -31,8 +31,8 @@ class BollingerBandsStrat(BaseStrategy):
         else:
             # mkt_data.drop(['MarketName', 'TimeStamp', 'PrevDay', 'Created', 'DisplayMarketName'], axis=1, inplace=True)
             data.drop(['marketname', 'timestamp', 'prevday', 'created'], axis=1, inplace=True)
-        tail = data.tail(15).reset_index(drop=True)
-        data = data.drop(data.index[-15:])
+        tail = data.tail(self.major_tick).reset_index(drop=True)
+        data = data.drop(data.index[-self.major_tick:])
         tail = tail.groupby(tail.index / self.major_tick).mean()
         return data.append(tail, ignore_index=True)
 

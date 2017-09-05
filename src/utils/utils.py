@@ -1,4 +1,5 @@
 import datetime
+from time import mktime
 
 import pandas as pd
 
@@ -14,11 +15,13 @@ def is_valid_market(mkt_name, currencies):
 
 
 def add_saved_timestamp(data):
-    length = len(data)
-    timestamp = datetime.datetime.now()
-    timestamp_series = pd.Series([timestamp] * length)
-    data = data.assign(saved_timestamp=timestamp_series.values)
-    return data
+    timestamp = datetime.datetime.utcnow().isoformat()
+
+    def add_timestamp(series):
+        series['saved_timestamp'] = timestamp
+        return series
+
+    return map(add_timestamp, data)
 
 
 def ohlc_hack(data):

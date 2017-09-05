@@ -53,7 +53,7 @@ class PostgresConnection:
 
     def save_trade(self, order_type, market, quantity, rate, uuid):
         log.info('== SAVE trade ==')
-        fmt_str = "('{order_type}','{market}',{quantity},{rate},'{uuid}','{base_currency}','{market_currency}','{timestamp}')"
+        fmt_str = "('{order_type}','{market}',{quantity},{rate},'{uuid}','{base_currency}','{market_currency}',{timestamp})"
         columns = "(order_type, market, quantity, rate, uuid, base_currency, market_currency, timestamp)"
         timestamp = datetime.datetime.now()
         market_currencies = market.split('-')
@@ -76,14 +76,14 @@ class PostgresConnection:
 
     def save_summaries(self, summaries):
         log.info('== SAVE market summaries ==')
-        fmt_str = "({prevday},{volume},{last},{opensellorders},'{timestamp}',{bid},'{created}',{openbuyorders},{high},'{marketname}',{low},{ask},{basevolume},{saved_timestamp})"
-        columns = "prevday,volume,last,opensellorders,timestamp,bid,created,openbuyorders,high,marketname,low,ask,basevolume,saved_timestamp,"
-        values = AsIs(','.join(fmt_str.format(**summary.loc[0]) for summary in summaries))
+        fmt_str = "({volume},{last},{opensellorders},{bid},{openbuyorders},'{marketname}',{ask},{basevolume},'{saved_timestamp}')"
+        columns = "volume,last,opensellorders,bid,openbuyorders,marketname,ask,basevolume,saved_timestamp"
+        values = AsIs(','.join(fmt_str.format(**summary) for summary in summaries))
         params = {
             "columns": AsIs(columns),
             "values": values
         }
-        query = """ INSERT INTO summaries (%(columns)s) VALUES %(values)s; """
+        query = """ INSERT INTO market_summaries (%(columns)s) VALUES %(values)s; """
         self._exec_query(query, params)
 
     def save_historical_data(self, data):
@@ -117,7 +117,7 @@ class PostgresConnection:
             'target_timestamp': target_timestamp
         }
         query = """
-            SELECT marketname, last, bid, ask, saved_timestamp FROM summaries
+            SELECT marketname, last, bid, ask, saved_timestamp FROM market_summaries
             WHERE saved_timestamp = {target_timestamp} ;
         """
         return self._fetch_query(query, params)
