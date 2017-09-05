@@ -1,2 +1,3 @@
 .idea/*
 secrets.py
+tests/__pycache__/*.*

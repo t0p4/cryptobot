@@ -9,6 +9,7 @@ strat_options = {
     'testing': True
 }
 
+
 class TestCryptoBot:
     def setup_class(self):
         strat = BaseStrategy(strat_options)
@@ -24,3 +25,6 @@ class TestCryptoBot:
         assert(isinstance(market_summaries, list))
         for summary in market_summaries:
             assert(isinstance(summary, pd.Series))
+            assert(len(summary.index) == len(expected_columns))
+            for key in summary.index:
+                assert(key in expected_columns)
