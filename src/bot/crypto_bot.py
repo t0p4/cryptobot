@@ -3,15 +3,11 @@ import json
 import urllib
 from datetime import timedelta
 from time import sleep
-
 import pandas as pd
 from bs4 import BeautifulSoup
 from src.db.psql import PostgresConnection
-
-from secrets import BITTREX_API_KEY, BITTREX_API_SECRET
-from src.exchange.exchange_factory import ExchangeFactory
 from src.utils.logger import Logger
-from src.utils.utils import is_valid_market, ohlc_hack, normalize_inf_rows_dicts, add_saved_timestamp
+from src.utils.utils import is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index
 
 log = Logger(__name__)
 
@@ -63,7 +59,7 @@ class CryptoBot:
 
     def init_markets(self):
         self.currencies = self.btrx.getcurrencies()
-        self.markets = self.btrx.getmarkets()
+        self.markets = self.get_markets()
         for market in self.markets:
             mkt_name = market['MarketName']
             self.summary_tickers[mkt_name] = pd.DataFrame()
@@ -163,12 +159,15 @@ class CryptoBot:
         log.info('== GET ticker ==')
         return self.btrx.getticker(market)
 
+    def get_markets(self):
+        log.info('== GET markets ==')
+        return self.btrx.getmarkets()
+
 
         ## ORDERS ##
 
     def calculate_num_coins(self, order_type, market, quantity):
         coins = market.split('-')
-        coin = ''
         if order_type == 'buy':
             coin = coins[0]
         elif order_type == 'sell':
@@ -309,10 +308,19 @@ class CryptoBot:
         self.rate_limiter_reset()
         while True:
             summaries = self.get_market_summaries()
-            summaries = add_saved_timestamp(summaries)
+            summaries = add_saved_timestamp(summaries, self.tick)
             self.psql.save_summaries(summaries)
             self.rate_limiter_limit()
+            self.tick += 1
 
+    def collect_markets(self):
+        markets = self.get_markets()
+        results = []
+        for market in markets:
+            market_data = normalize_index(pd.Series(market))
+            market_data.drop(['created'], inplace=True)
+            results.append(market_data)
+        self.psql.save_markets(results)
 
         # HISTORICAL BTC DATA SCRAPER FOR bitcoincharts.com
 

@@ -35,7 +35,7 @@ bot = CryptoBot(strat, btrx)
 # bot.BUY_instant('ETH-NEO', 0.01)
 # bot.BUY_market('ETH-NEO', 0.01)
 # bot.sell_market('ETH-NEO', 0.01)
-bot.collect_summaries()
+# bot.collect_summaries()
 # bot.rate_limiter_start()
 # bot.rate_limiter_limit()
 

@@ -1,0 +1,3 @@
+pg_dump -U patrickmckelvy -t fixture_market_summaries cryptobot --schema-only > fixture_market_summaries-schema.sql;
+pg_dump -U patrickmckelvy -t fixture_markets cryptobot --schema-only > fixture_markets-schema.sql;
+pg_dump -U patrickmckelvy -t btc_historical cryptobot --schema-only > btc_historical-schema.sql;

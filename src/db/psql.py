@@ -76,14 +76,26 @@ class PostgresConnection:
 
     def save_summaries(self, summaries):
         log.info('== SAVE market summaries ==')
-        fmt_str = "({volume},{last},{opensellorders},{bid},{openbuyorders},'{marketname}',{ask},{basevolume},'{saved_timestamp}')"
-        columns = "volume,last,opensellorders,bid,openbuyorders,marketname,ask,basevolume,saved_timestamp"
+        fmt_str = "({volume},{last},{opensellorders},{bid},{openbuyorders},'{marketname}',{ask},{basevolume},'{saved_timestamp}',{ticker_nonce})"
+        columns = "volume,last,opensellorders,bid,openbuyorders,marketname,ask,basevolume,saved_timestamp,ticker_nonce"
         values = AsIs(','.join(fmt_str.format(**summary) for summary in summaries))
         params = {
             "columns": AsIs(columns),
             "values": values
         }
-        query = """ INSERT INTO market_summaries (%(columns)s) VALUES %(values)s; """
+        query = """ INSERT INTO fixture_market_summaries (%(columns)s) VALUES %(values)s ; """
+        self._exec_query(query, params)
+
+    def save_markets(self, markets):
+        log.info('== SAVE markets ==')
+        fmt_str = "('{marketcurrency}','{basecurrency}','{marketcurrencylong}','{basecurrencylong}',{mintradesize},'{marketname}',{isactive},'{logourl}')"
+        columns = "marketcurrency,basecurrency,marketcurrencylong,basecurrencylong,mintradesize,marketname,isactive,logourl"
+        values = AsIs(','.join(fmt_str.format(**market) for market in markets))
+        params = {
+            "columns": AsIs(columns),
+            "values": values
+        }
+        query = """ INSERT INTO fixture_markets (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
     def save_historical_data(self, data):

@@ -14,11 +14,12 @@ def is_valid_market(mkt_name, currencies):
     return mkt_name.split('-')[0] in currencies
 
 
-def add_saved_timestamp(data):
+def add_saved_timestamp(data, tick):
     timestamp = datetime.datetime.utcnow().isoformat()
 
     def add_timestamp(series):
         series['saved_timestamp'] = timestamp
+        series['ticker_nonce'] = tick
         return series
 
     return map(add_timestamp, data)
