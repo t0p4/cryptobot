@@ -1,14 +1,13 @@
 from src.bot.crypto_bot import CryptoBot, MAJOR_TICK_SIZE
 from src.strats.bollinger_bands_strat import BollingerBandsStrat
 from src.exchange.exchange_factory import ExchangeFactory
-from secrets import BITTREX_API_KEY, BITTREX_API_SECRET
 import datetime
 
 TESTING_START_DATE = datetime.datetime(2017, 1, 1)
 TESTING_END_DATE = datetime.datetime(2017, 8, 31)
 TESTING = False
 
-btrx = ExchangeFactory().get_exchange()(BITTREX_API_KEY, BITTREX_API_SECRET)
+btrx = ExchangeFactory().get_exchange()()
 
 SMA_WINDOW = 20
 bb_options = {

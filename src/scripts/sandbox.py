@@ -6,9 +6,9 @@ import os
 
 TESTING_START_DATE = datetime.datetime(2017, 1, 1)
 TESTING_END_DATE = datetime.datetime(2017, 8, 31)
-TESTING = os.getenv('TESTING', True)
+TESTING = os.getenv('TESTING', 'FALSE')
 
-if TESTING:
+if TESTING == 'TRUE':
     btrx = ExchangeFactory().get_exchange()(TESTING_START_DATE, TESTING_END_DATE)
 else:
     btrx = ExchangeFactory().get_exchange()()

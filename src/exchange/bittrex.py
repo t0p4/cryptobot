@@ -7,8 +7,9 @@ import urllib
 import urllib2
 import pandas
 import os
+import pandas as pd
 
-from src.utils.utils import normalize_index
+from src.utils.utils import normalize_index, normalize_columns
 
 
 class Bittrex(object):
@@ -19,6 +20,8 @@ class Bittrex(object):
         self.public = ['getmarkets', 'getcurrencies', 'getticker', 'getmarketsummaries', 'getmarketsummary', 'getorderbook', 'getmarkethistory']
         self.market = ['buylimit', 'buymarket', 'selllimit', 'sellmarket', 'cancel', 'getopenorders']
         self.account = ['getbalances', 'getbalance', 'getdepositaddress', 'withdraw', 'getorder', 'getorderhistory', 'getwithdrawalhistory', 'getdeposithistory']
+        self.collect_fixtures = os.getenv('COLLECT_FIXTURES', 'FALSE')
+        self.testing = os.getenv('TESTING', 'FALSE')
 
     def query(self, method, values={}):
         if method in self.public:
@@ -49,10 +52,32 @@ class Bittrex(object):
             return response["message"]
 
     def getmarkets(self):
-        return self.query('getmarkets')
+        ## if collecting fixtures, return array of Series objects
+        ## if running in production (or backtesting), return dataframe
+        markets = self.query('getmarkets')
+        if self.collect_fixtures == 'TRUE':
+            results = []
+            for market in markets:
+                market_data = normalize_index(pd.Series(market))
+                market_data.drop(['created', 'issponsored', 'notice'], inplace=True)
+                results.append(market_data)
+            return results
+        else:
+            markets = pd.DataFrame(markets).drop(['created', 'issponsored', 'notice'], axis=1)
+            return normalize_columns(markets)
     
     def getcurrencies(self):
-        return self.query('getcurrencies')
+        currencies = self.query('getcurrencies')
+        if self.collect_fixtures == 'TRUE':
+            results = []
+            for currency in currencies:
+                currency_data = normalize_index(pd.Series(currency))
+                currency_data.drop(['notice'], inplace=True)
+                results.append(currency_data)
+            return results
+        else:
+            currencies = pd.DataFrame(currencies).drop(['notice'], axis=1)
+            return normalize_columns(currencies)
     
     def getticker(self, market):
         return self.query('getticker', {'market': market})

@@ -17,8 +17,8 @@ BUY_DECREMENT_COEFFICIENT = 0.75
 MAJOR_TICK_SIZE = 15
 SMA_WINDOW = 20
 EXECUTE_TRADES = False
-TESTING = os.getenv('TESTING', False)
-if TESTING:
+TESTING = os.getenv('TESTING', 'FALSE')
+if TESTING == 'TRUE':
     BASE_CURRENCIES = ['USD', 'BTC', 'ETH']
 else:
     BASE_CURRENCIES = ['BTC', 'ETH']
@@ -45,10 +45,9 @@ class CryptoBot:
         log.info('...bot successfully initialized')
 
     def init_markets(self):
-        self.currencies = self.btrx.getcurrencies()
+        self.currencies = self.get_currencies()
         self.markets = self.get_markets()
-        for market in self.markets:
-            mkt_name = market['MarketName']
+        for mkt_name in self.markets['marketname']:
             self.summary_tickers[mkt_name] = pd.DataFrame()
 
     def run(self):
@@ -303,12 +302,7 @@ class CryptoBot:
 
     def collect_markets(self):
         markets = self.get_markets()
-        results = []
-        for market in markets:
-            market_data = normalize_index(pd.Series(market))
-            market_data.drop(['created'], inplace=True)
-            results.append(market_data)
-        self.psql.save_markets(results)
+        self.psql.save_markets(markets)
 
     def collect_currencies(self):
         currencies = self.get_currencies()

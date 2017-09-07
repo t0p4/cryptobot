@@ -156,3 +156,15 @@ class PostgresConnection:
             WHERE ticker_nonce = {ticker_nonce} ;
         """
         return self._fetch_query(query, params)
+
+    def get_fixture_markets(self):
+        log.info('== GET fixture markets ==')
+        params = {}
+        query = """ SELECT * FROM fixture_markets ; """
+        return self._fetch_query(query, params)
+
+    def get_fixture_currencies(self):
+        log.info('== GET fixture markets ==')
+        params = {}
+        query = """ SELECT * FROM fixture_currencies ; """
+        return self._fetch_query(query, params)

@@ -46,31 +46,10 @@ class BacktestExchange:
         self.balances[mkt_coin] -= quantity
 
     def getmarkets(self):
-        return [
-            {
-                "MarketCurrency": "USD",
-                "BaseCurrency": "BTC",
-                "MarketCurrencyLong": "USDollars",
-                "BaseCurrencyLong": "Bitcoin",
-                "MinTradeSize": 0.01000000,
-                "MarketName": "USD-BTC",
-                "IsActive": True,
-                "Created": "2014-02-13T00:00:00"
-            }
-        ]
+        return self.psql.get_fixture_markets()
 
     def getcurrencies(self):
-        return [
-            {
-                "Currency": "BTC",
-                "CurrencyLong": "Bitcoin",
-                "MinConfirmation": 2,
-                "TxFee": 0.00020000,
-                "IsActive": True,
-                "CoinType": "BITCOIN",
-                "BaseAddress": ''
-            }
-        ]
+        return self.psql.get_fixture_currencies()
 
     def getticker(self, market):
         return self.market_summaries[market].loc[self.tick]

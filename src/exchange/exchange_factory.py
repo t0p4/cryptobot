@@ -5,7 +5,7 @@ import os
 
 class ExchangeFactory:
     def get_exchange(self):
-        if os.getenv('TESTING', False):
+        if os.getenv('TESTING', 'FALSE') == 'TRUE':
             return BacktestExchange
         else:
             return Bittrex
