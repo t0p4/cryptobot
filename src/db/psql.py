@@ -153,7 +153,7 @@ class PostgresConnection:
         }
         query = """
             SELECT marketname, last, bid, ask, saved_timestamp FROM fixture_market_summaries
-            WHERE ticker_nonce = {ticker_nonce} ;
+            WHERE ticker_nonce = %(ticker_nonce)s ;
         """
         return self._fetch_query(query, params)
 

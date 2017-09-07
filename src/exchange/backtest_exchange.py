@@ -1,5 +1,6 @@
 import pandas as pd
-
+from time import mktime
+import datetime
 from src.db.psql import PostgresConnection
 from src.utils.logger import Logger
 from src.utils.utils import get_coins_from_market, normalize_inf_rows, normalize_index
@@ -13,17 +14,20 @@ class BacktestExchange:
         self.start_date = start_date
         self.end_date = end_date
         self.psql = PostgresConnection()
-        self.balances = {
-            'USD': 20000,
-            'BTC': 3
-        }
+        self.balances = self.init_balances()
         self.starting_balances = self.balances.copy()
-        self.trades = {
-            'USD-BTC': []
-        }
+        self.trades = {}
         self.tick = -1
-        self.market_summaries = self.load_market_summaries()
+        # self.market_summaries = self.load_market_summaries()
         log.info('backtest exchange successfully initialized')
+
+    def init_balances(self):
+        currencies = self.getcurrencies()
+        balances = {}
+        for currency in currencies['currency']:
+            balances[currency] = 0
+        balances['BTC'] = 20
+        return balances
 
     def load_market_summaries(self):
         data = self.psql.get_historical_data(self.start_date, self.end_date)
@@ -63,9 +67,8 @@ class BacktestExchange:
         self.tick += 1
         summaries = self.psql.get_market_summaries_by_ticker(self.tick)
         results = []
-        for summary in summaries:
-            summary_data = normalize_index(pd.Series(summary))
-            results.append(summary_data)
+        for idx, summary in summaries.iterrows():
+            results.append(summary)
         return results
 
     # def getmarketsummary(self, market):
@@ -82,24 +85,25 @@ class BacktestExchange:
     #
 
     def buylimit(self, market, quantity, rate):
-        trade = {'order_type': 'buy', 'market': market, 'quantity': quantity, 'rate': rate}
+        trade_uuid = mktime(datetime.datetime.now().timetuple())
+        trade = {'order_type': 'buy', 'market': market, 'quantity': quantity, 'rate': rate, 'uuid': trade_uuid}
         self.update_buy_balances(market, quantity, rate)
-        return self.trades[market].append(trade)
-    #
-    # # DEPRECATED
-    # # def buymarket(self, market, quantity):
-    # #     return self.query('buymarket', {'market': market, 'quantity': quantity})
-    #
+        if self.trades[market]:
+            self.trades[market].append(trade)
+        else:
+            self.trades[market] = [trade]
+        return {'uuid': trade_uuid}
 
     def selllimit(self, market, quantity, rate):
-        trade = {'order_type': 'sell', 'market': market, 'quantity': quantity, 'rate': rate}
+        trade_uuid = mktime(datetime.datetime.now().timetuple())
+        trade = {'order_type': 'sell', 'market': market, 'quantity': quantity, 'rate': rate, 'uuid': trade_uuid}
         self.update_sell_balances(market, quantity, rate)
-        return self.trades[market].append(trade)
-    #
-    # # DEPRECATED
-    # # def sellmarket(self, market, quantity):
-    # #     return self.query('sellmarket', {'market': market, 'quantity': quantity})
-    #
+        if self.trades[market]:
+            self.trades[market].append(trade)
+        else:
+            self.trades[market] = [trade]
+        return {'uuid': trade_uuid}
+
     # def cancel(self, uuid):
     #     return self.query('cancel', {'uuid': uuid})
     #

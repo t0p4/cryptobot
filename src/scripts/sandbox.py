@@ -39,4 +39,4 @@ bot = CryptoBot(strat, btrx)
 # bot.rate_limiter_limit()
 
 # bot.get_historical_data()
-# bot.run()
+bot.run()
