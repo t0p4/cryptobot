@@ -6,6 +6,7 @@ from src.utils.utils import get_coins_from_market, normalize_inf_rows
 
 log = Logger(__name__)
 
+
 class BacktestExchange:
     def __init__(self, start_date, end_date):
         log.info('Initializing backtest exchange...')

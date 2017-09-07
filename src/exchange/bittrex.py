@@ -5,17 +5,17 @@ import json
 import time
 import urllib
 import urllib2
-
 import pandas
+import os
 
-from src.utils.utils import normalize_columns, normalize_index
+from src.utils.utils import normalize_index
 
 
 class Bittrex(object):
     
-    def __init__(self, key, secret):
-        self.key = key
-        self.secret = secret
+    def __init__(self):
+        self.key = os.getenv('BITTREX_API_KEY', '')
+        self.secret = os.getenv('BITTREX_API_SECRET', '')
         self.public = ['getmarkets', 'getcurrencies', 'getticker', 'getmarketsummaries', 'getmarketsummary', 'getorderbook', 'getmarkethistory']
         self.market = ['buylimit', 'buymarket', 'selllimit', 'sellmarket', 'cancel', 'getopenorders']
         self.account = ['getbalances', 'getbalance', 'getdepositaddress', 'withdraw', 'getorder', 'getorderhistory', 'getwithdrawalhistory', 'getdeposithistory']
