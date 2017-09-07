@@ -97,7 +97,7 @@ class BacktestExchange:
             'opened': self.current_timestamp
         }
         self.update_buy_balances(market, quantity, rate)
-        if self.trades[market]:
+        if market in self.trades:
             self.trades[market].append(trade)
         else:
             self.trades[market] = [trade]
@@ -114,7 +114,7 @@ class BacktestExchange:
             'opened': self.current_timestamp
         }
         self.update_sell_balances(market, quantity, rate)
-        if self.trades[market]:
+        if market in self.trades:
             self.trades[market].append(trade)
         else:
             self.trades[market] = [trade]
