@@ -98,6 +98,18 @@ class PostgresConnection:
         query = """ INSERT INTO fixture_markets (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
+    def save_currencies(self, markets):
+        log.info('== SAVE currencies ==')
+        fmt_str = "('{currency}','{currencylong}',{minconfirmation},{txfee},{isactive},'{cointype}','{baseaddress}')"
+        columns = "currency,currencylong,minconfirmation,txfee,isactive,cointype,baseaddress"
+        values = AsIs(','.join(fmt_str.format(**market) for market in markets))
+        params = {
+            "columns": AsIs(columns),
+            "values": values
+        }
+        query = """ INSERT INTO fixture_currencies (%(columns)s) VALUES %(values)s ; """
+        self._exec_query(query, params)
+
     def save_historical_data(self, data):
         log.info('== SAVE historical data ==')
         fmt_str = '(%s,%s,%s,%s,%s,%s,%s,%s)'

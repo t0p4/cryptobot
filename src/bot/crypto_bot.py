@@ -163,6 +163,10 @@ class CryptoBot:
         log.info('== GET markets ==')
         return self.btrx.getmarkets()
 
+    def get_currencies(self):
+        log.info('== GET currencies ==')
+        return self.btrx.getcurrencies()
+
 
         ## ORDERS ##
 
@@ -321,6 +325,14 @@ class CryptoBot:
             market_data.drop(['created'], inplace=True)
             results.append(market_data)
         self.psql.save_markets(results)
+
+    def collect_currencies(self):
+        currencies = self.get_currencies()
+        results = []
+        for currency in currencies:
+            currency_data = normalize_index(pd.Series(currency))
+            results.append(currency_data)
+        self.psql.save_currencies(results)
 
         # HISTORICAL BTC DATA SCRAPER FOR bitcoincharts.com
 

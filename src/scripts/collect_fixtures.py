@@ -26,5 +26,6 @@ strat = BollingerBandsStrat(bb_options)
 
 bot = CryptoBot(strat, btrx)
 
-bot.collect_markets()
+# bot.collect_markets()
 # bot.collect_summaries()
+bot.collect_currencies()
