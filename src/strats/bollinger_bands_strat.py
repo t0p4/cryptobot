@@ -25,12 +25,8 @@ class BollingerBandsStrat(BaseStrategy):
                     self.sell_positions[mkt_name] = True
 
     def compress_and_calculate_mean(self, data):
-        if self.testing:
-            # data.drop(['marketname', 'timestamp'], axis=1, inplace=True)
-            data.drop(['marketname', 'timestamp', 'prevday', 'created'], axis=1, inplace=True)
-        else:
-            # mkt_data.drop(['MarketName', 'TimeStamp', 'PrevDay', 'Created', 'DisplayMarketName'], axis=1, inplace=True)
-            data.drop(['marketname', 'timestamp', 'prevday', 'created'], axis=1, inplace=True)
+        data = data[['volume', 'last', 'bid', 'ask', 'basevolume', 'openbuyorders', 'opensellorders']]
+        # data = data[['volume', 'last', 'bid', 'ask', 'basevolume', 'openbuyorders', 'opensellorders', 'saved_timestamp', 'ticker_nonce']]
         tail = data.tail(self.major_tick).reset_index(drop=True)
         data = data.drop(data.index[-self.major_tick:])
         tail = tail.groupby(tail.index / self.major_tick).mean()

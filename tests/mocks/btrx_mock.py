@@ -5,8 +5,8 @@ from src.exchange.bittrex import Bittrex
 
 
 class MockBittrex(Bittrex):
-    def __init__(self, key, secret):
-        Bittrex.__init__(self, key, secret)
+    def __init__(self):
+        Bittrex.__init__(self)
         self.results = {
             'getmarketsummaries': MARKET_SUMMARIES_FIXTURE,
             'getcurrencies': [],

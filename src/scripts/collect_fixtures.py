@@ -8,7 +8,7 @@ TESTING_START_DATE = datetime.datetime(2017, 1, 1)
 TESTING_END_DATE = datetime.datetime(2017, 8, 31)
 TESTING = False
 
-btrx = ExchangeFactory().get_exchange(TESTING)(BITTREX_API_KEY, BITTREX_API_SECRET)
+btrx = ExchangeFactory().get_exchange()(BITTREX_API_KEY, BITTREX_API_SECRET)
 
 SMA_WINDOW = 20
 bb_options = {
@@ -18,8 +18,7 @@ bb_options = {
     'sma_window': SMA_WINDOW,
     'sma_stat_key': 'close',
     'minor_tick': 1,
-    'major_tick': MAJOR_TICK_SIZE,
-    'testing': TESTING
+    'major_tick': MAJOR_TICK_SIZE
 }
 
 strat = BollingerBandsStrat(bb_options)
@@ -28,4 +27,4 @@ bot = CryptoBot(strat, btrx)
 
 # bot.collect_markets()
 # bot.collect_summaries()
-bot.collect_currencies()
+# bot.collect_currencies()

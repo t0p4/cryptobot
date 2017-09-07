@@ -2,6 +2,9 @@ from src.bot.crypto_bot import CryptoBot
 from src.strats.base_strat import BaseStrategy
 from tests.mocks.btrx_mock import MockBittrex
 import pandas as pd
+import os
+
+os.environ['TESTING'] = 'True'
 
 strat_options = {
     'active': False,
@@ -13,7 +16,7 @@ strat_options = {
 class TestCryptoBot:
     def setup_class(self):
         strat = BaseStrategy(strat_options)
-        exchange = MockBittrex('TEST_KEY', 'TEST_SECRET')
+        exchange = MockBittrex()
         self.bot = CryptoBot(strat, exchange)
 
     def teardown_class(self):

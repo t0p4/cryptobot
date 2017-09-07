@@ -2,7 +2,7 @@ import pandas as pd
 
 from src.db.psql import PostgresConnection
 from src.utils.logger import Logger
-from src.utils.utils import get_coins_from_market, normalize_inf_rows
+from src.utils.utils import get_coins_from_market, normalize_inf_rows, normalize_index
 
 log = Logger(__name__)
 
@@ -62,13 +62,13 @@ class BacktestExchange:
     def getcurrencies(self):
         return [
             {
-                "Currency" : "BTC",
-                "CurrencyLong" : "Bitcoin",
-                "MinConfirmation" : 2,
-                "TxFee" : 0.00020000,
-                "IsActive" : True,
-                "CoinType" : "BITCOIN",
-                "BaseAddress" : ''
+                "Currency": "BTC",
+                "CurrencyLong": "Bitcoin",
+                "MinConfirmation": 2,
+                "TxFee": 0.00020000,
+                "IsActive": True,
+                "CoinType": "BITCOIN",
+                "BaseAddress": ''
             }
         ]
 
@@ -80,11 +80,14 @@ class BacktestExchange:
     #     summary = self.market_summaries['USD-BTC'].loc[self.tick]
     #     return [summary]
 
-    def getmarketsummaries(self, target_timestamp):
+    def getmarketsummaries(self):
         self.tick += 1
-        summaries = self.psql.get_market_summaries_by_timestamp(target_timestamp)
-        ## transform summaries {DATAFRAME} into list of dicts ##
-        return summaries
+        summaries = self.psql.get_market_summaries_by_ticker(self.tick)
+        results = []
+        for summary in summaries:
+            summary_data = normalize_index(pd.Series(summary))
+            results.append(summary_data)
+        return results
 
     # def getmarketsummary(self, market):
     #     return self.query('getmarketsummary', {'market': market})

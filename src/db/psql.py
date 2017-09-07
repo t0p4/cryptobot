@@ -145,3 +145,14 @@ class PostgresConnection:
             WHERE saved_timestamp = {target_timestamp} ;
         """
         return self._fetch_query(query, params)
+
+    def get_market_summaries_by_ticker(self, tick):
+        log.info('== GET market summaries by ticker ==')
+        params = {
+            'ticker_nonce': tick
+        }
+        query = """
+            SELECT marketname, last, bid, ask, saved_timestamp FROM fixture_market_summaries
+            WHERE ticker_nonce = {ticker_nonce} ;
+        """
+        return self._fetch_query(query, params)

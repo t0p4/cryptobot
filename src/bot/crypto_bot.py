@@ -1,3 +1,4 @@
+import os
 import datetime
 import json
 import urllib
@@ -16,24 +17,11 @@ BUY_DECREMENT_COEFFICIENT = 0.75
 MAJOR_TICK_SIZE = 15
 SMA_WINDOW = 20
 EXECUTE_TRADES = False
-TESTING = False
+TESTING = os.getenv('TESTING', False)
 if TESTING:
-    BASE_CURRENCIES = ['USD', 'BTC']
+    BASE_CURRENCIES = ['USD', 'BTC', 'ETH']
 else:
     BASE_CURRENCIES = ['BTC', 'ETH']
-TESTING_START_DATE = datetime.datetime(2017, 1, 1)
-TESTING_END_DATE = datetime.datetime(2017, 8, 31)
-
-bb_options = {
-    'active': True,
-    'market_names': [],
-    'num_standard_devs': 2,
-    'sma_window': SMA_WINDOW,
-    'sma_stat_key': 'close',
-    'minor_tick': 1,
-    'major_tick': MAJOR_TICK_SIZE,
-    'testing': TESTING
-}
 
 
 class CryptoBot:
@@ -43,7 +31,7 @@ class CryptoBot:
         self.strat = strat
         self.btrx = exchange
         self.trades = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
-        self.RATE_LIMIT = datetime.timedelta(0, 60, 0)
+        self.rate_limit = datetime.timedelta(0, 60, 0)
         self.api_tick = datetime.datetime.now()
         self.currencies = []
         self.summary_tickers = {}
@@ -54,8 +42,7 @@ class CryptoBot:
         self.accounts = []
         self.tick = 0
         self.major_tick = 0
-        bb_options['market_names'] = list(map(lambda market: market['MarketName'], self.markets))
-        log.info('bot successfully initialized')
+        log.info('...bot successfully initialized')
 
     def init_markets(self):
         self.currencies = self.btrx.getcurrencies()
@@ -73,10 +60,7 @@ class CryptoBot:
     def run_prod(self):
         while (True):
             self.rate_limiter_limit()
-            self.minor_tick_step()
-            if self.check_major_tick():
-                self.major_tick_step()
-                self.execute_trades()
+            self.tick_step()
 
     def run_test(self):
         while (True):
@@ -117,13 +101,13 @@ class CryptoBot:
 
     def rate_limiter_check(self):
         current_tick = datetime.datetime.now()
-        return (current_tick - self.api_tick) < self.RATE_LIMIT
+        return (current_tick - self.api_tick) < self.rate_limit
 
     def rate_limiter_limit(self):
         if not TESTING:
             current_tick = datetime.datetime.now()
             if self.rate_limiter_check():
-                sleep_for = self.RATE_LIMIT - (current_tick - self.api_tick)
+                sleep_for = self.rate_limit - (current_tick - self.api_tick)
                 log.warning('Rate Limit :: sleeping for ' + str(sleep_for) + ' seconds')
                 sleep(sleep_for.seconds)
                 self.rate_limiter_reset()
@@ -311,11 +295,11 @@ class CryptoBot:
     def collect_summaries(self):
         self.rate_limiter_reset()
         while True:
+            self.increment_minor_tick()
             summaries = self.get_market_summaries()
             summaries = add_saved_timestamp(summaries, self.tick)
             self.psql.save_summaries(summaries)
             self.rate_limiter_limit()
-            self.tick += 1
 
     def collect_markets(self):
         markets = self.get_markets()
