@@ -18,6 +18,7 @@ class BacktestExchange:
         self.starting_balances = self.balances.copy()
         self.trades = {}
         self.tick = -1
+        self.current_timestamp = None
         # self.market_summaries = self.load_market_summaries()
         log.info('backtest exchange successfully initialized')
 
@@ -67,6 +68,7 @@ class BacktestExchange:
         self.tick += 1
         summaries = self.psql.get_market_summaries_by_ticker(self.tick)
         results = []
+        self.current_timestamp = summaries.loc[0, 'saved_timestamp']
         for idx, summary in summaries.iterrows():
             results.append(summary)
         return results
@@ -86,7 +88,14 @@ class BacktestExchange:
 
     def buylimit(self, market, quantity, rate):
         trade_uuid = mktime(datetime.datetime.now().timetuple())
-        trade = {'order_type': 'buy', 'market': market, 'quantity': quantity, 'rate': rate, 'uuid': trade_uuid}
+        trade = {
+            'order_type': 'buy',
+            'market': market,
+            'quantity': quantity,
+            'rate': rate,
+            'uuid': trade_uuid,
+            'opened': self.current_timestamp
+        }
         self.update_buy_balances(market, quantity, rate)
         if self.trades[market]:
             self.trades[market].append(trade)
@@ -96,7 +105,14 @@ class BacktestExchange:
 
     def selllimit(self, market, quantity, rate):
         trade_uuid = mktime(datetime.datetime.now().timetuple())
-        trade = {'order_type': 'sell', 'market': market, 'quantity': quantity, 'rate': rate, 'uuid': trade_uuid}
+        trade = {
+            'order_type': 'sell',
+            'market': market,
+            'quantity': quantity,
+            'rate': rate,
+            'uuid': trade_uuid,
+            'opened': self.current_timestamp
+        }
         self.update_sell_balances(market, quantity, rate)
         if self.trades[market]:
             self.trades[market].append(trade)
