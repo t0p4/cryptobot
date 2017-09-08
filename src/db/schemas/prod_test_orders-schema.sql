@@ -2,12 +2,17 @@
 -- PostgreSQL database dump
 --
 
+-- Dumped from database version 9.4.5
+-- Dumped by pg_dump version 9.6.5
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
+SET row_security = off;
 
 SET search_path = public, pg_catalog;
 
@@ -16,7 +21,7 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
--- Name: prod_test_orders; Type: TABLE; Schema: public; Owner: patrickmckelvy; Tablespace: 
+-- Name: prod_test_orders; Type: TABLE; Schema: public; Owner: patrickmckelvy
 --
 
 CREATE TABLE prod_test_orders (
@@ -35,39 +40,11 @@ CREATE TABLE prod_test_orders (
 ALTER TABLE prod_test_orders OWNER TO patrickmckelvy;
 
 --
--- Name: orders_id_seq; Type: SEQUENCE; Schema: public; Owner: patrickmckelvy
---
-
-CREATE SEQUENCE orders_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE orders_id_seq OWNER TO patrickmckelvy;
-
---
--- Name: orders_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: patrickmckelvy
---
-
-ALTER SEQUENCE orders_id_seq OWNED BY prod_test_orders.id;
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: patrickmckelvy
---
-
-ALTER TABLE ONLY prod_test_orders ALTER COLUMN id SET DEFAULT nextval('orders_id_seq'::regclass);
-
-
---
--- Name: orders_pkey; Type: CONSTRAINT; Schema: public; Owner: patrickmckelvy; Tablespace: 
+-- Name: prod_test_orders prod_test_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: patrickmckelvy
 --
 
 ALTER TABLE ONLY prod_test_orders
-    ADD CONSTRAINT orders_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT prod_test_orders_pkey PRIMARY KEY (id);
 
 
 --
