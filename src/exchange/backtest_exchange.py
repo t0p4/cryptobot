@@ -20,6 +20,7 @@ class BacktestExchange:
         self.trades = {}
         self.tick = -1
         self.current_timestamp = None
+        self.current_summaries = None
         # self.market_summaries = self.load_market_summaries()
         log.info('backtest exchange successfully initialized')
 
@@ -77,6 +78,7 @@ class BacktestExchange:
     def getmarketsummaries(self):
         self.tick += 1
         summaries = self.psql.get_market_summaries_by_ticker(self.tick)
+        self.current_summaries = summaries
         results = []
         self.current_timestamp = summaries.loc[0, 'saved_timestamp']
         for idx, summary in summaries.iterrows():
@@ -85,9 +87,20 @@ class BacktestExchange:
 
     # def getmarketsummary(self, market):
     #     return self.query('getmarketsummary', {'market': market})
-    #
-    # def getorderbook(self, market, type, depth=20):
-    #     return self.query('getorderbook', {'market': market, 'type': type, 'depth': depth})
+
+    def getorderbook(self, market, order_type, depth=20):
+        mkt_summary = self.current_summaries.loc[self.current_summaries['marketname'] == market]
+        buy = [{'Quantity': 999999999, 'Rate': mkt_summary['bid'].iloc[0]}]
+        sell = [{'Quantity': 999999999, 'Rate': mkt_summary['ask'].iloc[0]}]
+        if order_type == 'buy':
+            order_book = {'buy': buy}
+        elif order_type == 'sell':
+            order_book = {'sell': sell}
+        elif order_type == 'both':
+            order_book = {'buy': buy, 'sell': sell}
+        else:
+            raise Exception('order_type must be buy, sell, or both but was ' + order_type)
+        return order_book
 
     def get_order_rate(self, market, tick):
         return self.market_summaries[market].loc[tick, 'Last']

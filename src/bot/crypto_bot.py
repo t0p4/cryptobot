@@ -173,8 +173,8 @@ class CryptoBot:
             rate = 0
             # calculate an instant price
             for order in order_book:
-                current_total += order['quantity']
-                rate = order['rate']
+                current_total += order['Quantity']
+                rate = order['Rate']
                 if current_total >= quantity:
                     break
             return rate
