@@ -4,7 +4,7 @@ from pandas.util.testing import assert_frame_equal
 from fixtures.summary_tickers_fixture import SUMMARY_TICKERS_FIXTURE
 import os
 
-os.environ['TESTING'] = 'True'
+os.environ['BACKTESTING'] = 'True'
 
 options = {
     'active': True,

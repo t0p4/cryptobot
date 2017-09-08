@@ -1,13 +1,13 @@
 from src.exchange.backtest_exchange import BacktestExchange
 import datetime
 
-TESTING_START_DATE = datetime.datetime(2017, 1, 1)
-TESTING_END_DATE = datetime.datetime(2017, 8, 31)
+BACKTESTING_START_DATE = datetime.datetime(2017, 1, 1)
+BACKTESTING_END_DATE = datetime.datetime(2017, 8, 31)
 
 
 class TestBacktestExchange:
     def setup_class(self):
-        self.be = BacktestExchange(TESTING_START_DATE, TESTING_END_DATE)
+        self.be = BacktestExchange(BACKTESTING_START_DATE, BACKTESTING_END_DATE)
 
     def teardown_class(self):
         self.be = None

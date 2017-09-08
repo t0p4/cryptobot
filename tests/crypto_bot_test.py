@@ -4,7 +4,7 @@ from tests.mocks.btrx_mock import MockBittrex
 import pandas as pd
 import os
 
-os.environ['TESTING'] = 'True'
+os.environ['BACKTESTING'] = 'True'
 
 strat_options = {
     'active': False,

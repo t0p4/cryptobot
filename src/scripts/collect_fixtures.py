@@ -3,9 +3,9 @@ from src.strats.bollinger_bands_strat import BollingerBandsStrat
 from src.exchange.exchange_factory import ExchangeFactory
 import datetime
 
-TESTING_START_DATE = datetime.datetime(2017, 1, 1)
-TESTING_END_DATE = datetime.datetime(2017, 8, 31)
-TESTING = False
+BACKTESTING_START_DATE = datetime.datetime(2017, 1, 1)
+BACKTESTING_END_DATE = datetime.datetime(2017, 8, 31)
+BACKTESTING = False
 
 btrx = ExchangeFactory().get_exchange()()
 

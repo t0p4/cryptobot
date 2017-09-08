@@ -17,8 +17,8 @@ BUY_DECREMENT_COEFFICIENT = 0.75
 MAJOR_TICK_SIZE = 15
 SMA_WINDOW = 20
 EXECUTE_TRADES = False
-TESTING = os.getenv('TESTING', 'FALSE')
-if TESTING == 'TRUE':
+BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
+if BACKTESTING == 'TRUE':
     BASE_CURRENCIES = ['USD', 'BTC', 'ETH']
 else:
     BASE_CURRENCIES = ['BTC', 'ETH']
@@ -51,7 +51,7 @@ class CryptoBot:
             self.summary_tickers[mkt_name] = pd.DataFrame()
 
     def run(self):
-        if TESTING:
+        if BACKTESTING:
             self.run_test()
         else:
             self.run_prod()
@@ -85,7 +85,7 @@ class CryptoBot:
             mkt_name = summary['marketname']
             if is_valid_market(mkt_name, BASE_CURRENCIES) and mkt_name in self.summary_tickers:
                 self.summary_tickers[mkt_name] = self.summary_tickers[mkt_name].append(summary, ignore_index=True)
-                # if not TESTING:
+                # if not BACKTESTING:
                 #     self.summary_tickers[mkt_name] = ohlc_hack(self.summary_tickers[mkt_name])
 
     def major_tick_step(self):
@@ -103,7 +103,7 @@ class CryptoBot:
         return (current_tick - self.api_tick) < self.rate_limit
 
     def rate_limiter_limit(self):
-        if not TESTING:
+        if not BACKTESTING:
             current_tick = datetime.datetime.now()
             if self.rate_limiter_check():
                 sleep_for = self.rate_limit - (current_tick - self.api_tick)
@@ -165,7 +165,7 @@ class CryptoBot:
         return balance * quantity
 
     def calculate_order_rate(self, market, order_type, quantity, order_book_depth):
-        if TESTING:
+        if BACKTESTING:
             return self.btrx.get_order_rate(market, self.tick)
         else:
             order_book = self.get_order_book(market, order_type, order_book_depth)
@@ -191,8 +191,7 @@ class CryptoBot:
         quantity = self.calculate_num_coins(order_type, market, pct_holdings)
         try:
             rate = self.calculate_order_rate(market, order_type, quantity, 20)
-            if EXECUTE_TRADES:
-                trade_resp = self.trades[order_type](market, quantity, rate)
+            trade_resp = self.trades[order_type](market, quantity, rate)
             if trade_resp and not isinstance(trade_resp, basestring):
                 self.trade_success(order_type, market, quantity, rate, trade_resp['uuid'])
                 return trade_resp
@@ -217,8 +216,7 @@ class CryptoBot:
         try:
             ticker = self.get_ticker(market)
             rate = ticker['Last']
-            if EXECUTE_TRADES:
-                trade_resp = self.trades[order_type](market, quantity, rate)
+            trade_resp = self.trades[order_type](market, quantity, rate)
             if trade_resp and not isinstance(trade_resp, basestring):
                 self.trade_success(order_type, market, quantity, rate, trade_resp['uuid'])
                 return trade_resp
@@ -230,7 +228,7 @@ class CryptoBot:
             log.error(e)
             return None
 
-    def CANCEL(self, uuid):
+    def trade_cancel(self, uuid):
         log.info('== CANCEL bid ==')
         try:
             trade_resp = self.btrx.cancel(uuid)

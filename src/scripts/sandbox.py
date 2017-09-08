@@ -4,12 +4,12 @@ from src.exchange.exchange_factory import ExchangeFactory
 import datetime
 import os
 
-TESTING_START_DATE = datetime.datetime(2017, 1, 1)
-TESTING_END_DATE = datetime.datetime(2017, 8, 31)
-TESTING = os.getenv('TESTING', 'FALSE')
+BACKTESTING_START_DATE = datetime.datetime(2017, 1, 1)
+BACKTESTING_END_DATE = datetime.datetime(2017, 8, 31)
+BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
 
-if TESTING == 'TRUE':
-    btrx = ExchangeFactory().get_exchange()(TESTING_START_DATE, TESTING_END_DATE)
+if BACKTESTING == 'TRUE':
+    btrx = ExchangeFactory().get_exchange()(BACKTESTING_START_DATE, BACKTESTING_END_DATE)
 else:
     btrx = ExchangeFactory().get_exchange()()
 

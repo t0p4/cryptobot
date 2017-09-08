@@ -8,6 +8,7 @@ import urllib2
 import pandas
 import os
 import pandas as pd
+import datetime
 
 from src.utils.utils import normalize_index, normalize_columns
 
@@ -21,7 +22,8 @@ class Bittrex(object):
         self.market = ['buylimit', 'buymarket', 'selllimit', 'sellmarket', 'cancel', 'getopenorders']
         self.account = ['getbalances', 'getbalance', 'getdepositaddress', 'withdraw', 'getorder', 'getorderhistory', 'getwithdrawalhistory', 'getdeposithistory']
         self.collect_fixtures = os.getenv('COLLECT_FIXTURES', 'FALSE')
-        self.testing = os.getenv('TESTING', 'FALSE')
+        self.BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
+        self.PROD_TESTING = os.getenv('PROD_TESTING', 'TRUE')
 
     def query(self, method, values={}):
         if method in self.public:
@@ -101,21 +103,30 @@ class Bittrex(object):
         return self.query('getmarkethistory', {'market': market, 'count': count})
 
     def buylimit(self, market, quantity, rate):
-        return self.query('buylimit', {'market': market, 'quantity': quantity, 'rate': rate})
+        if self.PROD_TESTING == 'TRUE':
+            return {'uuid': hashlib.sha1(time.mktime(datetime.datetime.now().timetuple()))}
+        else:
+            return self.query('buylimit', {'market': market, 'quantity': quantity, 'rate': rate})
 
     # DEPRECATED
     # def buymarket(self, market, quantity):
     #     return self.query('buymarket', {'market': market, 'quantity': quantity})
 
     def selllimit(self, market, quantity, rate):
-        return self.query('selllimit', {'market': market, 'quantity': quantity, 'rate': rate})
+        if self.PROD_TESTING == 'TRUE':
+            return {'uuid': hashlib.sha1(time.mktime(datetime.datetime.now().timetuple()))}
+        else:
+            return self.query('selllimit', {'market': market, 'quantity': quantity, 'rate': rate})
 
     # DEPRECATED
     # def sellmarket(self, market, quantity):
     #     return self.query('sellmarket', {'market': market, 'quantity': quantity})
     
     def cancel(self, uuid):
-        return self.query('cancel', {'uuid': uuid})
+        if self.PROD_TESTING == 'TRUE':
+            return {'uuid': hashlib.sha1(time.mktime(datetime.datetime.now().timetuple()))}
+        else:
+            return self.query('cancel', {'uuid': uuid})
     
     def getopenorders(self, market):
         return self.query('getopenorders', {'market': market})
