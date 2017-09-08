@@ -4,8 +4,10 @@ from time import mktime
 import pandas as pd
 import psycopg2
 from psycopg2.extensions import AsIs
+import os
 
 from src.utils.logger import Logger
+from src.db.table_names import TABLE_NAMES
 
 log = Logger(__name__)
 
@@ -14,6 +16,10 @@ class PostgresConnection:
     def __init__(self):
         self.conn = None
         self.cur = None
+        self.run_type = os.getenv('RUN_TYPE', 'BACKTEST')
+
+    def table_name(self, table_type):
+        return TABLE_NAMES[table_type][self.run_type]
 
     def _exec_query(self, query, params):
         ###
@@ -71,7 +77,7 @@ class PostgresConnection:
             "columns": AsIs(columns),
             "values": fmt_str.format(**values)
         }
-        query = """ INSERT INTO orders (%(columns)s) VALUES %(values)s; """
+        query = """ INSERT INTO """ + self.table_name('save_trade') + """ (%(columns)s) VALUES %(values)s; """
         self._exec_query(query, params)
 
     def save_summaries(self, summaries):
@@ -83,7 +89,7 @@ class PostgresConnection:
             "columns": AsIs(columns),
             "values": values
         }
-        query = """ INSERT INTO fixture_market_summaries (%(columns)s) VALUES %(values)s ; """
+        query = """ INSERT INTO """ + self.table_name('save_summaries') + """ (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
     def save_markets(self, markets):
@@ -95,7 +101,7 @@ class PostgresConnection:
             "columns": AsIs(columns),
             "values": values
         }
-        query = """ INSERT INTO fixture_markets (%(columns)s) VALUES %(values)s ; """
+        query = """ INSERT INTO """ + self.table_name('save_markets') + """ (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
     def save_currencies(self, markets):
@@ -107,7 +113,7 @@ class PostgresConnection:
             "columns": AsIs(columns),
             "values": values
         }
-        query = """ INSERT INTO fixture_currencies (%(columns)s) VALUES %(values)s ; """
+        query = """ INSERT INTO """ + self.table_name('save_currencies') + """ (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
     def save_historical_data(self, data):
