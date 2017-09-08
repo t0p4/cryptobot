@@ -7,6 +7,13 @@ pg_dump -U patrickmckelvy -t fixture_currencies cryptobot --schema-only > fixtur
 pg_dump -U patrickmckelvy -t prod_market_summaries cryptobot --schema-only > prod_market_summaries-schema.sql;
 pg_dump -U patrickmckelvy -t prod_markets cryptobot --schema-only > prod_markets-schema.sql;
 pg_dump -U patrickmckelvy -t prod_currencies cryptobot --schema-only > prod_currencies-schema.sql;
+pg_dump -U patrickmckelvy -t prod_orders cryptobot --schema-only > prod_orders-schema.sql;
+
+## PROD TEST TABLE DUMPS
+pg_dump -U patrickmckelvy -t prod_test_market_summaries cryptobot --schema-only > prod_test_market_summaries-schema.sql;
+pg_dump -U patrickmckelvy -t prod_test_markets cryptobot --schema-only > prod_test_markets-schema.sql;
+pg_dump -U patrickmckelvy -t prod_test_currencies cryptobot --schema-only > prod_test_currencies-schema.sql;
+pg_dump -U patrickmckelvy -t prod_test_orders cryptobot --schema-only > prod_test_orders-schema.sql;
 
 ## BTC HISTORICAL DUMPS
 pg_dump -U patrickmckelvy -t btc_historical cryptobot --schema-only > btc_historical-schema.sql;
