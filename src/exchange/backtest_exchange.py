@@ -1,6 +1,7 @@
 import pandas as pd
 from time import mktime
 import datetime
+import hashlib
 from src.db.psql import PostgresConnection
 from src.utils.logger import Logger
 from src.utils.utils import get_coins_from_market, normalize_inf_rows, normalize_index
@@ -26,8 +27,17 @@ class BacktestExchange:
         currencies = self.getcurrencies()
         balances = {}
         for currency in currencies['currency']:
-            balances[currency] = 0
-        balances['BTC'] = 20
+            balance = pd.Series({
+                'currency': currency,
+                'balance': 0.0,
+                'available': 0.0,
+                'pending': 0.0,
+                'cryptoaddress': hashlib.sha1(currency).hexdigest(),
+                'requested': False,
+                'uuid': hashlib.sha1(currency + 'uuid').hexdigest()
+            })
+            balances[currency] = balance
+        balances['BTC']['balance'] = 20.0
         return balances
 
     def load_market_summaries(self):
@@ -42,13 +52,13 @@ class BacktestExchange:
 
     def update_buy_balances(self, market, quantity, rate):
         base_coin, mkt_coin = get_coins_from_market(market)
-        self.balances[base_coin] -= (quantity * rate)
-        self.balances[mkt_coin] += quantity
+        self.balances[base_coin]['balance'] -= (quantity * rate)
+        self.balances[mkt_coin]['balance'] += quantity
 
     def update_sell_balances(self, market, quantity, rate):
         base_coin, mkt_coin = get_coins_from_market(market)
-        self.balances[base_coin] += (quantity * rate)
-        self.balances[mkt_coin] -= quantity
+        self.balances[base_coin]['balance'] += (quantity * rate)
+        self.balances[mkt_coin]['balance'] -= quantity
 
     def getmarkets(self):
         return self.psql.get_fixture_markets()
@@ -127,7 +137,10 @@ class BacktestExchange:
     #     return self.query('getopenorders', {'market': market})
 
     def getbalances(self):
-        return self.balances
+        balances = []
+        for currency in self.balances:
+            balances.append(self.balances[currency])
+        return balances
 
     def getbalance(self, currency):
         return self.balances[currency]

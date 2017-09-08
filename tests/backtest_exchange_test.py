@@ -19,16 +19,16 @@ class TestBacktestExchange:
         trade_resp = self.be.buylimit(market, quantity, rate)
         assert(isinstance(trade_resp, dict))
         assert(isinstance(trade_resp['uuid'], float))
-        assert(self.be.getbalance('BTC') == 19.9)
-        assert(self.be.getbalance('LTC') == 2)
+        assert(self.be.getbalance('BTC')['balance'] == 19.9)
+        assert(self.be.getbalance('LTC')['balance'] == 2)
 
     def test_selllimit(self):
-        self.be.balances['LTC'] = 10
+        self.be.balances['LTC']['balance'] = 10
         market = 'BTC-LTC'
         quantity = 5
         rate = 0.05
         trade_resp = self.be.selllimit(market, quantity, rate)
         assert (isinstance(trade_resp, dict))
         assert (isinstance(trade_resp['uuid'], float))
-        assert (self.be.getbalance('BTC') == 20.15)
-        assert (self.be.getbalance('LTC') == 5)
+        assert (self.be.getbalance('BTC')['balance'] == 20.15)
+        assert (self.be.getbalance('LTC')['balance'] == 5)
