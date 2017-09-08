@@ -1,5 +1,6 @@
 from src.exchange.backtest_exchange import BacktestExchange
 import datetime
+import pandas as pd
 
 BACKTESTING_START_DATE = datetime.datetime(2017, 1, 1)
 BACKTESTING_END_DATE = datetime.datetime(2017, 8, 31)
@@ -11,6 +12,16 @@ class TestBacktestExchange:
 
     def teardown_class(self):
         self.be = None
+
+    def test_getmarketsummaries(self):
+        market_summaries = self.be.getmarketsummaries()
+        expected_columns = ['marketname', 'last', 'bid', 'ask', 'saved_timestamp']
+        assert (isinstance(market_summaries, list))
+        for summary in market_summaries:
+            assert (isinstance(summary, pd.Series))
+            assert (len(summary.index) == len(expected_columns))
+            for key in summary.index:
+                assert (key in expected_columns)
 
     def test_buylimit(self):
         market = 'BTC-LTC'

@@ -165,19 +165,16 @@ class CryptoBot:
         return balance * quantity
 
     def calculate_order_rate(self, market, order_type, quantity, order_book_depth):
-        if BACKTESTING:
-            return self.btrx.get_order_rate(market, self.tick)
-        else:
-            order_book = self.get_order_book(market, order_type, order_book_depth)
-            current_total = 0
-            rate = 0
-            # calculate an instant price
-            for order in order_book:
-                current_total += order['Quantity']
-                rate = order['Rate']
-                if current_total >= quantity:
-                    break
-            return rate
+        order_book = self.get_order_book(market, order_type, order_book_depth)
+        current_total = 0
+        rate = 0
+        # calculate an instant price
+        for order in order_book:
+            current_total += order['Quantity']
+            rate = order['Rate']
+            if current_total >= quantity:
+                break
+        return rate
 
     def buy_instant(self, market, quantity):
         log.info('== BUY instant ==')

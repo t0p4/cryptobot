@@ -103,8 +103,8 @@ class BacktestExchange:
             raise Exception('order_type must be buy, sell, or both but was ' + order_type)
         return order_book
 
-    def get_order_rate(self, market, tick):
-        return self.market_summaries[market].loc[tick, 'Last']
+    # def get_order_rate(self, market, tick):
+    #     return self.market_summaries[market].loc[tick, 'Last']
     #
     # def getmarkethistory(self, market, count=20):
     #     return self.query('getmarkethistory', {'market': market, 'count': count})
@@ -144,8 +144,8 @@ class BacktestExchange:
             self.trades[market] = [trade]
         return {'uuid': trade_uuid}
 
-    # def cancel(self, uuid):
-    #     return self.query('cancel', {'uuid': uuid})
+    def cancel(self, uuid):
+        return None
     #
     # def getopenorders(self, market):
     #     return self.query('getopenorders', {'market': market})
