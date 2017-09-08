@@ -2,12 +2,17 @@
 -- PostgreSQL database dump
 --
 
+-- Dumped from database version 9.4.5
+-- Dumped by pg_dump version 9.6.5
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
+SET row_security = off;
 
 SET search_path = public, pg_catalog;
 
@@ -16,7 +21,7 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
--- Name: prod_market_summaries; Type: TABLE; Schema: public; Owner: patrickmckelvy; Tablespace: 
+-- Name: prod_market_summaries; Type: TABLE; Schema: public; Owner: patrickmckelvy
 --
 
 CREATE TABLE prod_market_summaries (
@@ -58,32 +63,32 @@ ALTER SEQUENCE market_summaries_id_seq OWNED BY prod_market_summaries.id;
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: patrickmckelvy
+-- Name: prod_market_summaries id; Type: DEFAULT; Schema: public; Owner: patrickmckelvy
 --
 
 ALTER TABLE ONLY prod_market_summaries ALTER COLUMN id SET DEFAULT nextval('market_summaries_id_seq'::regclass);
 
 
 --
--- Name: market_summaries_pkey; Type: CONSTRAINT; Schema: public; Owner: patrickmckelvy; Tablespace: 
+-- Name: prod_market_summaries prod_market_summaries_pkey; Type: CONSTRAINT; Schema: public; Owner: patrickmckelvy
 --
 
 ALTER TABLE ONLY prod_market_summaries
-    ADD CONSTRAINT market_summaries_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT prod_market_summaries_pkey PRIMARY KEY (id);
 
 
 --
--- Name: marketname_idx; Type: INDEX; Schema: public; Owner: patrickmckelvy; Tablespace: 
+-- Name: prod_marekt_summaries_marketname_idx; Type: INDEX; Schema: public; Owner: patrickmckelvy
 --
 
-CREATE INDEX marketname_idx ON prod_market_summaries USING btree (marketname);
+CREATE INDEX prod_marekt_summaries_marketname_idx ON prod_market_summaries USING btree (marketname);
 
 
 --
--- Name: ticker_nonce_idx; Type: INDEX; Schema: public; Owner: patrickmckelvy; Tablespace: 
+-- Name: prod_market_summaries_ticker_nonce_idx; Type: INDEX; Schema: public; Owner: patrickmckelvy
 --
 
-CREATE INDEX ticker_nonce_idx ON prod_market_summaries USING btree (ticker_nonce);
+CREATE INDEX prod_market_summaries_ticker_nonce_idx ON prod_market_summaries USING btree (ticker_nonce);
 
 
 --
