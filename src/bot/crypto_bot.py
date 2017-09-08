@@ -237,7 +237,10 @@ class CryptoBot:
             return None
 
     def trade_success(self, order_type, market, quantity, rate, uuid):
-        self.psql.save_trade(order_type, market, quantity, rate, uuid)
+        timestamp = datetime.datetime.now()
+        if os.getenv('BACKTESTING', 'FALSE') == 'TRUE':
+            timestamp = self.btrx.current_timestamp
+        self.psql.save_trade(order_type, market, quantity, rate, uuid, timestamp)
         log.info('*** ' + order_type.upper() + ' Successful! ***')
         log.info('market: ' + market + ' :: ' + 'quantity: ' + quantity + ' :: ' + 'rate: ' + rate + ' :: ' + 'trade id: ' + uuid)
 

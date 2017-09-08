@@ -57,11 +57,10 @@ class PostgresConnection:
         self.conn.close()
         return result
 
-    def save_trade(self, order_type, market, quantity, rate, uuid):
+    def save_trade(self, order_type, market, quantity, rate, uuid, timestamp):
         log.info('== SAVE trade ==')
         fmt_str = "('{order_type}','{market}',{quantity},{rate},'{uuid}','{base_currency}','{market_currency}',{timestamp})"
         columns = "(order_type, market, quantity, rate, uuid, base_currency, market_currency, timestamp)"
-        timestamp = datetime.datetime.now()
         market_currencies = market.split('-')
         values = {
             "order_type": order_type,
