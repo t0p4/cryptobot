@@ -4,7 +4,7 @@ import datetime
 import hashlib
 from src.db.psql import PostgresConnection
 from src.utils.logger import Logger
-from src.utils.utils import get_coins_from_market, normalize_inf_rows, normalize_index
+from src.utils.utils import get_coins_from_market, normalize_inf_rows, normalize_index, capitalize_index
 
 log = Logger(__name__)
 
@@ -68,7 +68,8 @@ class BacktestExchange:
         return self.psql.get_fixture_currencies()
 
     def getticker(self, market):
-        return self.market_summaries[market].loc[self.tick]
+        market_summary = self.current_summaries[self.current_summaries['marketname'] == market].iloc[0]
+        return capitalize_index(market_summary).to_dict()
 
     # def getmarketsummaries(self):
     #     self.tick += 1

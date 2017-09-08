@@ -215,8 +215,8 @@ class CryptoBot:
     def trade_market(self, order_type, market, pct_holdings):
         quantity = self.calculate_num_coins(order_type, market, pct_holdings)
         try:
-            ticker = self.btrx.getticker(market)
-            rate = ticker['last']
+            ticker = self.get_ticker(market)
+            rate = ticker['Last']
             if EXECUTE_TRADES:
                 trade_resp = self.trades[order_type](market, quantity, rate)
             if trade_resp and not isinstance(trade_resp, basestring):

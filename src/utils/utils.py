@@ -46,6 +46,12 @@ def normalize_index(data):
     return data
 
 
+def capitalize_index(data):
+    data.index = map(str, data.index)
+    data.index = map((lambda idx: idx[:1].upper() + idx[1:]), data.index)
+    return data
+
+
 def get_coins_from_market(market):
     coins = market.split('-')
     base_coin = coins[0]

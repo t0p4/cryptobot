@@ -70,3 +70,12 @@ class TestBacktestExchange:
         assert(len(order_book['sell']) == 1)
         assert(order_book['sell'][0]['Quantity'] == 999999999)
         assert(order_book['sell'][0]['Rate'] == btc_ltc_summary['ask'])
+
+    def test_getticker(self):
+        market = 'BTC-LTC'
+        market_summaries = self.be.getmarketsummaries()
+        btc_ltc_summary = next(summary for summary in market_summaries if summary['marketname'] == market)
+        ticker = self.be.getticker(market)
+        assert(ticker['Bid'] == btc_ltc_summary['bid'])
+        assert(ticker['Ask'] == btc_ltc_summary['ask'])
+        assert(ticker['Last'] == btc_ltc_summary['last'])
