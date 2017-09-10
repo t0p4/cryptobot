@@ -32,9 +32,9 @@ class TestCryptoBot:
             for key in summary.index:
                 assert(key in expected_columns)
 
-    def test_tick_step(self):
-        strat = BaseStrategy(strat_options)
-        exchange = MockBittrex()
-        self.bot = CryptoBot(strat, exchange)
-        for i in range(0, 100):
-            self.bot.tick_step()
+    # def test_tick_step(self):
+    #     strat = BaseStrategy(strat_options)
+    #     exchange = MockBittrex()
+    #     self.bot = CryptoBot(strat, exchange)
+    #     for i in range(0, 100):
+    #         self.bot.tick_step()
