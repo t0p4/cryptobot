@@ -86,8 +86,6 @@ class CryptoBot:
             mkt_name = summary['marketname']
             if is_valid_market(mkt_name, BASE_CURRENCIES) and mkt_name in self.summary_tickers:
                 self.summary_tickers[mkt_name] = self.summary_tickers[mkt_name].append(summary, ignore_index=True)
-                # if not BACKTESTING:
-                #     self.summary_tickers[mkt_name] = ohlc_hack(self.summary_tickers[mkt_name])
 
     def major_tick_step(self):
         self.increment_major_tick()

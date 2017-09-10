@@ -8,7 +8,6 @@ os.environ['BACKTESTING'] = 'True'
 
 strat_options = {
     'active': False,
-    'market_names': [],
     'testing': True
 }
 
@@ -31,10 +30,3 @@ class TestCryptoBot:
             assert(len(summary.index) == len(expected_columns))
             for key in summary.index:
                 assert(key in expected_columns)
-
-    # def test_tick_step(self):
-    #     strat = BaseStrategy(strat_options)
-    #     exchange = MockBittrex()
-    #     self.bot = CryptoBot(strat, exchange)
-    #     for i in range(0, 100):
-    #         self.bot.tick_step()

@@ -48,8 +48,8 @@ class BollingerBandsStrat(BaseStrategy):
         return data.append(tail, ignore_index=True)
 
     def calc_bollinger_bands(self, df):
-        df['SMA'] = pd.rolling_mean(df[self.sma_stat_key], self.sma_window)
-        df['STDDEV'] = pd.rolling_std(df[self.sma_stat_key], self.sma_window)
+        df['SMA'] = df[self.sma_stat_key].rolling(window=self.sma_window, center=False).mean()
+        df['STDDEV'] = df[self.sma_stat_key].rolling(window=self.sma_window, center=False).std()
         df['UPPER_BB'] = df['SMA'] + self.num_standard_devs * df['STDDEV']
         df['LOWER_BB'] = df['SMA'] - self.num_standard_devs * df['STDDEV']
         return df
