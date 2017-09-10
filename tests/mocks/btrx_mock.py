@@ -13,7 +13,7 @@ class MockBittrex(Bittrex):
             'getmarketsummaries': MARKET_SUMMARIES_FIXTURE,
             'getcurrencies': CURRENCIES_FIXTURE,
             'getmarkets': MARKETS_FIXTURE,
-            'getbalances': []
+            'getbalances': {}
         }
         self.collect_fixtures = 'FALSE'
         self.testing = 'TRUE'

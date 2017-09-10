@@ -349,3 +349,13 @@ class CryptoBot:
             log.info('Start    :: ' + str(start))
             log.info('End      :: ' + str(end))
             log.info('% diff   :: ' + str((end - start) / start))
+
+    def cash_out(self):
+        log.info('*** CASHING OUT ***')
+        current_balances = self.btrx.getbalances()
+        for currency, balance_data in current_balances.iteritems():
+            cur_balance = balance_data['balance']
+            if cur_balance > 0:
+                market = 'BTC-' + currency
+                self.trade_instant('sell', market, 1)
+
