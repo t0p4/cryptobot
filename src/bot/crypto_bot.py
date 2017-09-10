@@ -7,21 +7,21 @@ from time import sleep
 import pandas as pd
 from bs4 import BeautifulSoup
 from src.db.psql import PostgresConnection
-from src.utils.logger import Logger
 from src.utils.utils import is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index
+from src.utils.logger import Logger
 
 log = Logger(__name__)
 
 MAX_BTC_PER_BUY = 0.05
 BUY_DECREMENT_COEFFICIENT = 0.75
-MAJOR_TICK_SIZE = 15
-SMA_WINDOW = 20
+MAJOR_TICK_SIZE = 5
+SMA_WINDOW = 5
 EXECUTE_TRADES = False
 BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
 if BACKTESTING == 'TRUE':
-    BASE_CURRENCIES = ['USD', 'BTC', 'ETH']
+    BASE_CURRENCIES = ['BTC', 'ETH', 'USDT']
 else:
-    BASE_CURRENCIES = ['BTC', 'ETH']
+    BASE_CURRENCIES = ['BTC', 'ETH', 'USDT']
 
 
 class CryptoBot:
@@ -42,6 +42,7 @@ class CryptoBot:
         self.accounts = []
         self.tick = 0
         self.major_tick = 0
+        self.strat.init_market_positions(self.markets)
         log.info('...bot successfully initialized')
 
     def init_markets(self):
@@ -90,7 +91,7 @@ class CryptoBot:
 
     def major_tick_step(self):
         self.increment_major_tick()
-        self.strat.handle_data(self.summary_tickers, self.major_tick)
+        self.summary_tickers = self.strat.handle_data(self.summary_tickers, self.major_tick)
 
 
         ## RATE LIMITER ##
@@ -245,7 +246,7 @@ class CryptoBot:
         log.info('market: ' + market + ' :: ' + 'quantity: ' + quantity + ' :: ' + 'rate: ' + rate + ' :: ' + 'trade id: ' + uuid)
 
     def execute_trades(self):
-        for market in self.markets:
+        for idx, market in self.markets.iterrows():
             mkt_name = market['marketname']
             if self.strat.should_buy(mkt_name):
                 self.buy_instant(mkt_name, .1)

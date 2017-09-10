@@ -1,5 +1,7 @@
-from base_strat import BaseStrategy
 import pandas as pd
+from base_strat import BaseStrategy
+from src.utils.logger import Logger
+log = Logger(__name__)
 
 
 class BollingerBandsStrat(BaseStrategy):
@@ -11,25 +13,38 @@ class BollingerBandsStrat(BaseStrategy):
         self.minor_tick = options['minor_tick']
         self.major_tick = options['major_tick']
 
-    def handle_data(self, data, tick):
-        if tick % self.major_tick == 0:
-            for mkt_name, mkt_data in data.iteritems():
-                mkt_data = self.compress_and_calculate_mean(mkt_data)
+    def handle_data(self, data, major_tick):
+        for mkt_name, mkt_data in data.iteritems():
+            mkt_data = self.compress_and_calculate_mean(mkt_data)
+            if len(mkt_data) >= self.major_tick:
                 mkt_data = self.calc_bollinger_bands(mkt_data)
-                tail = mkt_data.tail()
-                if tail['last'].values[0] >= tail['UPPER_BB'].values[0]:
+                tail = mkt_data.tail(2)
+                current_tick_buy = tail['last'].values[1] >= tail['UPPER_BB'].values[1]
+                current_tick_sell = tail['last'].values[0] < tail['UPPER_BB'].values[0]
+                prev_tick_buy = tail['last'].values[1] >= tail['UPPER_BB'].values[1]
+                prev_tick_sell = tail['last'].values[0] < tail['UPPER_BB'].values[0]
+                if current_tick_buy and prev_tick_sell:
+                    log.info(' * * * BUY :: ' + mkt_name)
                     self.buy_positions[mkt_name] = True
                     self.sell_positions[mkt_name] = False
-                elif tail['last'].values[0] < tail['UPPER_BB'].values[0]:
+                elif current_tick_sell and prev_tick_buy:
+                    log.info(' * * * SELL :: ' + mkt_name)
                     self.buy_positions[mkt_name] = False
                     self.sell_positions[mkt_name] = True
+                else:
+                    log.info(' * * * HOLD :: ' + mkt_name)
+                    self.buy_positions[mkt_name] = False
+                    self.sell_positions[mkt_name] = False
+            data[mkt_name] = mkt_data
+        return data
 
     def compress_and_calculate_mean(self, data):
-        data = data[['volume', 'last', 'bid', 'ask', 'basevolume', 'openbuyorders', 'opensellorders']]
+        data = data[['last', 'bid', 'ask', 'saved_timestamp', 'marketname']]
         # data = data[['volume', 'last', 'bid', 'ask', 'basevolume', 'openbuyorders', 'opensellorders', 'saved_timestamp', 'ticker_nonce']]
         tail = data.tail(self.major_tick).reset_index(drop=True)
+        tail_meta_data = tail[['marketname', 'saved_timestamp']].tail(1).reset_index(drop=True)
         data = data.drop(data.index[-self.major_tick:])
-        tail = tail.groupby(tail.index / self.major_tick).mean()
+        tail = pd.concat([tail.groupby(tail.index / self.major_tick).mean(), tail_meta_data], axis=1, join_axes=[tail_meta_data.index])
         return data.append(tail, ignore_index=True)
 
     def calc_bollinger_bands(self, df):
