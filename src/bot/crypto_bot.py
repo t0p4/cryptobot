@@ -30,12 +30,13 @@ class CryptoBot:
         self.psql = PostgresConnection()
         self.strat = strat
         self.btrx = exchange
-        self.trades = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
+        self.trade_functions = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
+        self.completed_trades = {}
         self.rate_limit = datetime.timedelta(0, 60, 0)
         self.api_tick = datetime.datetime.now()
         self.currencies = []
         self.summary_tickers = {}
-        self.markets = []
+        self.markets = None
         self.init_markets()
         self.markets_to_watch = []
         self.balances = self.get_balances()
@@ -68,6 +69,9 @@ class CryptoBot:
 
         self.analyze_performance()
 
+    def kill(self):
+        log.warning('* * * ! * * * SHUTTING DOWN BOT * * * ! * * *')
+        raise Exception
 
         ## QUANT ##
 
@@ -111,7 +115,7 @@ class CryptoBot:
                 self.rate_limiter_reset()
 
 
-        ## TICKER ##
+                ## TICKER ##
 
     def increment_minor_tick(self):
         self.tick += 1
@@ -182,12 +186,13 @@ class CryptoBot:
     def sell_instant(self, market, quantity):
         log.info('== SELL instant ==')
         self.trade_instant('sell', market, quantity)
+        self.complete_sell(market)
 
     def trade_instant(self, order_type, market, pct_holdings):
         quantity = self.calculate_num_coins(order_type, market, pct_holdings)
         try:
             rate = self.calculate_order_rate(market, order_type, quantity, 20)
-            trade_resp = self.trades[order_type](market, quantity, rate)
+            trade_resp = self.trade_functions[order_type](market, quantity, rate)
             if trade_resp and not isinstance(trade_resp, basestring):
                 self.trade_success(order_type, market, quantity, rate, trade_resp['uuid'])
                 return trade_resp
@@ -212,7 +217,7 @@ class CryptoBot:
         try:
             ticker = self.get_ticker(market)
             rate = ticker['Last']
-            trade_resp = self.trades[order_type](market, quantity, rate)
+            trade_resp = self.trade_functions[order_type](market, quantity, rate)
             if trade_resp and not isinstance(trade_resp, basestring):
                 self.trade_success(order_type, market, quantity, rate, trade_resp['uuid'])
                 return trade_resp
@@ -239,9 +244,14 @@ class CryptoBot:
         timestamp = datetime.datetime.now()
         if os.getenv('BACKTESTING', 'FALSE') == 'TRUE':
             timestamp = self.btrx.current_timestamp
-        self.psql.save_trade(order_type, market, quantity, rate, uuid, timestamp)
+        trade_data = self.psql.save_trade(order_type, market, quantity, rate, uuid, timestamp)
+        if market in self.completed_trades:
+            self.completed_trades[market].append(pd.Series(trade_data))
+        else:
+            self.completed_trades[market] = pd.DataFrame(trade_data)
         log.info('*** ' + order_type.upper() + ' Successful! ***')
-        log.info('market: ' + market + ' :: ' + 'quantity: ' + quantity + ' :: ' + 'rate: ' + rate + ' :: ' + 'trade id: ' + uuid)
+        log.info(
+            'market: ' + market + ' :: ' + 'quantity: ' + quantity + ' :: ' + 'rate: ' + rate + ' :: ' + 'trade id: ' + uuid)
 
     def execute_trades(self):
         for idx, market in self.markets.iterrows():
@@ -251,6 +261,25 @@ class CryptoBot:
             elif self.strat.should_sell(mkt_name):
                 self.sell_instant(mkt_name, 1)
 
+    def complete_sell(self, market):
+        base_currency = market.split('-')[0]
+        mkt_trade_data = self.completed_trades[market]
+        tail = mkt_trade_data.tail(2).reset_index(drop=True)
+        coin_in = tail.loc[0, 'quantity'] * tail.loc[0, 'rate']
+        coin_out = tail.loc[1, 'quantity'] * tail.loc[1, 'rate']
+        net_gain = coin_out - coin_in
+        net_gain_pct = 100 * net_gain / coin_in
+        hold_time = tail.loc[1, 'timestamp'] - tail.loc[0, 'timestamp']
+        log_details = {'base_currency': base_currency, 'net_gain': net_gain, 'net_gain_pct': net_gain_pct,
+                       'hold_time': hold_time}
+        log.info(""""
+            *** SELL details :\n\t
+            Net Gain: {net_gain} {base_currency}, {net_gain_pct}%\n\t
+            Hold Time: {hold_time}
+            """.format(**log_details))
+        if net_gain_pct <= -25:
+            log.warning('Most recent sell caused a significant loss, something might be wrong...')
+            self.kill()
 
         ## ACCOUNT ##
 
@@ -270,7 +299,7 @@ class CryptoBot:
         return history
 
 
-        ## SANDBOX ###
+        ## BITTREX MARKET DATA COLLECTOR ##
 
     def collect_order_books(self):
         order_books = {}
@@ -284,9 +313,6 @@ class CryptoBot:
                 order_book = self.get_order_book(market_name, 'both', 50)
                 order_books[market_name].append(order_book)
             self.rate_limiter_limit()
-
-
-        # BITTREX MARKET DATA COLLECTOR #
 
     def collect_summaries(self):
         self.rate_limiter_reset()
@@ -336,7 +362,7 @@ class CryptoBot:
             current_date = current_date + timedelta(days=1)
 
 
-        ## BACKTESTING TOOLS ##
+            ## BACKTESTING TOOLS ##
 
     def analyze_performance(self):
         starting_balances = self.btrx.starting_balances
@@ -358,4 +384,3 @@ class CryptoBot:
             if cur_balance > 0:
                 market = 'BTC-' + currency
                 self.trade_instant('sell', market, 1)
-

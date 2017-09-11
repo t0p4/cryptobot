@@ -78,6 +78,7 @@ class PostgresConnection:
         }
         query = """ INSERT INTO """ + self.table_name('save_trade') + """ (%(columns)s) VALUES %(values)s; """
         self._exec_query(query, params)
+        return values
 
     def save_summaries(self, summaries):
         log.info('== SAVE market summaries ==')

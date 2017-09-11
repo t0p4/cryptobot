@@ -1,3 +1,4 @@
 {
+  "tests/crypto_bot_test.py::TestCryptoBot::()::test_complete_sell": true, 
   "tests/crypto_bot_test.py::TestCryptoBot::()::test_tick_step": true
 }
