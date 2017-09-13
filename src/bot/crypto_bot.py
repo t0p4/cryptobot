@@ -45,15 +45,16 @@ class CryptoBot:
         self.accounts = []
         self.tick = 0
         self.major_tick = 0
-        self.strat.init_market_positions(self.markets)
         self.reporter = Reporter()
         log.info('...bot successfully initialized')
 
     def init_markets(self):
-        self.currencies = self.get_currencies()
-        self.markets = self.get_markets()
-        for mkt_name in self.markets['marketname']:
-            self.summary_tickers[mkt_name] = pd.DataFrame()
+        if os.getenv('COLLECT_FIXTURES', 'FALSE') != 'TRUE':
+            self.currencies = self.get_currencies()
+            self.markets = self.get_markets()
+            for mkt_name in self.markets['marketname']:
+                self.summary_tickers[mkt_name] = pd.DataFrame()
+            self.strat.init_market_positions(self.markets)
 
     def run(self):
         if BACKTESTING:
@@ -112,7 +113,7 @@ class CryptoBot:
         return (current_tick - self.api_tick) < self.rate_limit
 
     def rate_limiter_limit(self):
-        if not BACKTESTING:
+        if BACKTESTING != 'TRUE':
             current_tick = datetime.datetime.now()
             if self.rate_limiter_check():
                 sleep_for = self.rate_limit - (current_tick - self.api_tick)
@@ -325,11 +326,15 @@ class CryptoBot:
     def collect_summaries(self):
         self.rate_limiter_reset()
         while True:
-            self.increment_minor_tick()
-            summaries = self.get_market_summaries()
-            summaries = add_saved_timestamp(summaries, self.tick)
-            self.psql.save_summaries(summaries)
-            self.rate_limiter_limit()
+            try:
+                self.increment_minor_tick()
+                summaries = self.get_market_summaries()
+                summaries = add_saved_timestamp(summaries, self.tick)
+                self.psql.save_summaries(summaries)
+                self.rate_limiter_limit()
+            except Exception as e:
+                log.error(e)
+                self.reporter.send_report('Collect OrderBooks Failure', type(e).__name__ + ' :: ' + e.message)
 
     def collect_markets(self):
         markets = self.get_markets()
