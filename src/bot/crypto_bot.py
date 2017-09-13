@@ -10,6 +10,7 @@ from src.db.psql import PostgresConnection
 from src.utils.utils import is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index
 from src.utils.logger import Logger
 from src.exceptions import LargeLossError, TradeFailureError
+from src.utils.emailer import Reporter
 
 log = Logger(__name__)
 
@@ -45,6 +46,7 @@ class CryptoBot:
         self.tick = 0
         self.major_tick = 0
         self.strat.init_market_positions(self.markets)
+        self.reporter = Reporter()
         log.info('...bot successfully initialized')
 
     def init_markets(self):
@@ -73,6 +75,9 @@ class CryptoBot:
     def kill(self):
         log.warning('* * * ! * * * SHUTTING DOWN BOT * * * ! * * *')
         raise Exception
+
+    def send_report(self, subj, body):
+        self.reporter.send_report(subj, body)
 
         ## QUANT ##
 
@@ -282,7 +287,7 @@ class CryptoBot:
             """.format(**log_details))
         if net_gain_pct <= -25:
             msg = """"{market_currency} Net Loss: {net_gain} {base_currency}, {net_gain_pct}%\n""".format(**log_details)
-            raise LargeLossError(msg, log_details)
+            raise LargeLossError(log_details, msg)
 
         ## ACCOUNT ##
 
