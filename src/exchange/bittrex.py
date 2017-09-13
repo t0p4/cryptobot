@@ -9,8 +9,12 @@ import pandas
 import os
 import pandas as pd
 import datetime
-
 from src.utils.utils import normalize_index, normalize_columns
+from src.exceptions import TradeFailureError
+from src.utils.logger import Logger
+
+log = Logger(__name__)
+
 
 
 class Bittrex(object):
@@ -106,7 +110,11 @@ class Bittrex(object):
         if self.PROD_TESTING == 'TRUE':
             return {'uuid': hashlib.sha1(time.mktime(datetime.datetime.now().timetuple()))}
         else:
-            return self.query('buylimit', {'market': market, 'quantity': quantity, 'rate': rate})
+            try:
+                return self.query('buylimit', {'market': market, 'quantity': quantity, 'rate': rate})
+            except Exception as e:
+                log.error(e)
+                raise TradeFailureError
 
     # DEPRECATED
     # def buymarket(self, market, quantity):
@@ -116,7 +124,11 @@ class Bittrex(object):
         if self.PROD_TESTING == 'TRUE':
             return {'uuid': hashlib.sha1(time.mktime(datetime.datetime.now().timetuple()))}
         else:
-            return self.query('selllimit', {'market': market, 'quantity': quantity, 'rate': rate})
+            try:
+                return self.query('selllimit', {'market': market, 'quantity': quantity, 'rate': rate})
+            except Exception as e:
+                log.error("*** !!! TRADE FAILED !!! ***")
+                raise TradeFailureError(e)
 
     # DEPRECATED
     # def sellmarket(self, market, quantity):

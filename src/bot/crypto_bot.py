@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from src.db.psql import PostgresConnection
 from src.utils.utils import is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index
 from src.utils.logger import Logger
+from src.exceptions import LargeLossError, TradeFailureError
 
 log = Logger(__name__)
 
@@ -199,9 +200,7 @@ class CryptoBot:
             else:
                 log.info(trade_resp)
                 return None
-        except Exception as e:
-            log.error("*** !!! TRADE FAILED !!! ***")
-            log.error(e)
+        except TradeFailureError:
             return None
 
     def buy_market(self, market, quantity):
@@ -224,9 +223,7 @@ class CryptoBot:
             else:
                 log.info(trade_resp)
                 return None
-        except Exception as e:
-            log.error("*** !!! TRADE FAILED !!! ***")
-            log.error(e)
+        except TradeFailureError:
             return None
 
     def trade_cancel(self, uuid):
@@ -262,7 +259,9 @@ class CryptoBot:
                 self.sell_instant(mkt_name, 1)
 
     def complete_sell(self, market):
-        base_currency = market.split('-')[0]
+        currencies = market.split('-')
+        base_currency = currencies[0]
+        market_currency = currencies[1]
         mkt_trade_data = self.completed_trades[market]
         tail = mkt_trade_data.tail(2).reset_index(drop=True)
         coin_in = tail.loc[0, 'quantity'] * tail.loc[0, 'rate']
@@ -270,16 +269,20 @@ class CryptoBot:
         net_gain = coin_out - coin_in
         net_gain_pct = 100 * net_gain / coin_in
         hold_time = tail.loc[1, 'timestamp'] - tail.loc[0, 'timestamp']
-        log_details = {'base_currency': base_currency, 'net_gain': net_gain, 'net_gain_pct': net_gain_pct,
-                       'hold_time': hold_time}
+        log_details = {
+            'base_currency': base_currency,
+            'market_currency': market_currency,
+            'net_gain': net_gain,
+            'net_gain_pct': net_gain_pct,
+            'hold_time': hold_time}
         log.info(""""
             *** SELL details :\n\t
             Net Gain: {net_gain} {base_currency}, {net_gain_pct}%\n\t
             Hold Time: {hold_time}
             """.format(**log_details))
         if net_gain_pct <= -25:
-            log.warning('Most recent sell caused a significant loss, something might be wrong...')
-            self.kill()
+            msg = """"{market_currency} Net Loss: {net_gain} {base_currency}, {net_gain_pct}%\n""".format(**log_details)
+            raise LargeLossError(msg, log_details)
 
         ## ACCOUNT ##
 
