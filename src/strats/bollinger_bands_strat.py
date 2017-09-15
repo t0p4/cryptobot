@@ -14,6 +14,7 @@ class BollingerBandsStrat(BaseStrategy):
         self.major_tick = options['major_tick']
 
     def handle_data(self, data, major_tick):
+        log.info('Bollinger Band Strat :: handle_data')
         for mkt_name, mkt_data in data.iteritems():
             mkt_data = self.compress_and_calculate_mean(mkt_data)
             if len(mkt_data) >= self.major_tick:
@@ -32,7 +33,7 @@ class BollingerBandsStrat(BaseStrategy):
                     self.buy_positions[mkt_name] = False
                     self.sell_positions[mkt_name] = True
                 else:
-                    log.info(' * * * HOLD :: ' + mkt_name)
+                    log.debug(' * * * HOLD :: ' + mkt_name)
                     self.buy_positions[mkt_name] = False
                     self.sell_positions[mkt_name] = False
             data[mkt_name] = mkt_data

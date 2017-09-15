@@ -58,7 +58,7 @@ class PostgresConnection:
         return result
 
     def save_trade(self, order_type, market, quantity, rate, uuid, timestamp):
-        log.info('== SAVE trade ==')
+        log.debug('{PSQL} == SAVE trade ==')
         fmt_str = "('{order_type}','{market}',{quantity},{rate},'{uuid}','{base_currency}','{market_currency}','{timestamp}')"
         columns = "order_type, market, quantity, rate, uuid, base_currency, market_currency, timestamp"
         market_currencies = market.split('-')
@@ -81,7 +81,7 @@ class PostgresConnection:
         return values
 
     def save_summaries(self, summaries):
-        log.info('== SAVE market summaries ==')
+        log.debug('{PSQL} == SAVE market summaries ==')
         fmt_str = "({volume},{last},{opensellorders},{bid},{openbuyorders},'{marketname}',{ask},{basevolume},'{saved_timestamp}',{ticker_nonce})"
         columns = "volume,last,opensellorders,bid,openbuyorders,marketname,ask,basevolume,saved_timestamp,ticker_nonce"
         values = AsIs(','.join(fmt_str.format(**summary) for summary in summaries))
@@ -93,7 +93,7 @@ class PostgresConnection:
         self._exec_query(query, params)
 
     def save_markets(self, markets):
-        log.info('== SAVE markets ==')
+        log.debug('{PSQL} == SAVE markets ==')
         fmt_str = "('{marketcurrency}','{basecurrency}','{marketcurrencylong}','{basecurrencylong}',{mintradesize},'{marketname}',{isactive},'{logourl}')"
         columns = "marketcurrency,basecurrency,marketcurrencylong,basecurrencylong,mintradesize,marketname,isactive,logourl"
         values = AsIs(','.join(fmt_str.format(**market) for market in markets))
@@ -105,7 +105,7 @@ class PostgresConnection:
         self._exec_query(query, params)
 
     def save_currencies(self, markets):
-        log.info('== SAVE currencies ==')
+        log.debug('{PSQL} == SAVE currencies ==')
         fmt_str = "('{currency}','{currencylong}',{minconfirmation},{txfee},{isactive},'{cointype}','{baseaddress}')"
         columns = "currency,currencylong,minconfirmation,txfee,isactive,cointype,baseaddress"
         values = AsIs(','.join(fmt_str.format(**market) for market in markets))
@@ -117,7 +117,7 @@ class PostgresConnection:
         self._exec_query(query, params)
 
     def save_historical_data(self, data):
-        log.info('== SAVE historical data ==')
+        log.debug('{PSQL} == SAVE historical data ==')
         fmt_str = '(%s,%s,%s,%s,%s,%s,%s,%s)'
         columns = 'timestamp,open,high,low,close,volume_btc,volume_usd,weighted_price'
         values = AsIs(','.join(fmt_str % tuple(row) for row in data))
@@ -129,7 +129,7 @@ class PostgresConnection:
         self._exec_query(query, params)
 
     def get_historical_data(self, start_date, end_date):
-        log.info('== GET historical data ==')
+        log.debug('{PSQL} == GET historical data ==')
         params = {
             "start_date": mktime(start_date.timetuple()),
             "end_date": mktime(end_date.timetuple())
@@ -142,7 +142,7 @@ class PostgresConnection:
         return self._fetch_query(query, params)
 
     def get_market_summaries_by_timestamp(self, target_timestamp):
-        log.info('== GET market summaries ==')
+        log.debug('{PSQL} == GET market summaries ==')
         params = {
             'target_timestamp': target_timestamp
         }
@@ -153,7 +153,7 @@ class PostgresConnection:
         return self._fetch_query(query, params)
 
     def get_market_summaries_by_ticker(self, tick):
-        log.info('== GET market summaries by ticker ==')
+        log.debug('{PSQL} == GET market summaries by ticker ==')
         params = {
             'ticker_nonce': tick
         }
@@ -164,13 +164,13 @@ class PostgresConnection:
         return self._fetch_query(query, params)
 
     def get_fixture_markets(self):
-        log.info('== GET fixture markets ==')
+        log.debug('{PSQL} == GET fixture markets ==')
         params = {}
         query = """ SELECT * FROM fixture_markets ; """
         return self._fetch_query(query, params)
 
     def get_fixture_currencies(self):
-        log.info('== GET fixture markets ==')
+        log.debug('{PSQL} == GET fixture markets ==')
         params = {}
         query = """ SELECT * FROM fixture_currencies ; """
         return self._fetch_query(query, params)

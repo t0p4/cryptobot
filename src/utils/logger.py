@@ -5,7 +5,7 @@ import sys
 class Logger:
     def __init__(self, name):
         self.log = logging.getLogger(name)
-        self.log.setLevel(logging.DEBUG)
+        self.log.setLevel(logging.INFO)
         formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
         handler = logging.StreamHandler(stream=sys.stdout)
         handler.setFormatter(formatter)

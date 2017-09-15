@@ -23,7 +23,7 @@ MAJOR_TICK_SIZE = 5
 SMA_WINDOW = 5
 EXECUTE_TRADES = False
 BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
-BASE_CURRENCIES = ['BTC', 'ETH']
+BASE_CURRENCIES = ['BTC', 'ETH', 'USDT']
 ORDER_BOOK_DEPTH = 20
 
 
@@ -64,11 +64,13 @@ class CryptoBot:
             self.run_prod()
 
     def run_prod(self):
+        log.info('* * * ! * * * BEGIN PRODUCTION RUN * * * ! * * *')
         while (True):
             self.rate_limiter_limit()
             self.tick_step()
 
     def run_test(self):
+        log.info('* * * ! * * * BEGIN TEST RUN * * * ! * * *')
         while (True):
             self.tick_step()
 
@@ -138,27 +140,27 @@ class CryptoBot:
         ## MARKET ##
 
     def get_market_summaries(self):
-        log.info('== GET market summaries ==')
+        log.debug('{BOT} == GET market summaries ==')
         return self.btrx.getmarketsummaries()
 
     def get_market_history(self, market):
-        log.info('== GET market history ==')
+        log.debug('{BOT} == GET market history ==')
         return self.btrx.getmarkethistory(market)
 
     def get_order_book(self, market, order_type, depth):
-        log.info('== GET order book ==')
+        log.debug('{BOT} == GET order book ==')
         return self.btrx.getorderbook(market, order_type, depth)
 
     def get_ticker(self, market):
-        log.info('== GET ticker ==')
+        log.debug('{BOT} == GET ticker ==')
         return self.btrx.getticker(market)
 
     def get_markets(self):
-        log.info('== GET markets ==')
+        log.debug('{BOT} == GET markets ==')
         return self.btrx.getmarkets()
 
     def get_currencies(self):
-        log.info('== GET currencies ==')
+        log.debug('{BOT} == GET currencies ==')
         return self.btrx.getcurrencies()
 
 
@@ -187,6 +189,12 @@ class CryptoBot:
             return round(balance['balance'] * quantity, 8)
 
     def calculate_order_rate(self, market, order_type, quantity, order_book_depth=20):
+        """Calculates the RATE for a trade
+
+            gets the order_book for the desired market and adds up the available coins within
+            the desired price range. the returned rate is the rate of the deepest level of the order book
+            for the integrated quantity of open orders in the specified book.
+        """
         order_book = self.get_order_book(market, order_type, order_book_depth)
         current_total = 0
         rate = 0
@@ -199,11 +207,11 @@ class CryptoBot:
         return rate
 
     def buy_instant(self, market, quantity):
-        log.info('== BUY instant ==')
+        log.debug('{BOT} == BUY instant ==')
         self.trade_instant('buy', market, quantity)
 
     def sell_instant(self, market, quantity):
-        log.info('== SELL instant ==')
+        log.debug('{BOT} == SELL instant ==')
         self.trade_instant('sell', market, quantity)
         self.complete_sell(market)
 
@@ -245,7 +253,7 @@ class CryptoBot:
     #         return None
 
     def trade_cancel(self, uuid):
-        log.info('== CANCEL bid ==')
+        log.debug('{BOT} == CANCEL bid ==')
         try:
             trade_resp = self.btrx.cancel(uuid)
             self.psql.save_trade('CANCEL', 'market', 0, 0, trade_resp['uuid'])
@@ -266,9 +274,9 @@ class CryptoBot:
             self.completed_trades[market] = pd.DataFrame(trade_data, index=trade_data.keys())
         log.info('*** ' + order_type.upper() + ' Successful! ***')
         log.info("""
-            market: """ + market + """\n""" + """
-            quantity: """ + str(quantity) + """\n""" + """
-            rate: """ + str(rate) + """\n""" + """
+            market: """ + market + """
+            quantity: """ + str(quantity) + """
+            rate: """ + str(rate) + """
             trade id: """ + str(uuid))
 
     def execute_trades(self):
@@ -308,17 +316,17 @@ class CryptoBot:
             ## ACCOUNT ##
 
     def get_balances(self):
-        log.info('== GET balances ==')
+        log.debug('{BOT} == GET balances ==')
         balances = self.btrx.getbalances()
         return balances
 
     def get_balance(self, currency):
-        log.info('== GET balance ==')
+        log.debug('{BOT} == GET balance ==')
         balance = self.btrx.getbalance(currency)
         return balance
 
     def get_order_history(self, market, count):
-        log.info('== GET order history ==')
+        log.debug('{BOT} == GET order history ==')
         history = self.btrx.getorderhistory(market, count)
         return history
 
