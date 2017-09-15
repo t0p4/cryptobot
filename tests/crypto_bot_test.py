@@ -50,3 +50,13 @@ class TestCryptoBot:
         with pytest.raises(LargeLossError):
             self.bot.completed_trades = completed_trades
             self.bot.complete_sell(market)
+
+    def test_calculate_order_rate(self):
+        market = 'BTC-LTC'
+        quantity = 5
+        order_type = 'buy'
+        order_rate = self.bot.calculate_order_rate(market, order_type, quantity)
+        assert(order_rate == 0.05)
+        order_type = 'sell'
+        order_rate = self.bot.calculate_order_rate(market, order_type, quantity)
+        assert(order_rate == 0.06)

@@ -160,7 +160,7 @@ class CryptoBot:
 
         ## ORDERS ##
 
-    def calculate_num_coins(self, order_type, market, quantity):
+    def calculate_num_coins(self, order_type, market, pct_holdings):
         coins = market.split('-')
         if order_type == 'buy':
             coin = coins[0]
@@ -169,14 +169,14 @@ class CryptoBot:
         else:
             raise Exception('order type must be buy or sell but was ' + order_type)
         balance = self.get_balance(coin)
-        return balance * quantity
+        return balance['balance'] * pct_holdings
 
-    def calculate_order_rate(self, market, order_type, quantity, order_book_depth):
+    def calculate_order_rate(self, market, order_type, quantity, order_book_depth=20):
         order_book = self.get_order_book(market, order_type, order_book_depth)
         current_total = 0
         rate = 0
         # calculate an instant price
-        for order in order_book:
+        for order in order_book[order_type]:
             current_total += order['Quantity']
             rate = order['Rate']
             if current_total >= quantity:
