@@ -60,3 +60,10 @@ class TestCryptoBot:
         order_type = 'sell'
         order_rate = self.bot.calculate_order_rate(market, order_type, quantity)
         assert(order_rate == 0.06)
+
+    def test_calculate_num_coins(self):
+        market = 'BTC-LTC'
+        order_type = 'buy'
+        pct_holdings = 0.1
+        num_coins = self.bot.calculate_num_coins(order_type, market, pct_holdings)
+        assert(num_coins == 2)

@@ -3,6 +3,7 @@ from tests.fixtures.market_summaries_fixture import MARKET_SUMMARIES_FIXTURE
 from tests.fixtures.currencies_fixture import CURRENCIES_FIXTURE
 from tests.fixtures.markets_fixture import MARKETS_FIXTURE
 from tests.fixtures.order_book_fixture import ORDER_BOOK_FIXTURE
+from tests.fixtures.balance_fixture import BALANCE_FIXTURE
 
 from src.exchange.bittrex import Bittrex
 
@@ -15,6 +16,7 @@ class MockBittrex(Bittrex):
             'getcurrencies': CURRENCIES_FIXTURE,
             'getmarkets': MARKETS_FIXTURE,
             'getbalances': {},
+            'getbalance': BALANCE_FIXTURE,
             'getorderbook': ORDER_BOOK_FIXTURE
         }
         self.collect_fixtures = 'FALSE'
