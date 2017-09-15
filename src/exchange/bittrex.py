@@ -89,6 +89,7 @@ class Bittrex(object):
         return self.query('getticker', {'market': market})
     
     def getmarketsummaries(self):
+        """Returns a <LIST> of <PANDAS.SERIES>"""
         summaries = self.query('getmarketsummaries')
         results = []
         for summary in summaries:

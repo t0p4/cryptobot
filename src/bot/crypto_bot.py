@@ -9,18 +9,22 @@ from bs4 import BeautifulSoup
 from src.db.psql import PostgresConnection
 from src.utils.utils import is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index
 from src.utils.logger import Logger
-from src.exceptions import LargeLossError, TradeFailureError
+from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsError
 from src.utils.emailer import Reporter
+
+MAX_CURRENCY_PER_BUY = {
+    'BTC': .2,
+    'ETH': 2
+}
 
 log = Logger(__name__)
 
-MAX_BTC_PER_BUY = 0.05
-BUY_DECREMENT_COEFFICIENT = 0.75
 MAJOR_TICK_SIZE = 5
 SMA_WINDOW = 5
 EXECUTE_TRADES = False
 BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
-BASE_CURRENCIES = ['BTC', 'ETH', 'USDT']
+BASE_CURRENCIES = ['BTC', 'ETH']
+ORDER_BOOK_DEPTH = 20
 
 
 class CryptoBot:
@@ -160,16 +164,27 @@ class CryptoBot:
 
         ## ORDERS ##
 
-    def calculate_num_coins(self, order_type, market, pct_holdings):
-        coins = market.split('-')
+    def calculate_num_coins(self, market, order_type, quantity):
+        """Calculates the QUANTITY for a trade
+            -   if the order_type is 'buy', input parameter quantity is an amount of the base_currency to spend
+            -   if the order_type is 'sell', inpute parameter quantity is a pct of the market_currency to sell
+
+            an InsufficientFundsError will be raised in the event that there is not enough of the desired
+            base currency for a 'buy' order
+        """
         if order_type == 'buy':
-            coin = coins[0]
-        elif order_type == 'sell':
-            coin = coins[1]
+            coin = market[:3]
+            balance = self.get_balance(coin)
+            rate = self.summary_tickers[market].loc[0, 'last']
+            if balance['balance'] >= quantity:
+                return round(quantity / rate, 8)
+            else:
+                msg = 'Not enough ' + coin + ' to complete this trade'
+                raise InsufficientFundsError(balance, market, quantity, rate, msg)
         else:
-            raise Exception('order type must be buy or sell but was ' + order_type)
-        balance = self.get_balance(coin)
-        return balance['balance'] * pct_holdings
+            coin = market[4:]
+            balance = self.get_balance(coin)
+            return round(balance['balance'] * quantity, 8)
 
     def calculate_order_rate(self, market, order_type, quantity, order_book_depth=20):
         order_book = self.get_order_book(market, order_type, order_book_depth)
@@ -192,13 +207,13 @@ class CryptoBot:
         self.trade_instant('sell', market, quantity)
         self.complete_sell(market)
 
-    def trade_instant(self, order_type, market, pct_holdings):
-        quantity = self.calculate_num_coins(order_type, market, pct_holdings)
+    def trade_instant(self, order_type, market, quantity):
         try:
-            rate = self.calculate_order_rate(market, order_type, quantity, 20)
-            trade_resp = self.trade_functions[order_type](market, quantity, rate)
+            num_coins = self.calculate_num_coins(market, order_type, quantity)
+            rate = self.calculate_order_rate(market, order_type, num_coins, ORDER_BOOK_DEPTH)
+            trade_resp = self.trade_functions[order_type](market, num_coins, rate)
             if trade_resp and not isinstance(trade_resp, basestring):
-                self.trade_success(order_type, market, quantity, rate, trade_resp['uuid'])
+                self.trade_success(order_type, market, num_coins, rate, trade_resp['uuid'])
                 return trade_resp
             else:
                 log.info(trade_resp)
@@ -206,28 +221,28 @@ class CryptoBot:
         except TradeFailureError:
             return None
 
-    def buy_market(self, market, quantity):
-        log.info('== BUY market ==')
-        self.trade_market('buy', market, quantity)
-
-    def sell_market(self, market, quantity):
-        log.info('== SELL market ==')
-        self.trade_market('sell', market, quantity)
-
-    def trade_market(self, order_type, market, pct_holdings):
-        quantity = self.calculate_num_coins(order_type, market, pct_holdings)
-        try:
-            ticker = self.get_ticker(market)
-            rate = ticker['Last']
-            trade_resp = self.trade_functions[order_type](market, quantity, rate)
-            if trade_resp and not isinstance(trade_resp, basestring):
-                self.trade_success(order_type, market, quantity, rate, trade_resp['uuid'])
-                return trade_resp
-            else:
-                log.info(trade_resp)
-                return None
-        except TradeFailureError:
-            return None
+    # def buy_market(self, market, quantity):
+    #     log.info('== BUY market ==')
+    #     self.trade_market('buy', market, quantity)
+    #
+    # def sell_market(self, market, quantity):
+    #     log.info('== SELL market ==')
+    #     self.trade_market('sell', market, quantity)
+    #
+    # def trade_market(self, order_type, market, pct_holdings):
+    #     quantity = self.calculate_num_coins(market, order_type, pct_holdings)
+    #     try:
+    #         ticker = self.get_ticker(market)
+    #         rate = ticker['Last']
+    #         trade_resp = self.trade_functions[order_type](market, quantity, rate)
+    #         if trade_resp and not isinstance(trade_resp, basestring):
+    #             self.trade_success(order_type, market, quantity, rate, trade_resp['uuid'])
+    #             return trade_resp
+    #         else:
+    #             log.info(trade_resp)
+    #             return None
+    #     except TradeFailureError:
+    #         return None
 
     def trade_cancel(self, uuid):
         log.info('== CANCEL bid ==')
@@ -260,7 +275,7 @@ class CryptoBot:
         for idx, market in self.markets.iterrows():
             mkt_name = market['marketname']
             if self.strat.should_buy(mkt_name):
-                self.buy_instant(mkt_name, .1)
+                self.buy_instant(mkt_name, MAX_CURRENCY_PER_BUY[mkt_name[:3]])
             elif self.strat.should_sell(mkt_name):
                 self.sell_instant(mkt_name, 1)
 

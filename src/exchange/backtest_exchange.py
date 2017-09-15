@@ -78,6 +78,7 @@ class BacktestExchange:
     #     return [summary]
 
     def getmarketsummaries(self):
+        """Returns a <LIST> of <PANDAS.SERIES>"""
         self.tick += 1
         summaries = self.psql.get_market_summaries_by_ticker(self.tick)
         self.current_summaries = summaries
