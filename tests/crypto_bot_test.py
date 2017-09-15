@@ -1,11 +1,13 @@
 from src.bot.crypto_bot import CryptoBot
 from src.strats.base_strat import BaseStrategy
 from tests.mocks.btrx_mock import MockBittrex
+from src.exceptions import LargeLossError
 import pandas as pd
 import os
 import datetime
+import pytest
 
-os.environ['BACKTESTING'] = 'True'
+os.environ['BACKTESTING'] = 'TRUE'
 
 strat_options = {
     'active': False,
@@ -45,5 +47,6 @@ class TestCryptoBot:
             {'order_type': 'buy', 'market': 'BTC-LTC', 'quantity': 0.1, 'rate': 0.003, 'uuid': 'test4',
              'base_currency': 'BTC', 'market_currency': 'LTC', 'timestamp': datetime.datetime(2017, 1, 1, 4, 0)}
         ])}
-        self.bot.completed_trades = completed_trades
-        self.bot.complete_sell(market)
+        with pytest.raises(LargeLossError):
+            self.bot.completed_trades = completed_trades
+            self.bot.complete_sell(market)

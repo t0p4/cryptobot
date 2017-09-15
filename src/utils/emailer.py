@@ -6,9 +6,11 @@ log = Logger(__name__)
 
 class Reporter:
     def __init__(self):
-        self.server = smtplib.SMTP('smtp.gmail.com', 587)
+        self.server = None
+        pass
 
     def send_report(self, subj, body):
+        self.server = smtplib.SMTP('smtp.gmail.com', 587)
         msg = MIMEText(body)
         msg['Subject'] = subj
         msg['From'] = 'CryptoBot'
