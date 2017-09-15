@@ -11,6 +11,7 @@ from src.utils.utils import is_valid_market, normalize_inf_rows_dicts, add_saved
 from src.utils.logger import Logger
 from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsError
 from src.utils.emailer import Reporter
+from src.utils.plotter import Plotter
 
 MAX_CURRENCY_PER_BUY = {
     'BTC': .2,
@@ -47,6 +48,7 @@ class CryptoBot:
         self.tick = 0
         self.major_tick = 0
         self.reporter = Reporter()
+        self.plotter = Plotter()
         log.info('...bot successfully initialized')
 
     def init_markets(self):
@@ -72,7 +74,7 @@ class CryptoBot:
 
     def run_test(self):
         log.info('* * * ! * * * BEGIN TEST RUN * * * ! * * *')
-        while (True):
+        while self.tick < 130:
             self.tick_step()
 
         self.analyze_performance()
@@ -402,6 +404,7 @@ class CryptoBot:
             ## BACKTESTING TOOLS ##
 
     def analyze_performance(self):
+        self.plot_market_data()
         starting_balances = self.btrx.starting_balances
         current_balances = self.btrx.getbalances()
         log.info('*** PERFORMANCE RESULTS ***')
@@ -421,3 +424,6 @@ class CryptoBot:
             if cur_balance > 0:
                 market = 'BTC-' + currency
                 self.trade_instant('sell', market, 1)
+
+    def plot_market_data(self):
+        self.plotter.plot_market(self.summary_tickers['ETH-BNT'])

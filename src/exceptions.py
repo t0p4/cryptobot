@@ -21,12 +21,11 @@ class TradeFailureError(BotError):
     pass
 
 
-class InsufficientFundsError(BotError):
+class InsufficientFundsError(TradeFailureError, BotError):
     """Raise when a trade is attempted but there are not enough funds to execute it"""
     def __init__(self, balance, market, quantity, rate, msg):
         super(InsufficientFundsError, self).__init__(msg)
         self.market = market
         self.quantity = quantity
-        self.rate = rate
         self.balance = balance
     pass
