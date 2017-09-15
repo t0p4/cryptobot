@@ -152,21 +152,30 @@ class PostgresConnection:
         """
         return self._fetch_query(query, params)
 
-    def get_market_summaries_by_ticker(self, tick):
+    def get_market_summaries_by_ticker(self, tick, market_names):
         log.debug('{PSQL} == GET market summaries by ticker ==')
         params = {
-            'ticker_nonce': tick
+            'ticker_nonce': tick,
+            'market_names': market_names
         }
         query = """
             SELECT marketname, last, bid, ask, saved_timestamp FROM fixture_market_summaries
-            WHERE ticker_nonce = %(ticker_nonce)s ;
+            WHERE ticker_nonce = %(ticker_nonce)s AND marketname IN %(market_names)s
+            ;
         """
         return self._fetch_query(query, params)
 
-    def get_fixture_markets(self):
+    def get_fixture_markets(self, base_currencies):
         log.debug('{PSQL} == GET fixture markets ==')
-        params = {}
-        query = """ SELECT * FROM fixture_markets ; """
+        fmt_str = "(%(currencies)s)"
+        columns = "currencies"
+        values = AsIs(','.join(fmt_str.format(currency) for currency in base_currencies))
+        params = {
+            'base_currencies': AsIs(','.join(base_currencies))
+        }
+        query = """ SELECT * FROM fixture_markets
+        WHERE basecurrency IN ('ETH');
+        """
         return self._fetch_query(query, params)
 
     def get_fixture_currencies(self):

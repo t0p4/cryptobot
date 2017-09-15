@@ -57,7 +57,7 @@ class Bittrex(object):
         else:
             return response["message"]
 
-    def getmarkets(self):
+    def getmarkets(self, base_currencies):
         ## if collecting fixtures, return array of Series objects
         ## if running in production (or backtesting), return dataframe
         markets = self.query('getmarkets')
@@ -70,6 +70,7 @@ class Bittrex(object):
             return results
         else:
             markets = pd.DataFrame(markets).drop(['created', 'issponsored', 'notice'], axis=1)
+            markets = markets[markets.apply((lambda mkt: mkt['marketname'][:3] in base_currencies), axis=1)]
             return normalize_columns(markets)
     
     def getcurrencies(self):

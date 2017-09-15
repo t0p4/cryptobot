@@ -23,7 +23,7 @@ MAJOR_TICK_SIZE = 5
 SMA_WINDOW = 5
 EXECUTE_TRADES = False
 BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
-BASE_CURRENCIES = ['BTC', 'ETH', 'USDT']
+BASE_CURRENCIES = ['BTC-ETH']
 ORDER_BOOK_DEPTH = 20
 
 
@@ -54,7 +54,8 @@ class CryptoBot:
             self.currencies = self.get_currencies()
             self.markets = self.get_markets()
             for mkt_name in self.markets['marketname']:
-                self.summary_tickers[mkt_name] = pd.DataFrame()
+                if is_valid_market(mkt_name, BASE_CURRENCIES):
+                    self.summary_tickers[mkt_name] = pd.DataFrame()
             self.strat.init_market_positions(self.markets)
 
     def run(self):
@@ -157,7 +158,7 @@ class CryptoBot:
 
     def get_markets(self):
         log.debug('{BOT} == GET markets ==')
-        return self.btrx.getmarkets()
+        return self.btrx.getmarkets(BASE_CURRENCIES)
 
     def get_currencies(self):
         log.debug('{BOT} == GET currencies ==')
