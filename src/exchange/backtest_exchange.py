@@ -39,6 +39,7 @@ class BacktestExchange:
             })
             balances[currency] = balance
         balances['BTC']['balance'] = 20.0
+        balances['ETH']['balance'] = 20.0
         return balances
 
     def load_market_summaries(self):

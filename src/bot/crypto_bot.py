@@ -246,12 +246,15 @@ class CryptoBot:
             timestamp = self.btrx.current_timestamp
         trade_data = self.psql.save_trade(order_type, market, quantity, rate, uuid, timestamp)
         if market in self.completed_trades:
-            self.completed_trades[market].append(pd.Series(trade_data))
+            self.completed_trades[market].append(pd.Series(trade_data), ignore_index=True)
         else:
-            self.completed_trades[market] = pd.DataFrame(trade_data)
+            self.completed_trades[market] = pd.DataFrame(trade_data, index=trade_data.keys())
         log.info('*** ' + order_type.upper() + ' Successful! ***')
-        log.info(
-            'market: ' + market + ' :: ' + 'quantity: ' + quantity + ' :: ' + 'rate: ' + rate + ' :: ' + 'trade id: ' + uuid)
+        log.info("""
+            market: """ + market + """\n""" + """
+            quantity: """ + str(quantity) + """\n""" + """
+            rate: """ + str(rate) + """\n""" + """
+            trade id: """ + str(uuid))
 
     def execute_trades(self):
         for idx, market in self.markets.iterrows():
@@ -287,7 +290,7 @@ class CryptoBot:
             msg = """"{market_currency} Net Loss: {net_gain} {base_currency}, {net_gain_pct}%\n""".format(**log_details)
             raise LargeLossError(log_details, msg)
 
-        ## ACCOUNT ##
+            ## ACCOUNT ##
 
     def get_balances(self):
         log.info('== GET balances ==')

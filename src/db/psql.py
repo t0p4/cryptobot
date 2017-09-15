@@ -59,8 +59,8 @@ class PostgresConnection:
 
     def save_trade(self, order_type, market, quantity, rate, uuid, timestamp):
         log.info('== SAVE trade ==')
-        fmt_str = "('{order_type}','{market}',{quantity},{rate},'{uuid}','{base_currency}','{market_currency}',{timestamp})"
-        columns = "(order_type, market, quantity, rate, uuid, base_currency, market_currency, timestamp)"
+        fmt_str = "('{order_type}','{market}',{quantity},{rate},'{uuid}','{base_currency}','{market_currency}','{timestamp}')"
+        columns = "order_type, market, quantity, rate, uuid, base_currency, market_currency, timestamp"
         market_currencies = market.split('-')
         values = {
             "order_type": order_type,
@@ -74,7 +74,7 @@ class PostgresConnection:
         }
         params = {
             "columns": AsIs(columns),
-            "values": fmt_str.format(**values)
+            "values": AsIs(fmt_str.format(**values))
         }
         query = """ INSERT INTO """ + self.table_name('save_trade') + """ (%(columns)s) VALUES %(values)s; """
         self._exec_query(query, params)
