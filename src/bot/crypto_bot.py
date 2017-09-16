@@ -405,16 +405,16 @@ class CryptoBot:
 
     def analyze_performance(self):
         self.plot_market_data()
-        starting_balances = self.btrx.starting_balances
+        starting_balances = self.btrx.get_starting_balances()
         current_balances = self.btrx.getbalances()
         log.info('*** PERFORMANCE RESULTS ***')
         for currency in starting_balances:
-            start = starting_balances[currency]
-            end = current_balances[currency]
-            log.info(' == ' + currency + ' == ')
-            log.info('Start    :: ' + str(start))
-            log.info('End      :: ' + str(end))
-            log.info('% diff   :: ' + str((end - start) / start))
+            start = starting_balances[currency]['balance']
+            end = current_balances[currency]['balance']
+            log_statement = currency + ' :: ' + 'Start = ' + str(start) + ' , End = ' + str(end)
+            if currency in BASE_CURRENCIES:
+                log_statement += '% diff   :: ' + str((end - start) / start)
+            log.info(log_statement)
 
     def cash_out(self):
         log.info('*** CASHING OUT ***')
@@ -426,4 +426,5 @@ class CryptoBot:
                 self.trade_instant('sell', market, 1)
 
     def plot_market_data(self):
-        self.plotter.plot_market(self.summary_tickers['ETH-BNT'])
+        for market, trades in self.completed_trades.iteritems():
+            self.plotter.plot_market(self.summary_tickers[market])

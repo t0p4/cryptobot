@@ -1,4 +1,10 @@
 {
-  "tests/crypto_bot_test.py": true, 
+  "tests/backtest_exchange_test.py::TestBacktestExchange::()::test_getmarketsummaries": true, 
+  "tests/backtest_exchange_test.py::TestBacktestExchange::()::test_getorderbook_both": true, 
+  "tests/backtest_exchange_test.py::TestBacktestExchange::()::test_getorderbook_buy": true, 
+  "tests/backtest_exchange_test.py::TestBacktestExchange::()::test_getorderbook_sell": true, 
+  "tests/backtest_exchange_test.py::TestBacktestExchange::()::test_getticker": true, 
+  "tests/crypto_bot_test.py::TestCryptoBot::()": true, 
+  "tests/crypto_bot_test.py::TestCryptoBot::()::test_calculate_num_coins": true, 
   "tests/crypto_bot_test.py::TestCryptoBot::()::test_tick_step": true
 }

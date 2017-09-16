@@ -16,7 +16,7 @@ class BacktestExchange:
         self.end_date = end_date
         self.psql = PostgresConnection()
         self.balances = self.init_balances()
-        self.starting_balances = self.balances.copy()
+        self.starting_balances = self.init_balances()
         self.trades = {}
         self.tick = -1
         self.current_timestamp = None
@@ -41,7 +41,7 @@ class BacktestExchange:
             balances[currency] = balance
         balances['BTC']['balance'] = 20.0
         balances['ETH']['balance'] = 20.0
-        return balances
+        return balances.copy()
 
     def load_market_summaries(self):
         data = self.psql.get_historical_data(self.start_date, self.end_date)
@@ -62,6 +62,9 @@ class BacktestExchange:
         base_coin, mkt_coin = get_coins_from_market(market)
         self.balances[base_coin]['balance'] += (quantity * rate)
         self.balances[mkt_coin]['balance'] -= quantity
+
+    def get_starting_balances(self):
+        return self.starting_balances
 
     def getmarkets(self, base_currencies):
         self.markets = self.psql.get_fixture_markets(base_currencies)
@@ -155,10 +158,11 @@ class BacktestExchange:
     #     return self.query('getopenorders', {'market': market})
 
     def getbalances(self):
-        balances = []
-        for currency in self.balances:
-            balances.append(self.balances[currency])
-        return balances
+        # balances = []
+        # for currency in self.balances:
+        #     balances.append(self.balances[currency])
+        # return balances
+        return self.balances
 
     def getbalance(self, currency):
         return self.balances[currency]
