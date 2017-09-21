@@ -77,6 +77,7 @@ class CryptoBot:
         while self.tick < 130:
             self.tick_step()
 
+        self.cash_out()
         self.analyze_performance()
 
     def kill(self):
@@ -419,11 +420,13 @@ class CryptoBot:
     def cash_out(self):
         log.info('*** CASHING OUT ***')
         current_balances = self.btrx.getbalances()
-        for currency, balance_data in current_balances.iteritems():
-            cur_balance = balance_data['balance']
+        for idx, market in self.markets.iterrows():
+            mkt_name = market['marketname']
+            coins = mkt_name.split('-')
+            cur_balance = current_balances[coins[1]]['balance']
+            # add logic to optimize and get the best return
             if cur_balance > 0:
-                market = 'BTC-' + currency
-                self.trade_instant('sell', market, 1)
+                self.trade_instant('sell', mkt_name, 1)
 
     def plot_market_data(self):
         for market, trades in self.completed_trades.iteritems():
