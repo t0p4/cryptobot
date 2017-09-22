@@ -24,7 +24,6 @@ MAJOR_TICK_SIZE = 5
 SMA_WINDOW = 5
 EXECUTE_TRADES = False
 BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
-BASE_CURRENCIES = ['ETH']
 ORDER_BOOK_DEPTH = 20
 
 
@@ -35,6 +34,7 @@ class CryptoBot:
         self.strat = strat
         self.btrx = exchange
         self.trade_functions = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
+        self.base_currencies = os.getenv('BASE_CURRENCIES', 'BTC,ETH').split(',')
         self.completed_trades = {}
         self.rate_limit = datetime.timedelta(0, 60, 0)
         self.api_tick = datetime.datetime.now()
@@ -56,7 +56,7 @@ class CryptoBot:
             self.currencies = self.get_currencies()
             self.markets = self.get_markets()
             for mkt_name in self.markets['marketname']:
-                if is_valid_market(mkt_name, BASE_CURRENCIES):
+                if is_valid_market(mkt_name, self.base_currencies):
                     self.summary_tickers[mkt_name] = pd.DataFrame()
             self.strat.init_market_positions(self.markets)
 
@@ -102,7 +102,7 @@ class CryptoBot:
         summaries = self.get_market_summaries()
         for summary in summaries:
             mkt_name = summary['marketname']
-            if is_valid_market(mkt_name, BASE_CURRENCIES) and mkt_name in self.summary_tickers:
+            if is_valid_market(mkt_name, self.base_currencies) and mkt_name in self.summary_tickers:
                 self.summary_tickers[mkt_name] = self.summary_tickers[mkt_name].append(summary, ignore_index=True)
 
     def major_tick_step(self):
@@ -161,7 +161,7 @@ class CryptoBot:
 
     def get_markets(self):
         log.debug('{BOT} == GET markets ==')
-        return self.btrx.getmarkets(BASE_CURRENCIES)
+        return self.btrx.getmarkets(self.base_currencies)
 
     def get_currencies(self):
         log.debug('{BOT} == GET currencies ==')
@@ -413,7 +413,7 @@ class CryptoBot:
             start = starting_balances[currency]['balance']
             end = current_balances[currency]['balance']
             log_statement = currency + ' :: ' + 'Start = ' + str(start) + ' , End = ' + str(end)
-            if currency in BASE_CURRENCIES:
+            if currency in self.base_currencies:
                 log_statement += '% diff   :: ' + str((end - start) / start)
             log.info(log_statement)
 
@@ -424,7 +424,7 @@ class CryptoBot:
             mkt_name = market['marketname']
             coins = mkt_name.split('-')
             cur_balance = current_balances[coins[1]]['balance']
-            # add logic to optimize and get the best return
+            # add logic to optimize and get the best return (eth vs btc)
             if cur_balance > 0:
                 self.trade_instant('sell', mkt_name, 1)
 

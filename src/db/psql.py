@@ -171,10 +171,10 @@ class PostgresConnection:
         columns = "currencies"
         values = AsIs(','.join(fmt_str.format(currency) for currency in base_currencies))
         params = {
-            'base_currencies': AsIs(','.join(base_currencies))
+            'base_currencies': tuple(base_currencies)
         }
         query = """ SELECT * FROM fixture_markets
-        WHERE basecurrency IN ('ETH');
+        WHERE basecurrency IN ('BTC', 'ETH');
         """
         return self._fetch_query(query, params)
 

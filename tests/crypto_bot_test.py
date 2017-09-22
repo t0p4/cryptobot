@@ -8,6 +8,8 @@ import datetime
 import pytest
 
 os.environ['BACKTESTING'] = 'TRUE'
+os.environ['BASE_CURRENCIES'] = 'BTC,ETH'
+os.environ['COLLECT_FIXTURES'] = 'FALSE'
 
 strat_options = {
     'active': False,

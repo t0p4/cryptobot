@@ -1,19 +1,26 @@
 from src.exchange.backtest_exchange import BacktestExchange
 import datetime
 import pandas as pd
+import os
 
 BACKTESTING_START_DATE = datetime.datetime(2017, 1, 1)
 BACKTESTING_END_DATE = datetime.datetime(2017, 8, 31)
 
+os.environ['BACKTESTING'] = 'TRUE'
+os.environ['BASE_CURRENCIES'] = 'BTC,ETH'
+os.environ['COLLECT_FIXTURES'] = 'FALSE'
 
 class TestBacktestExchange:
     def setup_class(self):
         self.be = BacktestExchange(BACKTESTING_START_DATE, BACKTESTING_END_DATE)
+        self.be.getmarkets(['BTC', 'ETH'])
+        self.be.getmarketsummaries()
 
     def teardown_class(self):
         self.be = None
 
     def test_getmarketsummaries(self):
+        self.be.getmarkets('BTC')
         market_summaries = self.be.getmarketsummaries()
         expected_columns = ['marketname', 'last', 'bid', 'ask', 'saved_timestamp']
         assert (isinstance(market_summaries, list))
@@ -49,6 +56,7 @@ class TestBacktestExchange:
         order_type = 'buy'
         depth = 20
         market_summaries = self.be.getmarketsummaries()
+        print(market_summaries)
         btc_ltc_summary = next(summary for summary in market_summaries if summary['marketname'] == market)
         order_book = self.be.getorderbook(market, order_type, depth)
         assert(len(order_book['buy']) == 1)
