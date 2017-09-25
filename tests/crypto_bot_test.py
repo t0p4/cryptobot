@@ -58,10 +58,10 @@ class TestCryptoBot:
         quantity = 5
         order_type = 'buy'
         order_rate = self.bot.calculate_order_rate(market, order_type, quantity)
-        assert(order_rate == 0.05)
+        assert(order_rate == 0.06)
         order_type = 'sell'
         order_rate = self.bot.calculate_order_rate(market, order_type, quantity)
-        assert(order_rate == 0.06)
+        assert(order_rate == 0.05)
 
     def test_calculate_num_coins(self):
         self.bot.minor_tick_step()

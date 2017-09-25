@@ -74,7 +74,7 @@ class CryptoBot:
 
     def run_test(self):
         log.info('* * * ! * * * BEGIN TEST RUN * * * ! * * *')
-        while self.tick < 130:
+        while self.tick < 40:
             self.tick_step()
 
         self.cash_out()
@@ -199,11 +199,17 @@ class CryptoBot:
             the desired price range. the returned rate is the rate of the deepest level of the order book
             for the integrated quantity of open orders in the specified book.
         """
-        order_book = self.get_order_book(market, order_type, order_book_depth)
+        if order_type == 'buy':
+            book_type = 'sell'
+        elif order_type == 'sell':
+            book_type = 'buy'
+        else:
+            book_type = 'both'
+        order_book = self.get_order_book(market, book_type, order_book_depth)
         current_total = 0
         rate = 0
         # calculate an instant price
-        for order in order_book[order_type]:
+        for order in order_book[book_type]:
             current_total += order['Quantity']
             rate = order['Rate']
             if current_total >= quantity:
@@ -275,7 +281,7 @@ class CryptoBot:
         if market in self.completed_trades:
             self.completed_trades[market].append(pd.Series(trade_data), ignore_index=True)
         else:
-            self.completed_trades[market] = pd.DataFrame(trade_data, index=trade_data.keys())
+            self.completed_trades[market] = pd.DataFrame([trade_data])
         log.info('*** ' + order_type.upper() + ' Successful! ***')
         log.info("""
             market: """ + market + """
@@ -430,4 +436,4 @@ class CryptoBot:
 
     def plot_market_data(self):
         for market, trades in self.completed_trades.iteritems():
-            self.plotter.plot_market(self.summary_tickers[market])
+            self.plotter.plot_market(market, self.summary_tickers[market], trades)
