@@ -18,7 +18,7 @@ class BacktestExchange:
         self.balances = self.init_balances()
         self.starting_balances = self.init_balances()
         self.trades = {}
-        self.tick = -1
+        self.tick = 0
         self.current_timestamp = None
         self.current_summaries = None
         self.markets = None
@@ -85,7 +85,8 @@ class BacktestExchange:
     def getmarketsummaries(self):
         """Returns a <LIST> of <PANDAS.SERIES>"""
         self.tick += 1
-        summaries = self.psql.get_market_summaries_by_ticker(self.tick, tuple(self.markets['marketname'].values))
+        markets = tuple(self.markets['marketname'].values)
+        summaries = self.psql.get_market_summaries_by_ticker(self.tick, markets)
         self.current_summaries = summaries
         results = []
         self.current_timestamp = summaries.loc[0, 'saved_timestamp']

@@ -174,7 +174,7 @@ class PostgresConnection:
             'base_currencies': tuple(base_currencies)
         }
         query = """ SELECT * FROM fixture_markets
-        WHERE basecurrency IN ('ETH');
+        WHERE basecurrency IN ('ETH', 'BTC');
         """
         return self._fetch_query(query, params)
 

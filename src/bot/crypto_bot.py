@@ -45,7 +45,7 @@ class CryptoBot:
         self.markets_to_watch = []
         self.balances = self.get_balances()
         self.accounts = []
-        self.tick = 0
+        self.tick = 1
         self.major_tick = 0
         self.reporter = Reporter()
         self.plotter = Plotter()
@@ -74,7 +74,7 @@ class CryptoBot:
 
     def run_test(self):
         log.info('* * * ! * * * BEGIN TEST RUN * * * ! * * *')
-        while self.tick < 40:
+        while self.tick < 430:
             self.tick_step()
 
         self.cash_out()
@@ -279,7 +279,7 @@ class CryptoBot:
             timestamp = self.btrx.current_timestamp
         trade_data = self.psql.save_trade(order_type, market, quantity, rate, uuid, timestamp)
         if market in self.completed_trades:
-            self.completed_trades[market].append(pd.Series(trade_data), ignore_index=True)
+            self.completed_trades[market] = self.completed_trades[market].append(pd.Series(trade_data), ignore_index=True)
         else:
             self.completed_trades[market] = pd.DataFrame([trade_data])
         log.info('*** ' + order_type.upper() + ' Successful! ***')

@@ -56,7 +56,6 @@ class TestBacktestExchange:
         order_type = 'buy'
         depth = 20
         market_summaries = self.be.getmarketsummaries()
-        print(market_summaries)
         btc_ltc_summary = next(summary for summary in market_summaries if summary['marketname'] == market)
         order_book = self.be.getorderbook(market, order_type, depth)
         assert(len(order_book['buy']) == 1)

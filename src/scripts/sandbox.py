@@ -13,7 +13,7 @@ if BACKTESTING == 'TRUE':
 else:
     btrx = ExchangeFactory().get_exchange()()
 
-SMA_WINDOW = 5
+SMA_WINDOW = 10
 bb_options = {
     'active': True,
     'market_names': [],
