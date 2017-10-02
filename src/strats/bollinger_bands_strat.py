@@ -16,7 +16,6 @@ class BollingerBandsStrat(BaseStrategy):
     def handle_data(self, data, major_tick):
         log.info('Bollinger Band Strat :: handle_data')
         for mkt_name, mkt_data in data.iteritems():
-            mkt_data = self.compress_and_calculate_mean(mkt_data)
             if len(mkt_data) >= self.major_tick:
                 mkt_data = self.calc_bollinger_bands(mkt_data)
                 tail = mkt_data.tail(2)
@@ -38,15 +37,6 @@ class BollingerBandsStrat(BaseStrategy):
                     self.sell_positions[mkt_name] = False
             data[mkt_name] = mkt_data
         return data
-
-    def compress_and_calculate_mean(self, data):
-        data = data[['last', 'bid', 'ask', 'saved_timestamp', 'marketname']]
-        # data = data[['volume', 'last', 'bid', 'ask', 'basevolume', 'openbuyorders', 'opensellorders', 'saved_timestamp', 'ticker_nonce']]
-        tail = data.tail(self.major_tick).reset_index(drop=True)
-        tail_meta_data = tail[['marketname', 'saved_timestamp']].tail(1).reset_index(drop=True)
-        data = data.drop(data.index[-self.major_tick:])
-        tail = pd.concat([tail.groupby(tail.index / self.major_tick).mean(), tail_meta_data], axis=1, join_axes=[tail_meta_data.index])
-        return data.append(tail, ignore_index=True)
 
     def calc_bollinger_bands(self, df):
         df['SMA'] = df[self.sma_stat_key].rolling(window=self.sma_window, center=False).mean()

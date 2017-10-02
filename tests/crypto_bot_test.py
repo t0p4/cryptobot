@@ -2,6 +2,8 @@ from src.bot.crypto_bot import CryptoBot
 from src.strats.base_strat import BaseStrategy
 from tests.mocks.btrx_mock import MockBittrex
 from src.exceptions import LargeLossError
+from fixtures.summary_tickers_fixture import SUMMARY_TICKERS_FIXTURE
+from pandas.util.testing import assert_frame_equal
 import pandas as pd
 import os
 import datetime
@@ -36,6 +38,16 @@ class TestCryptoBot:
             assert (len(summary.index) == len(expected_columns))
             for key in summary.index:
                 assert (key in expected_columns)
+
+    def test_compress_and_calculate_mean(self):
+        expected_result = pd.DataFrame([
+            {'marketname': 'BTC-LTC', 'last': 0.015440, 'bid': 0.015450, 'ask': 0.015600,
+             'saved_timestamp': datetime.datetime(2017, 1, 1, 1, 0, 1)},
+            {'marketname': 'BTC-LTC', 'last': 0.0154604, 'bid': 0.015451, 'ask': 0.015493,
+             'saved_timestamp': datetime.datetime(2017, 1, 1, 1, 5, 1)}
+        ], columns=['ask', 'bid', 'last', 'marketname', 'saved_timestamp'])
+        result = self.bot.compress_tickers({'BTC-LTC': SUMMARY_TICKERS_FIXTURE})
+        assert_frame_equal(result['BTC-LTC'], expected_result, check_exact=False, check_less_precise=True)
 
     def test_complete_sell(self):
         market = 'BTC-LTC'
