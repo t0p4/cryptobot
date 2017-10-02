@@ -38,7 +38,6 @@ class TestBBStrat:
 
     def test_calc_bollinger_bands(self):
         result = self.strat.calc_bollinger_bands(PROCESSED_SUMMARY_TICKERS_FIXTURE)
-        print(result.iloc[4])
         expected_result = pd.Series(
             {'ask': 2.2, 'bid': 2.2, 'last': 2.2, 'marketname': 'BTC-LTC',
              'saved_timestamp': datetime.datetime(2017, 1, 1, 1, 20, 1), 'SMA': 2.0, 'STDDEV': 0.158114,

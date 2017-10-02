@@ -1,0 +1,30 @@
+from src.strats.williams_pct_strat import WilliamsPctStrat
+import pandas as pd
+from pandas.util.testing import assert_frame_equal, assert_series_equal
+from fixtures.summary_tickers_fixture import SUMMARY_TICKERS_FIXTURE
+from fixtures.processed_summary_tickers_fixture import PROCESSED_SUMMARY_TICKERS_FIXTURE
+import os
+import datetime
+
+os.environ['BACKTESTING'] = 'True'
+
+options = {
+    'active': True,
+    'market_names': ['BTC-LTC'],
+    'wp_window': 5,
+    'minor_tick': 1,
+    'major_tick': 5
+}
+
+
+class TestBBStrat:
+    def setup_class(self):
+        self.strat = WilliamsPctStrat(options)
+
+    def teardown_class(self):
+        self.strat = None
+
+    def test_calculate_williams_pct(self):
+        expected_wp = -0.0
+        wp = self.strat.calculate_williams_pct(PROCESSED_SUMMARY_TICKERS_FIXTURE)
+        assert(wp == expected_wp)
