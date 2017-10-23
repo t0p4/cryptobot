@@ -20,8 +20,7 @@ MAX_CURRENCY_PER_BUY = {
 
 log = Logger(__name__)
 
-MAJOR_TICK_SIZE = 5
-SMA_WINDOW = 5
+MAJOR_TICK_SIZE = int(os.getenv('MAJOR_TICK_SIZE', 5))
 EXECUTE_TRADES = False
 BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
 ORDER_BOOK_DEPTH = 20
@@ -36,6 +35,7 @@ class CryptoBot:
         self.trade_functions = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
         self.base_currencies = os.getenv('BASE_CURRENCIES', 'BTC,ETH').split(',')
         self.tradeable_markets = dict((m, True) for m in os.getenv('TRADEABLE_MARKETS', 'BTC-LTC').split(','))
+        self.tradeable_currencies = dict((m[4:], True) for m in os.getenv('TRADEABLE_MARKETS', 'BTC-LTC').split(','))
         self.completed_trades = {}
         self.rate_limit = datetime.timedelta(0, 60, 0)
         self.api_tick = datetime.datetime.now()
@@ -309,7 +309,7 @@ class CryptoBot:
             mkt_name = market['marketname']
             if self.strat.should_buy(mkt_name):
                 self.buy_instant(mkt_name, MAX_CURRENCY_PER_BUY[mkt_name[:3]])
-            elif self.strat.should_sell(mkt_name):
+            elif self.strat.should_sell(mkt_name) and self.can_sell(mkt_name):
                 self.sell_instant(mkt_name, 1)
 
     def complete_sell(self, market):
@@ -339,6 +339,10 @@ class CryptoBot:
             raise LargeLossError(log_details, msg)
 
             ## ACCOUNT ##
+
+    def can_sell(self, mkt):
+        balance = self.get_balance(mkt[4:])
+        return balance['balance'] > 0
 
     def get_balances(self):
         log.debug('{BOT} == GET balances ==')
@@ -431,6 +435,8 @@ class CryptoBot:
         current_balances = self.btrx.getbalances()
         log.info('*** PERFORMANCE RESULTS ***')
         for currency in starting_balances:
+            if currency not in self.tradeable_currencies:
+                continue
             start = starting_balances[currency]['balance']
             end = current_balances[currency]['balance']
             log_statement = currency + ' :: ' + 'Start = ' + str(start) + ' , End = ' + str(end)

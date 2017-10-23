@@ -1,4 +1,4 @@
-from src.bot.crypto_bot import CryptoBot, MAJOR_TICK_SIZE
+from src.bot.crypto_bot import CryptoBot
 from src.strats.bollinger_bands_strat import BollingerBandsStrat
 from src.exchange.exchange_factory import ExchangeFactory
 import datetime
@@ -13,7 +13,8 @@ if BACKTESTING == 'TRUE':
 else:
     btrx = ExchangeFactory().get_exchange()()
 
-SMA_WINDOW = 10
+MAJOR_TICK_SIZE = int(os.getenv('MAJOR_TICK_SIZE', 5))
+SMA_WINDOW = 15
 bb_options = {
     'active': True,
     'market_names': [],

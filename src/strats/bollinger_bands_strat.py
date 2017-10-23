@@ -20,14 +20,14 @@ class BollingerBandsStrat(BaseStrategy):
                 mkt_data = self.calc_bollinger_bands(mkt_data)
                 tail = mkt_data.tail(2)
                 current_tick_buy = tail['last'].values[1] >= tail['UPPER_BB'].values[1]
-                current_tick_sell = tail['last'].values[0] < tail['UPPER_BB'].values[0]
+                current_tick_sell = tail['last'].values[0] < tail['SMA'].values[0]
                 prev_tick_buy = tail['last'].values[1] >= tail['UPPER_BB'].values[1]
                 prev_tick_sell = tail['last'].values[0] < tail['UPPER_BB'].values[0]
                 if current_tick_buy and prev_tick_sell:
                     log.info(' * * * BUY :: ' + mkt_name)
                     self.buy_positions[mkt_name] = True
                     self.sell_positions[mkt_name] = False
-                elif current_tick_sell and prev_tick_buy:
+                elif current_tick_sell:
                     log.info(' * * * SELL :: ' + mkt_name)
                     self.buy_positions[mkt_name] = False
                     self.sell_positions[mkt_name] = True
