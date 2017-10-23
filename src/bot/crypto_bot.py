@@ -35,6 +35,7 @@ class CryptoBot:
         self.btrx = exchange
         self.trade_functions = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
         self.base_currencies = os.getenv('BASE_CURRENCIES', 'BTC,ETH').split(',')
+        self.tradeable_markets = dict((m, True) for m in os.getenv('TRADEABLE_MARKETS', 'BTC-LTC').split(','))
         self.completed_trades = {}
         self.rate_limit = datetime.timedelta(0, 60, 0)
         self.api_tick = datetime.datetime.now()
@@ -52,6 +53,8 @@ class CryptoBot:
         log.info('...bot successfully initialized')
 
     def init_markets(self):
+        if BACKTESTING == 'TRUE':
+            self.btrx.init_tradeable_markts(self.tradeable_markets)
         if os.getenv('COLLECT_FIXTURES', 'FALSE') != 'TRUE':
             self.currencies = self.get_currencies()
             self.markets = self.get_markets()
@@ -112,7 +115,7 @@ class CryptoBot:
 
     def compress_tickers(self, tickers):
         for mkt_name, mkt_data in tickers.iteritems():
-            mkt_data = mkt_data[['last', 'bid', 'ask', 'saved_timestamp', 'marketname']]
+            mkt_data = mkt_data[['last', 'bid', 'ask', 'saved_timestamp', 'marketname', 'volume']]
             tail = mkt_data.tail(MAJOR_TICK_SIZE).reset_index(drop=True)
             tail_meta_data = tail[['marketname', 'saved_timestamp']].tail(1).reset_index(drop=True)
             mkt_data = mkt_data.drop(mkt_data.index[-MAJOR_TICK_SIZE:])

@@ -22,6 +22,7 @@ class BacktestExchange:
         self.current_timestamp = None
         self.current_summaries = None
         self.markets = None
+        self.tradeable_markts = None
         # self.market_summaries = self.load_market_summaries()
         log.info('backtest exchange successfully initialized')
 
@@ -42,6 +43,9 @@ class BacktestExchange:
         balances['BTC']['balance'] = 20.0
         balances['ETH']['balance'] = 20.0
         return balances.copy()
+
+    def init_tradeable_markts(self, tradeable_markets):
+        self.tradeable_markts = tradeable_markets
 
     def load_market_summaries(self):
         data = self.psql.get_historical_data(self.start_date, self.end_date)
@@ -67,7 +71,8 @@ class BacktestExchange:
         return self.starting_balances
 
     def getmarkets(self, base_currencies):
-        self.markets = self.psql.get_fixture_markets(base_currencies)
+        mkts = self.psql.get_fixture_markets(base_currencies)
+        self.markets = mkts[mkts['marketname'].isin(self.tradeable_markts)]
         return self.markets
 
     def getcurrencies(self):
