@@ -13,6 +13,7 @@ os.environ['COLLECT_FIXTURES'] = 'FALSE'
 class TestBacktestExchange:
     def setup_class(self):
         self.be = BacktestExchange(BACKTESTING_START_DATE, BACKTESTING_END_DATE)
+        self.be.init_tradeable_markets(['BTC-LTC'])
         self.be.getmarkets(['BTC', 'ETH'])
         self.be.getmarketsummaries()
 
@@ -22,7 +23,7 @@ class TestBacktestExchange:
     def test_getmarketsummaries(self):
         self.be.getmarkets('BTC')
         market_summaries = self.be.getmarketsummaries()
-        expected_columns = ['marketname', 'last', 'bid', 'ask', 'saved_timestamp']
+        expected_columns = ['marketname', 'last', 'bid', 'ask', 'saved_timestamp', 'volume']
         assert (isinstance(market_summaries, list))
         for summary in market_summaries:
             assert (isinstance(summary, pd.Series))

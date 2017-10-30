@@ -54,7 +54,7 @@ class CryptoBot:
 
     def init_markets(self):
         if BACKTESTING == 'TRUE':
-            self.btrx.init_tradeable_markts(self.tradeable_markets)
+            self.btrx.init_tradeable_markets(self.tradeable_markets)
         if os.getenv('COLLECT_FIXTURES', 'FALSE') != 'TRUE':
             self.currencies = self.get_currencies()
             self.markets = self.get_markets()
@@ -254,29 +254,6 @@ class CryptoBot:
         except TradeFailureError:
             return None
 
-    # def buy_market(self, market, quantity):
-    #     log.info('== BUY market ==')
-    #     self.trade_market('buy', market, quantity)
-    #
-    # def sell_market(self, market, quantity):
-    #     log.info('== SELL market ==')
-    #     self.trade_market('sell', market, quantity)
-    #
-    # def trade_market(self, order_type, market, pct_holdings):
-    #     quantity = self.calculate_num_coins(market, order_type, pct_holdings)
-    #     try:
-    #         ticker = self.get_ticker(market)
-    #         rate = ticker['Last']
-    #         trade_resp = self.trade_functions[order_type](market, quantity, rate)
-    #         if trade_resp and not isinstance(trade_resp, basestring):
-    #             self.trade_success(order_type, market, quantity, rate, trade_resp['uuid'])
-    #             return trade_resp
-    #         else:
-    #             log.info(trade_resp)
-    #             return None
-    #     except TradeFailureError:
-    #         return None
-
     def trade_cancel(self, uuid):
         log.debug('{BOT} == CANCEL bid ==')
         try:
@@ -435,7 +412,7 @@ class CryptoBot:
         current_balances = self.btrx.getbalances()
         log.info('*** PERFORMANCE RESULTS ***')
         for currency in starting_balances:
-            if currency not in self.tradeable_currencies:
+            if currency not in self.tradeable_currencies and currency not in self.base_currencies:
                 continue
             start = starting_balances[currency]['balance']
             end = current_balances[currency]['balance']
