@@ -117,10 +117,11 @@ class CryptoBot:
         for mkt_name, mkt_data in tickers.iteritems():
             mkt_data = mkt_data[['last', 'bid', 'ask', 'saved_timestamp', 'marketname', 'volume']]
             tail = mkt_data.tail(MAJOR_TICK_SIZE).reset_index(drop=True)
-            tail_meta_data = tail[['marketname', 'saved_timestamp']].tail(1).reset_index(drop=True)
             mkt_data = mkt_data.drop(mkt_data.index[-MAJOR_TICK_SIZE:])
-            tail = pd.concat([tail.groupby(tail.index / MAJOR_TICK_SIZE).mean(), tail_meta_data], axis=1,
-                             join_axes=[tail_meta_data.index])
+            agg_funcs = {'bid': ['last'], 'last': ['last'], 'ask': ['last'], 'marketname': ['last'],
+                    'saved_timestamp': ['last'], 'volume': ['sum']}
+            tail = tail.groupby(tail.index / MAJOR_TICK_SIZE).agg(agg_funcs)
+            tail.columns = tail.columns.droplevel(1)
             tickers[mkt_name] = mkt_data.append(tail, ignore_index=True)
         return tickers
 

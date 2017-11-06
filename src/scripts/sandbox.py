@@ -1,5 +1,6 @@
 from src.bot.crypto_bot import CryptoBot
 from src.strats.bollinger_bands_strat import BollingerBandsStrat
+from src.strats.stochastic_rsi_strat import StochasticRSIStrat
 from src.exchange.exchange_factory import ExchangeFactory
 import datetime
 import os
@@ -24,10 +25,20 @@ bb_options = {
     'minor_tick': 1,
     'major_tick': MAJOR_TICK_SIZE
 }
+stoch_rsi_options = {
+    'active': True,
+    'market_names': [],
+    'rsi_window': 10,
+    'sma_window': 10,
+    'stat_key': 'last',
+    'minor_tick': 1,
+    'major_tick': MAJOR_TICK_SIZE
+}
 
-strat = BollingerBandsStrat(bb_options)
+strat1 = BollingerBandsStrat(bb_options)
+strat2 = StochasticRSIStrat(stoch_rsi_options)
 
-bot = CryptoBot(strat, btrx)
+bot = CryptoBot(strat2, btrx)
 
 # bot.get_balance('ETH')
 # bot.get_balances()
