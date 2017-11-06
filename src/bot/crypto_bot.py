@@ -27,10 +27,10 @@ ORDER_BOOK_DEPTH = 20
 
 
 class CryptoBot:
-    def __init__(self, strat, exchange):
+    def __init__(self, strats, exchange):
         log.info('Initializing bot...')
         self.psql = PostgresConnection()
-        self.strat = strat
+        self.strats = strats
         self.btrx = exchange
         self.trade_functions = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
         self.base_currencies = os.getenv('BASE_CURRENCIES', 'BTC,ETH').split(',')
@@ -61,7 +61,8 @@ class CryptoBot:
             for mkt_name in self.markets['marketname']:
                 if is_valid_market(mkt_name, self.base_currencies):
                     self.summary_tickers[mkt_name] = pd.DataFrame()
-            self.strat.init_market_positions(self.markets)
+            for strat in self.strats:
+                strat.init_market_positions(self.markets)
 
     def run(self):
         if BACKTESTING:
@@ -111,7 +112,8 @@ class CryptoBot:
     def major_tick_step(self):
         self.increment_major_tick()
         self.summary_tickers = self.compress_tickers(self.summary_tickers)
-        self.summary_tickers = self.strat.handle_data(self.summary_tickers, self.major_tick)
+        for strat in self.strats:
+            self.summary_tickers = strat.handle_data(self.summary_tickers, self.major_tick)
 
     def compress_tickers(self, tickers):
         for mkt_name, mkt_data in tickers.iteritems():
@@ -282,12 +284,24 @@ class CryptoBot:
             rate: """ + str(rate) + """
             trade id: """ + str(uuid))
 
+    def should_buy(self, mkt_name):
+        for strat in self.strats:
+            if not strat.should_buy(mkt_name):
+                return False
+        return True
+
+    def should_sell(self, mkt_name):
+        for strat in self.strats:
+            if not strat.should_sell(mkt_name):
+                return False
+        return True
+
     def execute_trades(self):
         for idx, market in self.markets.iterrows():
             mkt_name = market['marketname']
-            if self.strat.should_buy(mkt_name):
+            if self.should_buy(mkt_name):
                 self.buy_instant(mkt_name, MAX_CURRENCY_PER_BUY[mkt_name[:3]])
-            elif self.strat.should_sell(mkt_name) and self.can_sell(mkt_name):
+            elif self.should_sell(mkt_name) and self.can_sell(mkt_name):
                 self.sell_instant(mkt_name, 1)
 
     def complete_sell(self, market):
