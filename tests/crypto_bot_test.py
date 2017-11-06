@@ -44,7 +44,7 @@ class TestCryptoBot:
             {'marketname': 'BTC-LTC', 'last': 0.015440, 'bid': 0.015450, 'ask': 0.015600,
              'saved_timestamp': datetime.datetime(2017, 1, 1, 1, 0, 1), 'volume': 191514.111111},
             {'marketname': 'BTC-LTC', 'last': 0.0154604, 'bid': 0.015451, 'ask': 0.015493,
-             'saved_timestamp': datetime.datetime(2017, 1, 1, 1, 5, 1), 'volume': 191658.019915}
+             'saved_timestamp': datetime.datetime(2017, 1, 1, 1, 5, 1), 'volume': 958290.099574}
         ], columns=['ask', 'bid', 'last', 'marketname', 'saved_timestamp', 'volume'])
         result = self.bot.compress_tickers({'BTC-LTC': SUMMARY_TICKERS_FIXTURE})
         assert_frame_equal(result['BTC-LTC'], expected_result, check_exact=False, check_less_precise=True)
