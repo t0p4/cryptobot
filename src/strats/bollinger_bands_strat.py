@@ -19,6 +19,8 @@ class BollingerBandsStrat(BaseStrategy):
             if len(mkt_data) >= self.major_tick:
                 mkt_data = self.calc_bollinger_bands(mkt_data)
                 tail = mkt_data.tail(2)
+
+                # EXTRA
                 current_tick_buy = tail['last'].values[1] >= tail['UPPER_BB'].values[1]
                 current_tick_sell = tail['last'].values[0] < tail['SMA'].values[0]
                 prev_tick_buy = tail['last'].values[1] >= tail['UPPER_BB'].values[1]
@@ -35,6 +37,13 @@ class BollingerBandsStrat(BaseStrategy):
                     log.debug(' * * * HOLD :: ' + mkt_name)
                     self.buy_positions[mkt_name] = False
                     self.sell_positions[mkt_name] = False
+
+                # # STANDARD
+                # buy_it = tail['last'].values[1] < tail['LOWER_BB'].values[1]
+                # sell_it = tail['last'].values[1] > tail['UPPER_BB'].values[1]
+                # self.buy_positions[mkt_name] = buy_it
+                # self.sell_positions[mkt_name] = sell_it
+
             data[mkt_name] = mkt_data
         return data
 

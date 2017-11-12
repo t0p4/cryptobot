@@ -14,7 +14,7 @@ class VolumeStrat(BaseStrategy):
         log.info('Stochastic RSI Strat :: handle_data')
         for mkt_name, mkt_data in data.iteritems():
             if len(mkt_data) >= self.major_tick:
-                mkt_data = self.calc_stochastic_rsi(mkt_data)
+                mkt_data = self.calc_volume_osc(mkt_data)
                 if current_tick_buy and prev_tick_sell:
                     log.info(' * * * BUY :: ' + mkt_name)
                     self.buy_positions[mkt_name] = True

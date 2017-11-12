@@ -22,7 +22,7 @@ bb_options = {
 
 strat = BollingerBandsStrat(bb_options)
 
-bot = CryptoBot(strat, btrx)
+bot = CryptoBot([strat], btrx)
 
 bot.collect_currencies()
 bot.collect_markets()

@@ -18,7 +18,7 @@ class BacktestExchange:
         self.balances = self.init_balances()
         self.starting_balances = self.init_balances()
         self.trades = {}
-        self.tick = 0
+        self.tick = 1
         self.current_timestamp = None
         self.current_summaries = None
         self.markets = None

@@ -34,7 +34,7 @@ class CryptoBot:
         self.btrx = exchange
         self.trade_functions = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
         self.base_currencies = os.getenv('BASE_CURRENCIES', 'BTC,ETH').split(',')
-        self.tradeable_markets = dict((m, True) for m in os.getenv('TRADEABLE_MARKETS', 'BTC-LTC').split(','))
+        self.tradeable_markets = self.init_tradeable_markets()
         self.tradeable_currencies = dict((m[4:], True) for m in os.getenv('TRADEABLE_MARKETS', 'BTC-LTC').split(','))
         self.completed_trades = {}
         self.rate_limit = datetime.timedelta(0, 60, 0)
@@ -51,6 +51,12 @@ class CryptoBot:
         self.reporter = Reporter()
         self.plotter = Plotter()
         log.info('...bot successfully initialized')
+
+    def init_tradeable_markets(self):
+        env_markets = dict((m, True) for m in os.getenv('TRADEABLE_MARKETS', 'BTC-LTC').split(','))
+        return env_markets
+        # if env_markets == 'ALL':
+        #     return
 
     def init_markets(self):
         if BACKTESTING == 'TRUE':
@@ -78,7 +84,7 @@ class CryptoBot:
 
     def run_test(self):
         log.info('* * * ! * * * BEGIN TEST RUN * * * ! * * *')
-        while self.tick < 430:
+        while self.tick < 900:
             self.tick_step()
 
         self.cash_out()
@@ -449,4 +455,4 @@ class CryptoBot:
 
     def plot_market_data(self):
         for market, trades in self.completed_trades.iteritems():
-            self.plotter.plot_market(market, self.summary_tickers[market], trades)
+            self.plotter.plot_market(market, self.summary_tickers[market], trades, self.strats)

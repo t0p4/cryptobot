@@ -3,6 +3,8 @@ import os
 
 class BaseStrategy:
     def __init__(self, options):
+        self.name = options['name']
+        self.plot_overlay = options['plot_overlay']
         self.active = options['active']
         self.buy_positions = {}
         self.sell_positions = {}
