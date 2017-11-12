@@ -14,6 +14,8 @@ os.environ['BASE_CURRENCIES'] = 'BTC,ETH'
 os.environ['COLLECT_FIXTURES'] = 'FALSE'
 
 strat_options = {
+    'name': 'Test',
+    'plot_overlay': True,
     'active': False,
     'testing': True
 }

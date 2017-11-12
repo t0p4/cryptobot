@@ -8,9 +8,12 @@ import datetime
 
 os.environ['BACKTESTING'] = 'True'
 
-options = {
+w_pct_options = {
+    'name': 'WilliamsPct',
     'active': True,
-    'market_names': ['BTC-LTC'],
+    'market_names': [],
+    'plot_overlay': False,
+    'stat_key': 'last',
     'wp_window': 5,
     'minor_tick': 1,
     'major_tick': 5
@@ -19,7 +22,7 @@ options = {
 
 class TestBBStrat:
     def setup_class(self):
-        self.strat = WilliamsPctStrat(options)
+        self.strat = WilliamsPctStrat(w_pct_options)
 
     def teardown_class(self):
         self.strat = None

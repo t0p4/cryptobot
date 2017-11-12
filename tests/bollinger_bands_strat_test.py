@@ -7,9 +7,11 @@ import datetime
 
 os.environ['BACKTESTING'] = 'True'
 
-options = {
+bb_options = {
+    'name': 'BollingerBands',
     'active': True,
-    'market_names': ['BTC-LTC'],
+    'market_names': [],
+    'plot_overlay': True,
     'num_standard_devs': 2,
     'sma_window': 5,
     'sma_stat_key': 'last',
@@ -20,7 +22,7 @@ options = {
 
 class TestBBStrat:
     def setup_class(self):
-        self.strat = BollingerBandsStrat(options)
+        self.strat = BollingerBandsStrat(bb_options)
 
     def teardown_class(self):
         self.strat = None

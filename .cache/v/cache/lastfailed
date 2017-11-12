@@ -1,4 +1,10 @@
 {
   "tests/bollinger_bands_strat_test.py::TestBBStrat::()::test_compress_and_calculate_mean": true, 
-  "tests/crypto_bot_test.py::TestCryptoBot::()::test_tick_step": true
+  "tests/crypto_bot_test.py::TestCryptoBot::()::test_calculate_num_coins": true, 
+  "tests/crypto_bot_test.py::TestCryptoBot::()::test_calculate_order_rate": true, 
+  "tests/crypto_bot_test.py::TestCryptoBot::()::test_complete_sell": true, 
+  "tests/crypto_bot_test.py::TestCryptoBot::()::test_compress_and_calculate_mean": true, 
+  "tests/crypto_bot_test.py::TestCryptoBot::()::test_get_market_summaries": true, 
+  "tests/crypto_bot_test.py::TestCryptoBot::()::test_tick_step": true, 
+  "tests/williams_pct_strat_test.py::TestBBStrat::()::test_calculate_williams_pct": true
 }
