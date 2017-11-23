@@ -53,10 +53,11 @@ class CryptoBot:
         log.info('...bot successfully initialized')
 
     def init_tradeable_markets(self):
-        env_markets = dict((m, True) for m in os.getenv('TRADEABLE_MARKETS', 'BTC-LTC').split(','))
-        return env_markets
-        # if env_markets == 'ALL':
-        #     return
+        env_tradeable_markets = os.getenv('TRADEABLE_MARKETS', 'ALL')
+        if env_tradeable_markets == 'ALL':
+            return env_tradeable_markets
+        else:
+            return dict((m, True) for m in env_tradeable_markets.split(','))
 
     def init_markets(self):
         if BACKTESTING == 'TRUE':
@@ -123,7 +124,7 @@ class CryptoBot:
 
     def compress_tickers(self, tickers):
         for mkt_name, mkt_data in tickers.iteritems():
-            mkt_data = mkt_data[['last', 'bid', 'ask', 'saved_timestamp', 'marketname', 'volume']]
+            # mkt_data = mkt_data[['last', 'bid', 'ask', 'saved_timestamp', 'marketname', 'volume']]
             tail = mkt_data.tail(MAJOR_TICK_SIZE).reset_index(drop=True)
             mkt_data = mkt_data.drop(mkt_data.index[-MAJOR_TICK_SIZE:])
             agg_funcs = {'bid': ['last'], 'last': ['last'], 'ask': ['last'], 'marketname': ['last'],

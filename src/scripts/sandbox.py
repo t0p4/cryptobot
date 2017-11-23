@@ -34,7 +34,7 @@ stoch_rsi_options = {
     'market_names': [],
     'plot_overlay': False,
     'rsi_window': SMA_WINDOW,
-    'sma_window': SMA_WINDOW,
+    'sma_window': 3,
     'stat_key': 'last',
     'minor_tick': 1,
     'major_tick': MAJOR_TICK_SIZE
@@ -54,7 +54,7 @@ strat1 = BollingerBandsStrat(bb_options)
 strat2 = StochasticRSIStrat(stoch_rsi_options)
 strat3 = WilliamsPctStrat(w_pct_options)
 
-bot = CryptoBot([strat1, strat2], btrx)
+bot = CryptoBot([strat1], btrx)
 
 # bot.get_balance('ETH')
 # bot.get_balances()

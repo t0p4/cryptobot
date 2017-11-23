@@ -26,45 +26,43 @@ class Plotter:
             if not strat.plot_overlay:
                 num_non_overlayed_indicators += 1
 
-        rate_subplot = (num_non_overlayed_indicators + 1) * 100 + 11
+        fig, plots = plt.subplots(1 + num_non_overlayed_indicators, 1, sharex=True)
+        plots[0].set_title(mkt_name)
+        plots[0].set_xlabel('Time')
+        plots[0].set_ylabel('Rate')
+        plots[0].axes.axes.xaxis.major.formatter = self.date_formatter
+        plots[0].plot_date(buy_times, buys, color='green', marker='^')
+        plots[0].plot_date(sell_times, sells, color='red', marker='v')
+        plots[0].plot(time_series, price_series)
+
+        # self.plot_bb(mkt_data, time_series, plots[0])
+        # self.plot_stochastic_rsi(mkt_data, time_series, plots[1])
+
         non_overlayed_indicator_idx = 0
-        subplot = rate_subplot
-
-        plt.figure()
-        plt.title(mkt_name)
-        plt.subplot(subplot)
-        plt.xlabel('Time')
-        plt.plot(time_series, price_series)
-        plt.plot_date(buy_times, buys, color='green', marker='+')
-        plt.plot_date(sell_times, sells, color='red', marker='+')
-        plt.axes().xaxis.set_major_formatter(self.date_formatter)
-
         for strat in strats:
-            subplot = rate_subplot
+            subplot = 0
             if not strat.plot_overlay:
                 non_overlayed_indicator_idx += 1
                 subplot += non_overlayed_indicator_idx
-            print(subplot)
-            self.strat_plotters[strat.name](mkt_data, time_series, subplot)
+            self.strat_plotters[strat.name](mkt_data, time_series, plots[subplot])
         pylab.show()
 
     def plot_stochastic_rsi(self, mkt_data, time_series, subplot):
-        plt.subplot(subplot)
-        plt.ylabel('Stochastic RSI')
+        subplot.set_xlabel('Time')
+        subplot.set_ylabel('Stochastic RSI')
+        subplot.axes.axes.xaxis.major.formatter = self.date_formatter
         stoch_rsi = mkt_data[:]['STOCH_RSI']
         stoch_rsi_sma = mkt_data[:]['STOCH_RSI_SMA']
-        plt.plot(time_series, stoch_rsi)
-        plt.plot(time_series, stoch_rsi_sma)
+        subplot.plot(time_series, stoch_rsi)
+        subplot.plot(time_series, stoch_rsi_sma)
 
     def plot_bb(self, mkt_data, time_series, subplot):
-        plt.subplot(subplot)
         sma = mkt_data[:]['SMA']
         upper_bb = mkt_data[:]['UPPER_BB']
         lower_bb = mkt_data[:]['LOWER_BB']
-        plt.plot(time_series, sma)
-        plt.plot(time_series, upper_bb)
-        plt.plot(time_series, lower_bb)
+        subplot.plot(time_series, sma)
+        subplot.plot(time_series, upper_bb)
+        subplot.plot(time_series, lower_bb)
 
     def plot_w_pct(self, mkt_data, time_series, subplot):
-        plt.subplot(subplot)
-        plt.ylabel('Williams %')
+        subplot.set_ylabel('Williams %')

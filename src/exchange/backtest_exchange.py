@@ -41,7 +41,7 @@ class BacktestExchange:
             })
             balances[currency] = balance
         balances['BTC']['balance'] = 20.0
-        balances['ETH']['balance'] = 20.0
+        balances['ETH']['balance'] = 0.0
         return balances.copy()
 
     def init_tradeable_markets(self, tradeable_markets):
@@ -72,7 +72,10 @@ class BacktestExchange:
 
     def getmarkets(self, base_currencies):
         mkts = self.psql.get_fixture_markets(base_currencies)
-        self.markets = mkts[mkts['marketname'].isin(self.tradeable_markets)]
+        if self.tradeable_markets != 'ALL':
+            self.markets = mkts[mkts['marketname'].isin(self.tradeable_markets)]
+        else:
+            self.markets = mkts
         return self.markets
 
     def getcurrencies(self):
