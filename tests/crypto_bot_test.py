@@ -25,7 +25,7 @@ class TestCryptoBot:
     def setup_class(self):
         strat = BaseStrategy(strat_options)
         exchange = MockBittrex()
-        self.bot = CryptoBot(strat, exchange)
+        self.bot = CryptoBot([strat], exchange)
 
     def teardown_class(self):
         self.bot = None
@@ -41,15 +41,17 @@ class TestCryptoBot:
             for key in summary.index:
                 assert (key in expected_columns)
 
-    def test_compress_and_calculate_mean(self):
+    def test_compress_tickers(self):
         expected_result = pd.DataFrame([
-            {'marketname': 'BTC-LTC', 'last': 0.015440, 'bid': 0.015450, 'ask': 0.015600,
+            {'marketname': 'BTC-LTC', 'last': 0.015475, 'bid': 0.015465, 'ask': 0.015600,
              'saved_timestamp': datetime.datetime(2017, 1, 1, 1, 0, 1), 'volume': 191514.111111},
-            {'marketname': 'BTC-LTC', 'last': 0.0154604, 'bid': 0.015451, 'ask': 0.015493,
+            {'marketname': 'BTC-LTC', 'last': 0.015455, 'bid': 0.01545, 'ask': 0.015493,
              'saved_timestamp': datetime.datetime(2017, 1, 1, 1, 5, 1), 'volume': 958290.099574}
-        ], columns=['ask', 'bid', 'last', 'marketname', 'saved_timestamp', 'volume'])
-        result = self.bot.compress_tickers({'BTC-LTC': SUMMARY_TICKERS_FIXTURE})
-        assert_frame_equal(result['BTC-LTC'], expected_result, check_exact=False, check_less_precise=True)
+        ], columns=['last', 'bid', 'saved_timestamp', 'volume', 'marketname', 'ask'])
+        self.bot.summary_tickers = {'BTC-LTC': SUMMARY_TICKERS_FIXTURE}
+        self.bot.compressed_summary_tickers = {'BTC-LTC': pd.DataFrame()}
+        self.bot.compress_tickers()
+        assert_frame_equal(self.bot.compressed_summary_tickers['BTC-LTC'], expected_result, check_exact=False, check_less_precise=True)
 
     def test_complete_sell(self):
         market = 'BTC-LTC'
@@ -83,7 +85,7 @@ class TestCryptoBot:
         order_type = 'buy'
         quantity = 0.1
         num_coins = self.bot.calculate_num_coins(market, order_type, quantity)
-        assert(num_coins == 6.47668394)
+        assert(num_coins == 6.46203554)
         order_type = 'sell'
         quantity = 1
         num_coins = self.bot.calculate_num_coins(market, order_type, quantity)

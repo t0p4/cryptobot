@@ -33,7 +33,7 @@ class TestBBStrat:
             {'ask': 2.2, 'bid': 2.2, 'last': 2.2, 'marketname': 'BTC-LTC',
              'saved_timestamp': datetime.datetime(2017, 1, 1, 1, 20, 1), 'SMA': 2.0, 'STDDEV': 0.158114,
              'UPPER_BB': 2.316228, 'LOWER_BB': 1.683772},
-            index=['ask', 'bid', 'last', 'marketname', 'saved_timestamp', 'SMA', 'STDDEV', 'UPPER_BB', 'LOWER_BB'],
+            index=['LOWER_BB', 'SMA', 'STDDEV', 'UPPER_BB', 'ask', 'bid', 'last', 'marketname', 'saved_timestamp'],
             name=4
         )
         assert_series_equal(result.iloc[4], expected_result)

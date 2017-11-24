@@ -40,6 +40,7 @@ class CryptoBot:
         self.rate_limit = datetime.timedelta(0, 60, 0)
         self.api_tick = datetime.datetime.now()
         self.currencies = []
+        self.compressed_summary_tickers = {}
         self.summary_tickers = {}
         self.markets = None
         self.init_markets()
@@ -67,6 +68,7 @@ class CryptoBot:
             self.markets = self.get_markets()
             for mkt_name in self.markets['marketname']:
                 if is_valid_market(mkt_name, self.base_currencies):
+                    self.compressed_summary_tickers[mkt_name] = pd.DataFrame()
                     self.summary_tickers[mkt_name] = pd.DataFrame()
             for strat in self.strats:
                 strat.init_market_positions(self.markets)
@@ -118,21 +120,20 @@ class CryptoBot:
 
     def major_tick_step(self):
         self.increment_major_tick()
-        self.summary_tickers = self.compress_tickers(self.summary_tickers)
+        self.compress_tickers()
         for strat in self.strats:
-            self.summary_tickers = strat.handle_data(self.summary_tickers, self.major_tick)
+            self.compressed_summary_tickers = strat.handle_data(self.compressed_summary_tickers, self.major_tick)
 
-    def compress_tickers(self, tickers):
-        for mkt_name, mkt_data in tickers.iteritems():
-            # mkt_data = mkt_data[['last', 'bid', 'ask', 'saved_timestamp', 'marketname', 'volume']]
-            tail = mkt_data.tail(MAJOR_TICK_SIZE).reset_index(drop=True)
-            mkt_data = mkt_data.drop(mkt_data.index[-MAJOR_TICK_SIZE:])
+    def compress_tickers(self):
+        for mkt_name, mkt_data in self.summary_tickers.iteritems():
+            # tail = mkt_data.tail(MAJOR_TICK_SIZE).reset_index(drop=True)
+            # mkt_data = mkt_data.drop(mkt_data.index[-MAJOR_TICK_SIZE:])
             agg_funcs = {'bid': ['last'], 'last': ['last'], 'ask': ['last'], 'marketname': ['last'],
                     'saved_timestamp': ['last'], 'volume': ['sum']}
-            tail = tail.groupby(tail.index / MAJOR_TICK_SIZE).agg(agg_funcs)
-            tail.columns = tail.columns.droplevel(1)
-            tickers[mkt_name] = mkt_data.append(tail, ignore_index=True)
-        return tickers
+            mkt_data = mkt_data.groupby(mkt_data.index / MAJOR_TICK_SIZE).agg(agg_funcs)
+            mkt_data.columns = mkt_data.columns.droplevel(1)
+            self.compressed_summary_tickers[mkt_name] = self.compressed_summary_tickers[mkt_name].append(mkt_data, ignore_index=True)
+            self.summary_tickers[mkt_name] = pd.DataFrame()
 
 
         ## RATE LIMITER ##
@@ -206,7 +207,7 @@ class CryptoBot:
         if order_type == 'buy':
             coin = market[:3]
             balance = self.get_balance(coin)
-            rate = self.summary_tickers[market].loc[0, 'last']
+            rate = self.compressed_summary_tickers[market].loc[0, 'last']
             if balance['balance'] >= quantity:
                 return round(quantity / rate, 8)
             else:
@@ -456,4 +457,4 @@ class CryptoBot:
 
     def plot_market_data(self):
         for market, trades in self.completed_trades.iteritems():
-            self.plotter.plot_market(market, self.summary_tickers[market], trades, self.strats)
+            self.plotter.plot_market(market, self.compressed_summary_tickers[market], trades, self.strats)

@@ -18,7 +18,7 @@ class BollingerBandsStrat(BaseStrategy):
         log.info('Bollinger Band Strat :: handle_data')
         start = datetime.now()
         for mkt_name, mkt_data in data.iteritems():
-            if len(mkt_data) >= self.major_tick:
+            if len(mkt_data) >= self.sma_window:
                 mkt_data = self.calc_bollinger_bands(mkt_data)
                 tail = mkt_data.tail(2)
 
@@ -52,8 +52,17 @@ class BollingerBandsStrat(BaseStrategy):
         return data
 
     def calc_bollinger_bands(self, df):
-        df['SMA'] = df[self.sma_stat_key].rolling(window=self.sma_window, center=False).mean()
-        df['STDDEV'] = df[self.sma_stat_key].rolling(window=self.sma_window, center=False).std()
-        df['UPPER_BB'] = df['SMA'] + self.num_standard_devs * df['STDDEV']
-        df['LOWER_BB'] = df['SMA'] - self.num_standard_devs * df['STDDEV']
-        return df
+        # cutoff tail, sized by window
+
+        tail = df.tail(self.sma_window).reset_index(drop=True)
+        # drop last row, will be replaced after calculation
+        df = df.drop(df.index[-1:])
+
+        # calculate stats
+        tail['SMA'] = tail[self.sma_stat_key].rolling(window=self.sma_window, center=False).mean()
+        tail['STDDEV'] = tail[self.sma_stat_key].rolling(window=self.sma_window, center=False).std()
+        tail['UPPER_BB'] = tail['SMA'] + self.num_standard_devs * tail['STDDEV']
+        tail['LOWER_BB'] = tail['SMA'] - self.num_standard_devs * tail['STDDEV']
+
+        # append and return
+        return df.append(tail.tail(1), ignore_index=True)
