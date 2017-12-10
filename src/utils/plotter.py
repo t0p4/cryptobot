@@ -26,7 +26,7 @@ class Plotter:
             if not strat.plot_overlay:
                 num_non_overlayed_indicators += 1
 
-        fig, plots = plt.subplots(1 + num_non_overlayed_indicators, 1, sharex=True)
+        fig, plots = plt.subplots(1 + num_non_overlayed_indicators, sharex=True)
         plots[0].set_title(mkt_name)
         plots[0].set_xlabel('Time')
         plots[0].set_ylabel('Rate')
