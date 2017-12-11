@@ -336,7 +336,7 @@ class CryptoBot:
             """.format(**log_details))
         if net_gain_pct <= -25:
             msg = """"{market_currency} Net Loss: {net_gain} {base_currency}, {net_gain_pct}%\n""".format(**log_details)
-            raise LargeLossError(log_details, msg)
+            # raise LargeLossError(log_details, msg)
 
             ## ACCOUNT ##
 

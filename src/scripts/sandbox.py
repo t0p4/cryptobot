@@ -54,7 +54,7 @@ strat1 = BollingerBandsStrat(bb_options)
 strat2 = StochasticRSIStrat(stoch_rsi_options)
 strat3 = WilliamsPctStrat(w_pct_options)
 
-bot = CryptoBot([strat1], btrx)
+bot = CryptoBot([strat1, strat2], btrx)
 
 # bot.get_balance('ETH')
 # bot.get_balances()

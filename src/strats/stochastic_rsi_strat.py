@@ -105,7 +105,7 @@ class StochasticRSIStrat(BaseStrategy):
                 stochastic_rsi = 0.0
             tail.set_value(self.rsi_window - 1, 'STOCH_RSI', stochastic_rsi)
             stochastic_rsi_sma = tail['STOCH_RSI'].rolling(window=self.sma_window, center=False).mean()
-            tail.set_value(self.rsi_window - 1, 'STOCH_RSI_SMA', stochastic_rsi_sma.tail(1))
+            tail.set_value(self.rsi_window - 1, 'STOCH_RSI_SMA', stochastic_rsi_sma[self.rsi_window - 1])
         return df.append(tail, ignore_index=True)
 
     def init_columns(self, df):

@@ -11,7 +11,15 @@ class Plotter:
             'StochasticRSI': self.plot_stochastic_rsi,
             'WilliamsPct': self.plot_w_pct
         }
+        self.num_non_overlayed_indicators = 0
+        self.plots = {}
         pass
+
+    def get_plot(self, idx):
+        if self.num_non_overlayed_indicators > 0:
+            return self.plots[idx]
+        else:
+            return self.plots
 
     def plot_market(self, mkt_name, mkt_data, trades, strats):
         time_series = mkt_data[:]['saved_timestamp']
@@ -21,19 +29,20 @@ class Plotter:
         buys = trades[trades['order_type'] == 'buy'][:]['rate']
         sells = trades[trades['order_type'] == 'sell'][:]['rate']
 
-        num_non_overlayed_indicators = 0
+        self.num_non_overlayed_indicators = 0
         for strat in strats:
             if not strat.plot_overlay:
-                num_non_overlayed_indicators += 1
+                self.num_non_overlayed_indicators += 1
 
-        fig, plots = plt.subplots(1 + num_non_overlayed_indicators, sharex=True)
-        plots[0].set_title(mkt_name)
-        plots[0].set_xlabel('Time')
-        plots[0].set_ylabel('Rate')
-        plots[0].axes.axes.xaxis.major.formatter = self.date_formatter
-        plots[0].plot_date(buy_times, buys, color='green', marker='^')
-        plots[0].plot_date(sell_times, sells, color='red', marker='v')
-        plots[0].plot(time_series, price_series)
+        fig, plots = plt.subplots(1 + self.num_non_overlayed_indicators, sharex=True)
+        self.plots = plots
+        self.get_plot(0).set_title(mkt_name)
+        self.get_plot(0).set_xlabel('Time')
+        self.get_plot(0).set_ylabel('Rate')
+        self.get_plot(0).axes.axes.xaxis.major.formatter = self.date_formatter
+        self.get_plot(0).plot_date(buy_times, buys, color='green', marker='^')
+        self.get_plot(0).plot_date(sell_times, sells, color='red', marker='v')
+        self.get_plot(0).plot(time_series, price_series)
 
         # self.plot_bb(mkt_data, time_series, plots[0])
         # self.plot_stochastic_rsi(mkt_data, time_series, plots[1])
@@ -44,7 +53,7 @@ class Plotter:
             if not strat.plot_overlay:
                 non_overlayed_indicator_idx += 1
                 subplot += non_overlayed_indicator_idx
-            self.strat_plotters[strat.name](mkt_data, time_series, plots[subplot])
+            self.strat_plotters[strat.name](mkt_data, time_series, self.get_plot(subplot))
         pylab.show()
 
     def plot_stochastic_rsi(self, mkt_data, time_series, subplot):
