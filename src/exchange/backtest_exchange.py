@@ -41,7 +41,7 @@ class BacktestExchange:
             })
             balances[currency] = balance
         balances['BTC']['balance'] = 20.0
-        balances['ETH']['balance'] = 0.0
+        balances['ETH']['balance'] = 20.0
         return balances.copy()
 
     def init_tradeable_markets(self, tradeable_markets):

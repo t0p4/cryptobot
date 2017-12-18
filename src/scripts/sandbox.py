@@ -2,6 +2,7 @@ from src.bot.crypto_bot import CryptoBot
 from src.strats.bollinger_bands_strat import BollingerBandsStrat
 from src.strats.stochastic_rsi_strat import StochasticRSIStrat
 from src.strats.williams_pct_strat import WilliamsPctStrat
+from src.strats.volume_strat import VolumeStrat
 from src.exchange.exchange_factory import ExchangeFactory
 import datetime
 import os
@@ -49,12 +50,24 @@ w_pct_options = {
     'minor_tick': 1,
     'major_tick': MAJOR_TICK_SIZE
 }
+vol_options = {
+    'name': 'VolumeOSC',
+    'active': True,
+    'minor_tick': 1,
+    'major_tick': MAJOR_TICK_SIZE,
+    'pvo_ema_period': 9,
+    'short_vol_ema_period': 12,
+    'long_vol_ema_period': 26,
+    'vol_roc_period': 3,
+    'plot_overlay': False
+}
 
 strat1 = BollingerBandsStrat(bb_options)
 strat2 = StochasticRSIStrat(stoch_rsi_options)
 strat3 = WilliamsPctStrat(w_pct_options)
+strat4 = VolumeStrat(vol_options)
 
-bot = CryptoBot([strat1, strat2], btrx)
+bot = CryptoBot([strat4], btrx)
 
 # bot.get_balance('ETH')
 # bot.get_balances()

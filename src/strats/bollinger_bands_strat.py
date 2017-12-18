@@ -23,28 +23,28 @@ class BollingerBandsStrat(BaseStrategy):
                 tail = mkt_data.tail(2)
 
                 # EXTRA
-                current_tick_buy = tail['last'].values[1] >= tail['UPPER_BB'].values[1]
-                current_tick_sell = tail['last'].values[0] < tail['SMA'].values[0]
-                prev_tick_buy = tail['last'].values[1] >= tail['UPPER_BB'].values[1]
-                prev_tick_sell = tail['last'].values[0] < tail['UPPER_BB'].values[0]
-                if current_tick_buy and prev_tick_sell:
-                    log.info(' * * * BUY :: ' + mkt_name)
-                    self.buy_positions[mkt_name] = True
-                    self.sell_positions[mkt_name] = False
-                elif current_tick_sell:
-                    log.info(' * * * SELL :: ' + mkt_name)
-                    self.buy_positions[mkt_name] = False
-                    self.sell_positions[mkt_name] = True
-                else:
-                    log.debug(' * * * HOLD :: ' + mkt_name)
-                    self.buy_positions[mkt_name] = False
-                    self.sell_positions[mkt_name] = False
+                # current_tick_buy = tail['last'].values[1] >= tail['UPPER_BB'].values[1]
+                # current_tick_sell = tail['last'].values[0] < tail['SMA'].values[0]
+                # prev_tick_buy = tail['last'].values[1] >= tail['UPPER_BB'].values[1]
+                # prev_tick_sell = tail['last'].values[0] < tail['UPPER_BB'].values[0]
+                # if current_tick_buy and prev_tick_sell:
+                #     log.info(' * * * BUY :: ' + mkt_name)
+                #     self.buy_positions[mkt_name] = True
+                #     self.sell_positions[mkt_name] = False
+                # elif current_tick_sell:
+                #     log.info(' * * * SELL :: ' + mkt_name)
+                #     self.buy_positions[mkt_name] = False
+                #     self.sell_positions[mkt_name] = True
+                # else:
+                #     log.debug(' * * * HOLD :: ' + mkt_name)
+                #     self.buy_positions[mkt_name] = False
+                #     self.sell_positions[mkt_name] = False
 
                 # # STANDARD
-                # buy_it = tail['last'].values[1] < tail['LOWER_BB'].values[1]
-                # sell_it = tail['last'].values[1] > tail['UPPER_BB'].values[1]
-                # self.buy_positions[mkt_name] = buy_it
-                # self.sell_positions[mkt_name] = sell_it
+                buy_it = tail['last'].values[1] < tail['LOWER_BB'].values[1]
+                sell_it = tail['last'].values[1] > tail['UPPER_BB'].values[1]
+                self.buy_positions[mkt_name] = buy_it
+                self.sell_positions[mkt_name] = sell_it
 
             data[mkt_name] = mkt_data
         end = datetime.now()

@@ -110,6 +110,7 @@ class CryptoBot:
             self.execute_trades()
 
     def minor_tick_step(self):
+        # start = datetime.datetime.now()
         self.increment_minor_tick()
         # get the ticker for all the markets
         summaries = self.get_market_summaries()
@@ -117,12 +118,17 @@ class CryptoBot:
             mkt_name = summary['marketname']
             if is_valid_market(mkt_name, self.base_currencies) and mkt_name in self.summary_tickers:
                 self.summary_tickers[mkt_name] = self.summary_tickers[mkt_name].append(summary, ignore_index=True)
+        # end = datetime.datetime.now()
+        # log.info('MINOR TICK STEP runtime :: ' + str(end - start))
 
     def major_tick_step(self):
+        start = datetime.datetime.now()
         self.increment_major_tick()
         self.compress_tickers()
         for strat in self.strats:
             self.compressed_summary_tickers = strat.handle_data(self.compressed_summary_tickers, self.major_tick)
+        end = datetime.datetime.now()
+        log.info('MAJOR TICK STEP runtime :: ' + str(end - start))
 
     def compress_tickers(self):
         for mkt_name, mkt_data in self.summary_tickers.iteritems():
@@ -319,6 +325,7 @@ class CryptoBot:
         mkt_trade_data = self.completed_trades[market]
         tail = mkt_trade_data.tail(2).reset_index(drop=True)
         coin_in = tail.loc[0, 'quantity'] * tail.loc[0, 'rate']
+        # KeyError: 'the label [1] is not in the [index]'
         coin_out = tail.loc[1, 'quantity'] * tail.loc[1, 'rate']
         net_gain = coin_out - coin_in
         net_gain_pct = 100 * net_gain / coin_in

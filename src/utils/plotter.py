@@ -9,7 +9,8 @@ class Plotter:
         self.strat_plotters = {
             'BollingerBands': self.plot_bb,
             'StochasticRSI': self.plot_stochastic_rsi,
-            'WilliamsPct': self.plot_w_pct
+            'WilliamsPct': self.plot_w_pct,
+            'VolumeOSC': self.plot_vol_osc
         }
         self.num_non_overlayed_indicators = 0
         self.plots = {}
@@ -75,3 +76,14 @@ class Plotter:
 
     def plot_w_pct(self, mkt_data, time_series, subplot):
         subplot.set_ylabel('Williams %')
+
+    def plot_vol_osc(self, mkt_data, time_series, subplot):
+        subplot.set_xlabel('Time')
+        subplot.set_ylabel('Volume OSC')
+        subplot.axes.axes.xaxis.major.formatter = self.date_formatter
+        pvo = mkt_data[:]['PVO']
+        pvo_ema = mkt_data[:]['PVO_EMA']
+        volume = mkt_data[:]['volume']
+        subplot.plot(time_series, pvo)
+        subplot.plot(time_series, pvo_ema)
+        # subplot.bar(time_series, volume)
