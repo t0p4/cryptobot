@@ -127,6 +127,7 @@ class CryptoBot:
         self.compress_tickers()
         for strat in self.strats:
             self.compressed_summary_tickers = strat.handle_data(self.compressed_summary_tickers, self.major_tick)
+        self.generate_report()
         end = datetime.datetime.now()
         log.info('MAJOR TICK STEP runtime :: ' + str(end - start))
 
@@ -465,3 +466,6 @@ class CryptoBot:
     def plot_market_data(self):
         for market, trades in self.completed_trades.iteritems():
             self.plotter.plot_market(market, self.compressed_summary_tickers[market], trades, self.strats)
+
+    def generate_report(self):
+        self.reporter.generate_report(self.strats, self.markets, self.compressed_summary_tickers)
