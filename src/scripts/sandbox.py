@@ -71,7 +71,7 @@ strat2 = StochasticRSIStrat(stoch_rsi_options)
 strat3 = WilliamsPctStrat(w_pct_options)
 strat4 = VolumeStrat(vol_options)
 
-bot = CryptoBot([strat4], btrx)
+bot = CryptoBot([strat1, strat2, strat4], btrx)
 
 # bot.get_balance('ETH')
 # bot.get_balances()

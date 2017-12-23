@@ -10,7 +10,7 @@ from src.db.psql import PostgresConnection
 from src.utils.utils import is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index
 from src.utils.logger import Logger
 from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsError
-from src.utils.emailer import Reporter
+from src.utils.reporter import Reporter
 from src.utils.plotter import Plotter
 
 MAX_CURRENCY_PER_BUY = {
@@ -24,6 +24,8 @@ MAJOR_TICK_SIZE = int(os.getenv('MAJOR_TICK_SIZE', 5))
 EXECUTE_TRADES = False
 BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
 ORDER_BOOK_DEPTH = 20
+REQUIRE_STRAT_CONSENSUS = False
+SEND_REPORTS = False
 
 
 class CryptoBot:
@@ -98,7 +100,8 @@ class CryptoBot:
         raise Exception
 
     def send_report(self, subj, body):
-        self.reporter.send_report(subj, body)
+        if SEND_REPORTS:
+            self.reporter.send_report(subj, body)
 
         ## QUANT ##
 
@@ -299,24 +302,36 @@ class CryptoBot:
             rate: """ + str(rate) + """
             trade id: """ + str(uuid))
 
-    def should_buy(self, mkt_name):
-        for strat in self.strats:
-            if not strat.should_buy(mkt_name):
-                return False
-        return True
+    def should_buy(self, mkt_name, require_strat_consensus):
+        if require_strat_consensus:
+            for strat in self.strats:
+                if not strat.should_buy(mkt_name):
+                    return False
+            return True
+        else:
+            for strat in self.strats:
+                if strat.should_buy(mkt_name):
+                    return True
+            return False
 
-    def should_sell(self, mkt_name):
-        for strat in self.strats:
-            if not strat.should_sell(mkt_name):
-                return False
-        return True
+    def should_sell(self, mkt_name, require_strat_consensus):
+        if require_strat_consensus:
+            for strat in self.strats:
+                if not strat.should_sell(mkt_name):
+                    return False
+            return True
+        else:
+            for strat in self.strats:
+                if strat.should_sell(mkt_name):
+                    return True
+            return False
 
     def execute_trades(self):
         for idx, market in self.markets.iterrows():
             mkt_name = market['marketname']
-            if self.should_buy(mkt_name):
+            if self.should_buy(mkt_name, REQUIRE_STRAT_CONSENSUS):
                 self.buy_instant(mkt_name, MAX_CURRENCY_PER_BUY[mkt_name[:3]])
-            elif self.should_sell(mkt_name) and self.can_sell(mkt_name):
+            elif self.should_sell(mkt_name, REQUIRE_STRAT_CONSENSUS) and self.can_sell(mkt_name):
                 self.sell_instant(mkt_name, 1)
 
     def complete_sell(self, market):
@@ -468,4 +483,5 @@ class CryptoBot:
             self.plotter.plot_market(market, self.compressed_summary_tickers[market], trades, self.strats)
 
     def generate_report(self):
-        self.reporter.generate_report(self.strats, self.markets, self.compressed_summary_tickers)
+        if SEND_REPORTS:
+            self.reporter.generate_report(self.strats, self.markets, self.compressed_summary_tickers)
