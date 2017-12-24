@@ -13,28 +13,16 @@ class WilliamsPctStrat(BaseStrategy):
         self.stat_key = options['stat_key']
 
     def handle_data(self, data, tick):
-        log.info('Stochastic RSI Strat :: handle_data')
+        log.info('Williams % Strat :: handle_data')
         for mkt_name, mkt_data in data.iteritems():
             if len(mkt_data) >= self.major_tick:
                 mkt_data = self.calculate_williams_pct(mkt_data)
                 tail = mkt_data.tail(1)
 
-                current_tick_buy = tail['W_PCT'].values[0] >= -20
+                buy = tail['W_PCT'].values[0] >= -20
+                sell = tail['W_PCT'].values[0] <= -80
 
-                current_tick_sell = tail['W_PCT'].values[0] <= -80
-
-                if current_tick_buy:
-                    log.info(' * * * BUY :: ' + mkt_name)
-                    self.buy_positions[mkt_name] = True
-                    self.sell_positions[mkt_name] = False
-                elif current_tick_sell:
-                    log.info(' * * * SELL :: ' + mkt_name)
-                    self.buy_positions[mkt_name] = False
-                    self.sell_positions[mkt_name] = True
-                else:
-                    log.debug(' * * * HOLD :: ' + mkt_name)
-                    self.buy_positions[mkt_name] = False
-                    self.sell_positions[mkt_name] = False
+                self.set_positions(buy, sell, mkt_name)
             data[mkt_name] = mkt_data
         return data
 

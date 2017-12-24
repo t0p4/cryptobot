@@ -1,5 +1,7 @@
 import os
+from src.utils.logger import Logger
 
+log = Logger(__name__)
 
 class BaseStrategy:
     def __init__(self, options):
@@ -35,3 +37,13 @@ class BaseStrategy:
 
     def get_mkt_report(self, mkt_name, mkt_data):
         return self._get_mkt_report(mkt_name, mkt_data)
+
+    def set_positions(self, buy, sell, mkt_name):
+        self.buy_positions[mkt_name] = True
+        self.sell_positions[mkt_name] = False
+        if buy:
+            log.info(' * * * BUY :: ' + mkt_name)
+        elif sell:
+            log.info(' * * * SELL :: ' + mkt_name)
+        else:
+            log.debug(' * * * HOLD :: ' + mkt_name)

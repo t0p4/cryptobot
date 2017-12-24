@@ -25,26 +25,15 @@ class StochasticRSIStrat(BaseStrategy):
                 mkt_data = self.calc_stochastic_rsi(mkt_data)
                 tail = mkt_data.tail(2)
                 if len(mkt_data.index) >= self.rsi_window + 1:
-                    current_tick_buy = (tail['STOCH_RSI'].values[1] >= tail['STOCH_RSI_SMA'].values[1]) and (
+                    buy = (tail['STOCH_RSI'].values[1] >= tail['STOCH_RSI_SMA'].values[1]) and (
                         tail['STOCH_RSI'].values[0] < tail['STOCH_RSI_SMA'].values[0]) and (
                         tail['STOCH_RSI'].values[0] < .2)
 
-                    current_tick_sell = (tail['STOCH_RSI'].values[1] <= tail['STOCH_RSI_SMA'].values[1]) and (
+                    sell = (tail['STOCH_RSI'].values[1] <= tail['STOCH_RSI_SMA'].values[1]) and (
                         tail['STOCH_RSI'].values[0] > tail['STOCH_RSI_SMA'].values[0]) and (
                         tail['STOCH_RSI'].values[0] > .8)
 
-                    if current_tick_buy:
-                        log.info(' * * * BUY :: ' + mkt_name)
-                        self.buy_positions[mkt_name] = True
-                        self.sell_positions[mkt_name] = False
-                    elif current_tick_sell:
-                        log.info(' * * * SELL :: ' + mkt_name)
-                        self.buy_positions[mkt_name] = False
-                        self.sell_positions[mkt_name] = True
-                    else:
-                        log.debug(' * * * HOLD :: ' + mkt_name)
-                        self.buy_positions[mkt_name] = False
-                        self.sell_positions[mkt_name] = False
+                    self.set_positions(buy, sell, mkt_name)
                 data[mkt_name] = mkt_data
         end = datetime.now()
         log.info('runtime :: ' + str(end - start))

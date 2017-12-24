@@ -21,30 +21,15 @@ class VolumeStrat(BaseStrategy):
             if len(mkt_data) > self.long_vol_ema_period:
                 mkt_data = self.calc_volume_metrics(mkt_data)
                 if len(mkt_data) > self.long_vol_ema_period + self.pvo_ema_period:
-                    buy = False
-                    sell = False
-                    tail = mkt_data.tail(3).reset_index(drop=True)
+                    tail = mkt_data.tail(2).reset_index(drop=True)
 
-                    pvo_up = tail.loc[2, 'PVO'] > tail.loc[2, 'PVO_EMA']
-                    pvo_down_1 = tail.loc[1, 'PVO'] < tail.loc[1, 'PVO_EMA']
-                    pvo_down_2 = tail.loc[0, 'PVO'] < tail.loc[0, 'PVO_EMA']
+                    pvo_up = tail.loc[1, 'PVO'] > tail.loc[1, 'PVO_EMA']
+                    pvo_down_1 = tail.loc[0, 'PVO'] < tail.loc[0, 'PVO_EMA']
 
-                    if pvo_up and (pvo_down_1 or pvo_down_2):
-                        buy = True
-                    if not pvo_up and (not pvo_down_1 or not pvo_down_2):
-                        sell = True
-                    if buy:
-                        log.info(' * * * BUY :: ' + mkt_name)
-                        self.buy_positions[mkt_name] = True
-                        self.sell_positions[mkt_name] = False
-                    elif sell:
-                        log.info(' * * * SELL :: ' + mkt_name)
-                        self.buy_positions[mkt_name] = False
-                        self.sell_positions[mkt_name] = True
-                    else:
-                        log.debug(' * * * HOLD :: ' + mkt_name)
-                        self.buy_positions[mkt_name] = False
-                        self.sell_positions[mkt_name] = False
+                    buy = pvo_up and pvo_down_1
+                    sell = not pvo_up and not pvo_down_1
+
+                    self.set_positions(buy, sell, mkt_name)
             else:
                 mkt_data['SHORT_VOL_EMA'] = mkt_data['volume'].rolling(window=self.short_vol_ema_period,
                                                                             center=False).mean()

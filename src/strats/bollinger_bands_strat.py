@@ -41,10 +41,10 @@ class BollingerBandsStrat(BaseStrategy):
                 #     self.sell_positions[mkt_name] = False
 
                 # # STANDARD
-                buy_it = tail['last'].values[1] < tail['LOWER_BB'].values[1]
-                sell_it = tail['last'].values[1] > tail['UPPER_BB'].values[1]
-                self.buy_positions[mkt_name] = buy_it
-                self.sell_positions[mkt_name] = sell_it
+                buy = tail['last'].values[1] < tail['LOWER_BB'].values[1]
+                sell = tail['last'].values[1] > tail['UPPER_BB'].values[1]
+
+                self.set_positions(buy, sell, mkt_name)
 
             data[mkt_name] = mkt_data
         end = datetime.now()
