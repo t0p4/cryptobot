@@ -26,7 +26,7 @@ class BaseStrategy:
 
     def _get_mkt_report(self, mkt_name, mkt_data):
         mkt_report = {'strat_name': self.name, 'window': self.window}
-        mkt_report['recent_data'] = str(mkt_data.tail(self.window))
+        mkt_report['recent_data'] = str(mkt_data.tail(self.window * 10))
         if self.buy_positions[mkt_name]:
             mkt_report['action'] = 'BUY'
         elif self.sell_positions[mkt_name]:
