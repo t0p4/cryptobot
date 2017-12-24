@@ -37,10 +37,12 @@ class Reporter:
         report = "{{<<* * * * * ....." + mkt_name + "..... * * * * *>>}}"
         report += "\n"
         for a_data in action_data:
-            report += str(a_data)
-            report += "\n"
-            report += "================================="
-            report += "\n"
+            report += a_data['strat_name'] + "\n"
+            report += a_data['action'] + "\n"
+            report += str(a_data['window']) + "\n"
+            report += a_data['strat_specific_data'] + "\n"
+            report += a_data['recent_data'] + "\n"
+            report += "=================================\n"
         report += "\n\n\n"
         return report
 

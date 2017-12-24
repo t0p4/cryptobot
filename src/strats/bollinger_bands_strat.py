@@ -66,3 +66,22 @@ class BollingerBandsStrat(BaseStrategy):
 
         # append and return
         return df.append(tail.tail(1), ignore_index=True)
+
+    def get_mkt_report(self, mkt_name, mkt_data):
+        # get standard report data
+        report = self._get_mkt_report(mkt_name, mkt_data)
+
+        # calculate:
+        # 1) % change over most recent window
+        # 2) % change over most recent tick
+        tail = mkt_data.tail(self.window).reset_index(drop=True)
+        tick_last = tail.loc[self.window - 1, 'last']
+        prev_tick_last = tail.loc[self.window-2, 'last']
+        window_last = tail.loc[0, 'last']
+        window_pct_change = 100 * (tick_last - window_last) / window_last
+        last_tick_pct_change = 100 * (tick_last - prev_tick_last) / window_last
+        window_pct_change_str = "% change over window: " + str(window_pct_change) + "%"
+        last_tick_pct_change_str = "% change over tick: " + str(last_tick_pct_change) + "%"
+
+        report['strat_specific_data'] = window_pct_change_str + "\n" + last_tick_pct_change_str + "\n"
+        return report

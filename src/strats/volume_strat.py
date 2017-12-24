@@ -106,3 +106,22 @@ class VolumeStrat(BaseStrategy):
         # EMA = (last - prev_ema) * multiplier + prev_ema
         multiplier = 2.0 / (period + 1)
         return (df.loc[1, stat_key] - prev_ema) * multiplier + prev_ema
+
+    def get_mkt_report(self, mkt_name, mkt_data):
+        # get standard report data
+        report = self._get_mkt_report(mkt_name, mkt_data)
+
+        # calculate:
+        # 1) % change over most recent window
+        # 2) % change over most recent tick
+        tail = mkt_data.tail(self.window).reset_index(drop=True)
+        tick_volume = tail.loc[self.window - 1, 'volume']
+        prev_tick_volume = tail.loc[self.window-2, 'volume']
+        window_volume = tail.loc[0, 'volume']
+        window_pct_change = 100 * (tick_volume - window_volume) / window_volume
+        last_tick_pct_change = 100 * (tick_volume - prev_tick_volume) / window_volume
+        window_pct_change_str = "% change over window: " + str(window_pct_change) + "%"
+        last_tick_pct_change_str = "% change over tick: " + str(last_tick_pct_change) + "%"
+
+        report['strat_specific_data'] = window_pct_change_str + "\n" + last_tick_pct_change_str + "\n"
+        return report
