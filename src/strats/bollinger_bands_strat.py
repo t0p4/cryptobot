@@ -22,27 +22,13 @@ class BollingerBandsStrat(BaseStrategy):
                 mkt_data = self.calc_bollinger_bands(mkt_data)
                 tail = mkt_data.tail(2)
 
-                # EXTRA
-                # current_tick_buy = tail['last'].values[1] >= tail['UPPER_BB'].values[1]
-                # current_tick_sell = tail['last'].values[0] < tail['SMA'].values[0]
-                # prev_tick_buy = tail['last'].values[1] >= tail['UPPER_BB'].values[1]
-                # prev_tick_sell = tail['last'].values[0] < tail['UPPER_BB'].values[0]
-                # if current_tick_buy and prev_tick_sell:
-                #     log.info(' * * * BUY :: ' + mkt_name)
-                #     self.buy_positions[mkt_name] = True
-                #     self.sell_positions[mkt_name] = False
-                # elif current_tick_sell:
-                #     log.info(' * * * SELL :: ' + mkt_name)
-                #     self.buy_positions[mkt_name] = False
-                #     self.sell_positions[mkt_name] = True
-                # else:
-                #     log.debug(' * * * HOLD :: ' + mkt_name)
-                #     self.buy_positions[mkt_name] = False
-                #     self.sell_positions[mkt_name] = False
+                # # SPIKE CHASER
+                buy = tail['last'].values[1] >= tail['UPPER_BB'].values[1] and tail['last'].values[0] < tail['UPPER_BB'].values[0]
+                sell = tail['last'].values[1] < tail['SMA'].values[1] and tail['last'].values[0] >= tail['SMA'].values[0]
 
                 # # STANDARD
-                buy = tail['last'].values[1] < tail['LOWER_BB'].values[1]
-                sell = tail['last'].values[1] > tail['UPPER_BB'].values[1]
+                # buy = tail['last'].values[1] < tail['LOWER_BB'].values[1]
+                # sell = tail['last'].values[1] > tail['UPPER_BB'].values[1]
 
                 self.set_positions(buy, sell, mkt_name)
 

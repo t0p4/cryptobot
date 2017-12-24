@@ -75,7 +75,11 @@ class Plotter:
         subplot.plot(time_series, lower_bb)
 
     def plot_w_pct(self, mkt_data, time_series, subplot):
+        subplot.set_xlabel('Time')
         subplot.set_ylabel('Williams %')
+        subplot.axes.axes.xaxis.major.formatter = self.date_formatter
+        w_pct = mkt_data[:]['W_PCT']
+        subplot.plot(time_series, w_pct)
 
     def plot_vol_osc(self, mkt_data, time_series, subplot):
         subplot.set_xlabel('Time')

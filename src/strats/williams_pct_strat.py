@@ -15,7 +15,7 @@ class WilliamsPctStrat(BaseStrategy):
     def handle_data(self, data, tick):
         log.info('Williams % Strat :: handle_data')
         for mkt_name, mkt_data in data.iteritems():
-            if len(mkt_data) >= self.major_tick:
+            if len(mkt_data) >= self.wp_window:
                 mkt_data = self.calculate_williams_pct(mkt_data)
                 tail = mkt_data.tail(1)
 
@@ -27,9 +27,15 @@ class WilliamsPctStrat(BaseStrategy):
         return data
 
     def calculate_williams_pct(self, data):
-        window = data.tail(self.wp_window)
+        # get tail, drop last row of data
+        window = data.tail(self.wp_window).reset_index(drop=True)
+        data = data.drop(data.index[-1:])
+
+        # calculate williams %
         highest = window[self.stat_key].max(axis=0)
         lowest = window[self.stat_key].min(axis=0)
         last = window[self.stat_key].iloc[-1]
-        data['W_PCT'] = (highest - last) / (highest - lowest) * -100
-        return data
+        w_pct = (highest - last) / (highest - lowest) * -100
+        window.set_value(self.wp_window - 1, 'W_PCT', w_pct)
+
+        return data.append(window.tail(1), ignore_index=True)

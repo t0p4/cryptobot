@@ -25,7 +25,7 @@ EXECUTE_TRADES = False
 BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
 ORDER_BOOK_DEPTH = 20
 REQUIRE_STRAT_CONSENSUS = False
-SEND_REPORTS = True
+SEND_REPORTS = False
 
 
 class CryptoBot:
@@ -329,7 +329,7 @@ class CryptoBot:
     def execute_trades(self):
         for idx, market in self.markets.iterrows():
             mkt_name = market['marketname']
-            if self.should_buy(mkt_name, REQUIRE_STRAT_CONSENSUS):
+            if self.should_buy(mkt_name, REQUIRE_STRAT_CONSENSUS) and self.can_buy(mkt_name):
                 self.buy_instant(mkt_name, MAX_CURRENCY_PER_BUY[mkt_name[:3]])
             elif self.should_sell(mkt_name, REQUIRE_STRAT_CONSENSUS) and self.can_sell(mkt_name):
                 self.sell_instant(mkt_name, 1)
@@ -365,6 +365,10 @@ class CryptoBot:
 
     def can_sell(self, mkt):
         balance = self.get_balance(mkt[4:])
+        return balance['balance'] > 0
+
+    def can_buy(self, mkt):
+        balance = self.get_balance(mkt[:3])
         return balance['balance'] > 0
 
     def get_balances(self):

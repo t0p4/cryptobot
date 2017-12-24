@@ -39,8 +39,8 @@ class BaseStrategy:
         return self._get_mkt_report(mkt_name, mkt_data)
 
     def set_positions(self, buy, sell, mkt_name):
-        self.buy_positions[mkt_name] = True
-        self.sell_positions[mkt_name] = False
+        self.buy_positions[mkt_name] = buy
+        self.sell_positions[mkt_name] = sell
         if buy:
             log.info(' * * * BUY :: ' + mkt_name)
         elif sell:

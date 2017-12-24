@@ -66,12 +66,12 @@ vol_options = {
     'plot_overlay': False
 }
 
-strat1 = BollingerBandsStrat(bb_options)
-strat2 = StochasticRSIStrat(stoch_rsi_options)
-strat3 = WilliamsPctStrat(w_pct_options)
-strat4 = VolumeStrat(vol_options)
+bb_strat = BollingerBandsStrat(bb_options)
+stoch_rsi_strat = StochasticRSIStrat(stoch_rsi_options)
+w_pct_strat = WilliamsPctStrat(w_pct_options)
+vol_strat = VolumeStrat(vol_options)
 
-bot = CryptoBot([strat1, strat2, strat4], btrx)
+bot = CryptoBot([bb_strat, stoch_rsi_strat, w_pct_strat, vol_strat], btrx)
 
 # bot.get_balance('ETH')
 # bot.get_balances()
