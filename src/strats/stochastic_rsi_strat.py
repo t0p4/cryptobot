@@ -12,12 +12,10 @@ class StochasticRSIStrat(BaseStrategy):
         BaseStrategy.__init__(self, options)
         self.sma_window = options['sma_window']
         self.rsi_window = options['rsi_window']
-        self.minor_tick = options['minor_tick']
-        self.major_tick = options['major_tick']
         self.stat_key = options['stat_key']
         self.columns_initialized = False
 
-    def handle_data(self, data, major_tick):
+    def handle_data(self, data):
         log.info('Stochastic RSI Strat :: handle_data')
         start = datetime.now()
         for mkt_name, mkt_data in data.iteritems():

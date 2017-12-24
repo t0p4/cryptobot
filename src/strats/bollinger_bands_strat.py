@@ -10,11 +10,8 @@ class BollingerBandsStrat(BaseStrategy):
         BaseStrategy.__init__(self, options)
         self.num_standard_devs = options['num_standard_devs']
         self.sma_window = options['sma_window']
-        self.sma_stat_key = options['sma_stat_key']
-        self.minor_tick = options['minor_tick']
-        self.major_tick = options['major_tick']
 
-    def handle_data(self, data, major_tick):
+    def handle_data(self, data):
         log.info('Bollinger Band Strat :: handle_data')
         start = datetime.now()
         for mkt_name, mkt_data in data.iteritems():
@@ -45,8 +42,8 @@ class BollingerBandsStrat(BaseStrategy):
         df = df.drop(df.index[-1:])
 
         # calculate stats
-        tail['SMA'] = tail[self.sma_stat_key].rolling(window=self.sma_window, center=False).mean()
-        tail['STDDEV'] = tail[self.sma_stat_key].rolling(window=self.sma_window, center=False).std()
+        tail['SMA'] = tail[self.stat_key].rolling(window=self.sma_window, center=False).mean()
+        tail['STDDEV'] = tail[self.stat_key].rolling(window=self.sma_window, center=False).std()
         tail['UPPER_BB'] = tail['SMA'] + self.num_standard_devs * tail['STDDEV']
         tail['LOWER_BB'] = tail['SMA'] - self.num_standard_devs * tail['STDDEV']
 

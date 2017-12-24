@@ -8,11 +8,9 @@ class WilliamsPctStrat(BaseStrategy):
     def __init__(self, options):
         BaseStrategy.__init__(self, options)
         self.wp_window = options['wp_window']
-        self.minor_tick = options['minor_tick']
-        self.major_tick = options['major_tick']
         self.stat_key = options['stat_key']
 
-    def handle_data(self, data, tick):
+    def handle_data(self, data):
         log.info('Williams % Strat :: handle_data')
         for mkt_name, mkt_data in data.iteritems():
             if len(mkt_data) >= self.wp_window:

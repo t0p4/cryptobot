@@ -129,7 +129,7 @@ class CryptoBot:
         self.increment_major_tick()
         self.compress_tickers()
         for strat in self.strats:
-            self.compressed_summary_tickers = strat.handle_data(self.compressed_summary_tickers, self.major_tick)
+            self.compressed_summary_tickers = strat.handle_data(self.compressed_summary_tickers)
         self.generate_report()
         end = datetime.datetime.now()
         log.info('MAJOR TICK STEP runtime :: ' + str(end - start))

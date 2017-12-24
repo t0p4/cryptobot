@@ -17,53 +17,43 @@ else:
     btrx = ExchangeFactory().get_exchange()()
 
 MAJOR_TICK_SIZE = int(os.getenv('MAJOR_TICK_SIZE', 5))
-SMA_WINDOW = 15
+SMA_WINDOW = int(os.getenv('SMA_WINDOW', 15))
 bb_options = {
     'name': 'BollingerBands',
     'active': True,
-    'market_names': [],
     'plot_overlay': True,
-    'num_standard_devs': 2,
+    'stat_key': 'last',
     'window': SMA_WINDOW,
     'sma_window': SMA_WINDOW,
-    'sma_stat_key': 'last',
-    'minor_tick': 1,
-    'major_tick': MAJOR_TICK_SIZE
+    'num_standard_devs': 2,
 }
 stoch_rsi_options = {
     'name': 'StochasticRSI',
     'active': True,
-    'market_names': [],
     'plot_overlay': False,
-    'window': SMA_WINDOW,
-    'rsi_window': SMA_WINDOW,
-    'sma_window': 3,
     'stat_key': 'last',
-    'minor_tick': 1,
-    'major_tick': MAJOR_TICK_SIZE
+    'window': SMA_WINDOW,
+    'sma_window': 3,
+    'rsi_window': SMA_WINDOW,
 }
 w_pct_options = {
     'name': 'WilliamsPct',
     'active': True,
-    'market_names': [],
     'plot_overlay': False,
     'stat_key': 'last',
     'window': SMA_WINDOW,
     'wp_window': SMA_WINDOW,
-    'minor_tick': 1,
-    'major_tick': MAJOR_TICK_SIZE
 }
 vol_options = {
     'name': 'VolumeOSC',
     'active': True,
-    'minor_tick': 1,
-    'major_tick': MAJOR_TICK_SIZE,
+    'plot_overlay': False,
+    'stat_key': 'volume',
     'window': 26,
-    'pvo_ema_period': 9,
-    'short_vol_ema_period': 12,
-    'long_vol_ema_period': 26,
-    'vol_roc_period': 3,
-    'plot_overlay': False
+    'pvo_ema_window': 9,
+    'short_vol_ema_window': 12,
+    'long_vol_ema_window': 26,
+    'vol_roc_window': 3,
 }
 
 bb_strat = BollingerBandsStrat(bb_options)

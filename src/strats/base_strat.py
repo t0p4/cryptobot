@@ -8,6 +8,7 @@ class BaseStrategy:
         self.name = options['name']
         self.plot_overlay = options['plot_overlay']
         self.active = options['active']
+        self.stat_key = options['stat_key']
         self.window = options['window']
         self.buy_positions = {}
         self.sell_positions = {}
@@ -17,7 +18,7 @@ class BaseStrategy:
         self.buy_positions = {mkt_name: False for mkt_name in markets['marketname']}
         self.sell_positions = {mkt_name: False for mkt_name in markets['marketname']}
 
-    def handle_data(self, data, tick):
+    def handle_data(self, data):
         raise Exception('HANDLE_DATA function should be overwritten')
 
     def should_buy(self, mkt_name):
