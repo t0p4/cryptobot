@@ -10,13 +10,11 @@ os.environ['BACKTESTING'] = 'True'
 bb_options = {
     'name': 'BollingerBands',
     'active': True,
-    'market_names': [],
     'plot_overlay': True,
     'num_standard_devs': 2,
     'sma_window': 5,
-    'sma_stat_key': 'last',
-    'minor_tick': 1,
-    'major_tick': 5
+    'stat_key': 'last',
+    'window': 5
 }
 
 

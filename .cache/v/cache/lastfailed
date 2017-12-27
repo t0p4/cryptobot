@@ -1,7 +1,5 @@
 {
   "tests/bollinger_bands_strat_test.py::TestBBStrat::()::test_compress_and_calculate_mean": true, 
   "tests/crypto_bot_test.py::TestCryptoBot::()::test_compress_and_calculate_mean": true, 
-  "tests/crypto_bot_test.py::TestCryptoBot::()::test_compress_tickers": true, 
-  "tests/crypto_bot_test.py::TestCryptoBot::()::test_tick_step": true, 
-  "tests/williams_pct_strat_test.py::TestBBStrat::()::test_calculate_williams_pct": true
+  "tests/crypto_bot_test.py::TestCryptoBot::()::test_tick_step": true
 }

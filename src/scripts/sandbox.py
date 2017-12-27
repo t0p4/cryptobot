@@ -61,7 +61,7 @@ stoch_rsi_strat = StochasticRSIStrat(stoch_rsi_options)
 w_pct_strat = WilliamsPctStrat(w_pct_options)
 vol_strat = VolumeStrat(vol_options)
 
-bot = CryptoBot([bb_strat, stoch_rsi_strat, w_pct_strat, vol_strat], btrx)
+bot = CryptoBot([bb_strat, vol_strat], btrx)
 
 # bot.get_balance('ETH')
 # bot.get_balances()
@@ -69,9 +69,13 @@ bot = CryptoBot([bb_strat, stoch_rsi_strat, w_pct_strat, vol_strat], btrx)
 # bot.BUY_instant('ETH-NEO', 0.01)
 # bot.BUY_market('ETH-NEO', 0.01)
 # bot.sell_market('ETH-NEO', 0.01)
-# bot.collect_summaries()
+
 # bot.rate_limiter_start()
 # bot.rate_limiter_limit()
+
+# bot.collect_markets()
+# bot.collect_currencies()
+# bot.collect_summaries()
 
 # bot.get_historical_data()
 bot.run()

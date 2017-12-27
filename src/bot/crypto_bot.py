@@ -359,7 +359,7 @@ class CryptoBot:
             """.format(**log_details))
         if net_gain_pct <= -25:
             msg = """"{market_currency} Net Loss: {net_gain} {base_currency}, {net_gain_pct}%\n""".format(**log_details)
-            # raise LargeLossError(log_details, msg)
+            raise LargeLossError(log_details, msg)
 
             ## ACCOUNT ##
 
@@ -387,7 +387,7 @@ class CryptoBot:
         return history
 
 
-        ## BITTREX MARKET DATA COLLECTOR ##
+    ## BITTREX MARKET DATA COLLECTOR ##
 
     def collect_order_books(self):
         order_books = {}
@@ -427,7 +427,7 @@ class CryptoBot:
             results.append(currency_data)
         self.psql.save_currencies(results)
 
-        # HISTORICAL BTC DATA SCRAPER FOR bitcoincharts.com
+    ## HISTORICAL BTC DATA SCRAPER FOR bitcoincharts.com
 
     def get_historical_data(self):
         endpoint = 'https://bitcoincharts.com/charts/chart.json?m=bitstampUSD&SubmitButton=Draw&r=2&i=1-min&c=1&s='
