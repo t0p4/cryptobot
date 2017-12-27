@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from src.db.psql import PostgresConnection
 from src.utils.utils import is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index
 from src.utils.logger import Logger
-from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsError
+from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsError, MixedTradeError
 from src.utils.reporter import Reporter
 from src.utils.plotter import Plotter
 
@@ -113,7 +113,7 @@ class CryptoBot:
             self.execute_trades()
 
     def minor_tick_step(self):
-        # start = datetime.datetime.now()
+        start = datetime.datetime.now()
         self.increment_minor_tick()
         # get the ticker for all the markets
         summaries = self.get_market_summaries()
@@ -121,8 +121,8 @@ class CryptoBot:
             mkt_name = summary['marketname']
             if is_valid_market(mkt_name, self.base_currencies) and mkt_name in self.summary_tickers:
                 self.summary_tickers[mkt_name] = self.summary_tickers[mkt_name].append(summary, ignore_index=True)
-        # end = datetime.datetime.now()
-        # log.info('MINOR TICK STEP runtime :: ' + str(end - start))
+        end = datetime.datetime.now()
+        log.info('MINOR TICK STEP runtime :: ' + str(end - start))
 
     def major_tick_step(self):
         start = datetime.datetime.now()
@@ -135,6 +135,7 @@ class CryptoBot:
         log.info('MAJOR TICK STEP runtime :: ' + str(end - start))
 
     def compress_tickers(self):
+        start = datetime.datetime.now()
         for mkt_name, mkt_data in self.summary_tickers.iteritems():
             # tail = mkt_data.tail(MAJOR_TICK_SIZE).reset_index(drop=True)
             # mkt_data = mkt_data.drop(mkt_data.index[-MAJOR_TICK_SIZE:])
@@ -144,6 +145,8 @@ class CryptoBot:
             mkt_data.columns = mkt_data.columns.droplevel(1)
             self.compressed_summary_tickers[mkt_name] = self.compressed_summary_tickers[mkt_name].append(mkt_data, ignore_index=True)
             self.summary_tickers[mkt_name] = pd.DataFrame()
+        end = datetime.datetime.now()
+        log.info('COMPRESS TICKERS runtime :: ' + str(end - start))
 
 
         ## RATE LIMITER ##
@@ -340,12 +343,7 @@ class CryptoBot:
         market_currency = currencies[1]
         mkt_trade_data = self.completed_trades[market]
         tail = mkt_trade_data.tail(2).reset_index(drop=True)
-        coin_in = tail.loc[0, 'quantity'] * tail.loc[0, 'rate']
-        # KeyError: 'the label [1] is not in the [index]'
-        coin_out = tail.loc[1, 'quantity'] * tail.loc[1, 'rate']
-        net_gain = coin_out - coin_in
-        net_gain_pct = 100 * net_gain / coin_in
-        hold_time = tail.loc[1, 'timestamp'] - tail.loc[0, 'timestamp']
+        net_gain, net_gain_pct, hold_time = self.calculate_net(tail, base_currency, market_currency)
         log_details = {
             'base_currency': base_currency,
             'market_currency': market_currency,
@@ -361,14 +359,33 @@ class CryptoBot:
             msg = """"{market_currency} Net Loss: {net_gain} {base_currency}, {net_gain_pct}%\n""".format(**log_details)
             raise LargeLossError(log_details, msg)
 
-            ## ACCOUNT ##
+    def calculate_net(self, trade_data, sell_base_currency, market_currency):
+        # TODO handle different buy and sell currencies
+        try:
+            buy_base_currency = trade_data.loc[0, 'base_currency']
+            if sell_base_currency != buy_base_currency:
+                raise MixedTradeError(buy_base_currency, sell_base_currency, market_currency)
+            coin_in = trade_data.loc[0, 'quantity'] * trade_data.loc[0, 'rate']
+            # KeyError: 'the label [1] is not in the [index]'
+            coin_out = trade_data.loc[1, 'quantity'] * trade_data.loc[1, 'rate']
+            net_gain = coin_out - coin_in
+            net_gain_pct = 100 * net_gain / coin_in
+            hold_time = trade_data.loc[1, 'timestamp'] - trade_data.loc[0, 'timestamp']
+            return net_gain, net_gain_pct, hold_time
+        except Exception as e:
+            log.error(e)
+            return 0, 0, 0
+
+    ## ACCOUNT ##
 
     def can_sell(self, mkt):
         balance = self.get_balance(mkt[4:])
+        print("CAN SELL current " + mkt + " balance : " + str(balance['balance']))
         return balance['balance'] > 0
 
     def can_buy(self, mkt):
         balance = self.get_balance(mkt[:3])
+        print("CAN BUY current " + mkt + " balance : " + str(balance['balance']))
         return balance['balance'] > 0
 
     def get_balances(self):

@@ -21,6 +21,13 @@ class TradeFailureError(BotError):
     pass
 
 
+class TradeWarning(BotError):
+    """Raised when a trade is successful but something is amiss"""
+    def __init__(self, msg):
+        super(TradeWarning, self).__init__(msg)
+    pass
+
+
 class InsufficientFundsError(TradeFailureError, BotError):
     """Raise when a trade is attempted but there are not enough funds to execute it"""
     def __init__(self, balance, market, quantity, rate, msg):
@@ -28,4 +35,15 @@ class InsufficientFundsError(TradeFailureError, BotError):
         self.market = market
         self.quantity = quantity
         self.balance = balance
+    pass
+
+
+class MixedTradeError(TradeWarning, BotError):
+    """Raise when a sell is completed but the market currency was initially bought with a different base currency"""
+    def __init__(self, buy_base_currency, sell_base_currency, market_currency, msg=''):
+        msg = 'Bought ' + market_currency + ' with ' + buy_base_currency + ', sold to ' + sell_base_currency + '.  ' + msg
+        super(MixedTradeError, self).__init__(msg)
+        self.buy_base_currency = buy_base_currency
+        self.sell_base_currency = sell_base_currency
+        self.market_currency = market_currency
     pass
