@@ -7,7 +7,7 @@ from time import sleep
 import pandas as pd
 from bs4 import BeautifulSoup
 from src.db.psql import PostgresConnection
-from src.utils.utils import is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index
+from src.utils.utils import is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index, calculate_base_currency_volume
 from src.utils.logger import Logger
 from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsError, MixedTradeError
 from src.utils.reporter import Reporter
@@ -37,7 +37,9 @@ class CryptoBot:
         self.trade_functions = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
         self.base_currencies = os.getenv('BASE_CURRENCIES', 'BTC,ETH').split(',')
         self.tradeable_markets = self.init_tradeable_markets()
+        self.active_currencies = {}
         self.tradeable_currencies = dict((m[4:], True) for m in os.getenv('TRADEABLE_MARKETS', 'BTC-LTC').split(','))
+        self.volume_thresholds = {'BTC': 5000, 'ETH': 50000}
         self.completed_trades = {}
         self.rate_limit = datetime.timedelta(0, 60, 0)
         self.api_tick = datetime.datetime.now()
@@ -67,6 +69,8 @@ class CryptoBot:
             self.btrx.init_tradeable_markets(self.tradeable_markets)
         if os.getenv('COLLECT_FIXTURES', 'FALSE') != 'TRUE':
             self.currencies = self.get_currencies()
+            self.currencies['cb_active'] = True
+            self.refresh_active_currencies()
             self.markets = self.get_markets()
             for mkt_name in self.markets['marketname']:
                 if is_valid_market(mkt_name, self.base_currencies):
@@ -74,6 +78,9 @@ class CryptoBot:
                     self.summary_tickers[mkt_name] = pd.DataFrame()
             for strat in self.strats:
                 strat.init_market_positions(self.markets)
+
+    def refresh_active_currencies(self):
+        self.active_currencies = dict((m, True) for m in self.currencies[self.currencies['cb_active']]['currency'].values)
 
     def run(self):
         if BACKTESTING:
@@ -89,7 +96,9 @@ class CryptoBot:
 
     def run_test(self):
         log.info('* * * ! * * * BEGIN TEST RUN * * * ! * * *')
-        while self.tick < 900:
+        while self.tick < 2600:
+            # if self.tick == 10:
+            #     self.enable_volume_threshold()
             self.tick_step()
 
         self.cash_out()
@@ -103,7 +112,7 @@ class CryptoBot:
         if SEND_REPORTS:
             self.reporter.send_report(subj, body)
 
-        ## QUANT ##
+    ## QUANT ##
 
     def tick_step(self):
         self.minor_tick_step()
@@ -148,8 +157,17 @@ class CryptoBot:
         end = datetime.datetime.now()
         log.info('COMPRESS TICKERS runtime :: ' + str(end - start))
 
+    def enable_volume_threshold(self):
+        log.info('* * * ! * * * VOLUME THRESHOLD ENABLED * * * ! * * *')
+        for mkt_name, mkt_data in self.compressed_summary_tickers.iteritems():
+            currency = mkt_name.split('-')[1]
+            if not self.check_volume_threshold(mkt_data, mkt_name) and currency in self.active_currencies:
+                del self.active_currencies[currency]
+        log.info('REMAINING CURRENCIES ::\n')
+        for mkt_name in self.active_currencies:
+            log.info(mkt_name + "\n")
 
-        ## RATE LIMITER ##
+    ## RATE LIMITER ##
 
     def rate_limiter_reset(self):
         self.api_tick = datetime.datetime.now()
@@ -168,7 +186,7 @@ class CryptoBot:
                 self.rate_limiter_reset()
 
 
-                ## TICKER ##
+    ## TICKER ##
 
     def increment_minor_tick(self):
         self.tick += 1
@@ -180,7 +198,7 @@ class CryptoBot:
         return (self.tick % MAJOR_TICK_SIZE) == 0
 
 
-        ## MARKET ##
+    ## MARKET ##
 
     def get_market_summaries(self):
         log.debug('{BOT} == GET market summaries ==')
@@ -207,7 +225,7 @@ class CryptoBot:
         return self.btrx.getcurrencies()
 
 
-        ## ORDERS ##
+    ## ORDERS ##
 
     def calculate_num_coins(self, market, order_type, quantity):
         """Calculates the QUANTITY for a trade
@@ -471,7 +489,7 @@ class CryptoBot:
             current_date = current_date + timedelta(days=1)
 
 
-            ## BACKTESTING TOOLS ##
+    ## BACKTESTING TOOLS ##
 
     def analyze_performance(self):
         self.plot_market_data()
@@ -506,3 +524,11 @@ class CryptoBot:
     def generate_report(self):
         if SEND_REPORTS:
             self.reporter.generate_report(self.strats, self.markets, self.compressed_summary_tickers)
+
+    def check_volume_threshold(self, mkt_data, mkt_name):
+        base_currency = mkt_name.split('-')[0]
+        vol_threshold = self.volume_thresholds[base_currency]
+        recent_volume = mkt_data.loc[len(mkt_data) - 1, 'volume']
+        recent_rate = mkt_data.loc[len(mkt_data) - 1, 'last']
+        recent_base_currency_trade_volume = calculate_base_currency_volume(recent_volume, recent_rate)
+        return recent_base_currency_trade_volume >= vol_threshold

@@ -98,6 +98,7 @@ class BacktestExchange:
         self.current_summaries = summaries
         results = []
         self.current_timestamp = summaries.loc[0, 'saved_timestamp']
+        # TODO remove this loop
         for idx, summary in summaries.iterrows():
             results.append(summary)
         return results

@@ -11,7 +11,8 @@ INF = 999999999999999
 
 
 def is_valid_market(mkt_name, currencies):
-    return mkt_name.split('-')[0] in currencies
+    mkts = mkt_name.split('-')
+    return mkts[0] in currencies
 
 
 def add_saved_timestamp(data, tick):
@@ -83,3 +84,7 @@ def normalize_inf_rows_dicts(data):
                 idx += 1
             data[index] = data[idx - 1][:]
     return data
+
+
+def calculate_base_currency_volume(volume, rate):
+    return volume * rate
