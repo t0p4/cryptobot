@@ -15,27 +15,21 @@ class StochasticRSIStrat(BaseStrategy):
         self.stat_key = options['stat_key']
         self.columns_initialized = False
 
-    def handle_data(self, data):
-        log.info('Stochastic RSI Strat :: handle_data')
-        start = datetime.now()
-        for mkt_name, mkt_data in data.iteritems():
-            if len(mkt_data) >= self.rsi_window:
-                mkt_data = self.calc_stochastic_rsi(mkt_data)
-                tail = mkt_data.tail(2)
-                if len(mkt_data.index) >= self.rsi_window + 1:
-                    buy = (tail['STOCH_RSI'].values[1] >= tail['STOCH_RSI_SMA'].values[1]) and (
-                        tail['STOCH_RSI'].values[0] < tail['STOCH_RSI_SMA'].values[0]) and (
-                        tail['STOCH_RSI'].values[0] < .2)
+    def handle_data(self, mkt_data, mkt_name):
+        if len(mkt_data) >= self.rsi_window:
+            mkt_data = self.calc_stochastic_rsi(mkt_data)
+            tail = mkt_data.tail(2)
+            if len(mkt_data.index) >= self.rsi_window + 1:
+                buy = (tail['STOCH_RSI'].values[1] >= tail['STOCH_RSI_SMA'].values[1]) and (
+                    tail['STOCH_RSI'].values[0] < tail['STOCH_RSI_SMA'].values[0]) and (
+                    tail['STOCH_RSI'].values[0] < .2)
 
-                    sell = (tail['STOCH_RSI'].values[1] <= tail['STOCH_RSI_SMA'].values[1]) and (
-                        tail['STOCH_RSI'].values[0] > tail['STOCH_RSI_SMA'].values[0]) and (
-                        tail['STOCH_RSI'].values[0] > .8)
+                sell = (tail['STOCH_RSI'].values[1] <= tail['STOCH_RSI_SMA'].values[1]) and (
+                    tail['STOCH_RSI'].values[0] > tail['STOCH_RSI_SMA'].values[0]) and (
+                    tail['STOCH_RSI'].values[0] > .8)
 
-                    self.set_positions(buy, sell, mkt_name)
-                data[mkt_name] = mkt_data
-        end = datetime.now()
-        log.info('runtime :: ' + str(end - start))
-        return data
+                self.set_positions(buy, sell, mkt_name)
+        return mkt_data
 
     def calc_stochastic_rsi(self, df):
         if len(df.index) == self.rsi_window:

@@ -83,7 +83,7 @@ class CryptoBot:
         self.active_currencies = dict((m, True) for m in self.currencies[self.currencies['cb_active']]['currency'].values)
 
     def run(self):
-        if BACKTESTING:
+        if BACKTESTING == 'TRUE':
             self.run_test()
         else:
             self.run_prod()
@@ -138,7 +138,9 @@ class CryptoBot:
         self.increment_major_tick()
         self.compress_tickers()
         for strat in self.strats:
-            self.compressed_summary_tickers = strat.handle_data(self.compressed_summary_tickers)
+            log.info(strat.name + ' :: handle_data')
+            for mkt_name, mkt_data in self.compressed_summary_tickers.iteritems():
+                self.compressed_summary_tickers[mkt_name] = strat.handle_data(mkt_data, mkt_name)
         self.generate_report()
         end = datetime.datetime.now()
         log.info('MAJOR TICK STEP runtime :: ' + str(end - start))

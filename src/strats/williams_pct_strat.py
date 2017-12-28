@@ -10,19 +10,16 @@ class WilliamsPctStrat(BaseStrategy):
         self.wp_window = options['wp_window']
         self.stat_key = options['stat_key']
 
-    def handle_data(self, data):
-        log.info('Williams % Strat :: handle_data')
-        for mkt_name, mkt_data in data.iteritems():
-            if len(mkt_data) >= self.wp_window:
-                mkt_data = self.calculate_williams_pct(mkt_data)
-                tail = mkt_data.tail(1)
+    def handle_data(self, mkt_data, mkt_name):
+        if len(mkt_data) >= self.wp_window:
+            mkt_data = self.calculate_williams_pct(mkt_data)
+            tail = mkt_data.tail(1)
 
-                buy = tail['W_PCT'].values[0] >= -20
-                sell = tail['W_PCT'].values[0] <= -80
+            buy = tail['W_PCT'].values[0] >= -20
+            sell = tail['W_PCT'].values[0] <= -80
 
-                self.set_positions(buy, sell, mkt_name)
-            data[mkt_name] = mkt_data
-        return data
+            self.set_positions(buy, sell, mkt_name)
+        return mkt_data
 
     def calculate_williams_pct(self, data):
         # get tail, drop last row of data

@@ -14,28 +14,25 @@ class VolumeStrat(BaseStrategy):
         self.vol_roc_window = options['vol_roc_window']
         self.is_active = False
 
-    def handle_data(self, data):
-        log.info('Stochastic RSI Strat :: handle_data')
-        for mkt_name, mkt_data in data.iteritems():
-            if len(mkt_data) > self.long_vol_ema_window:
-                mkt_data = self.calc_volume_metrics(mkt_data)
-                if len(mkt_data) > self.long_vol_ema_window + self.pvo_ema_window:
-                    tail = mkt_data.tail(2).reset_index(drop=True)
+    def handle_data(self, mkt_data, mkt_name):
+        if len(mkt_data) > self.long_vol_ema_window:
+            mkt_data = self.calc_volume_metrics(mkt_data)
+            if len(mkt_data) > self.long_vol_ema_window + self.pvo_ema_window:
+                tail = mkt_data.tail(2).reset_index(drop=True)
 
-                    pvo_up = tail.loc[1, 'PVO'] > tail.loc[1, 'PVO_EMA']
-                    pvo_down_1 = tail.loc[0, 'PVO'] < tail.loc[0, 'PVO_EMA']
+                pvo_up = tail.loc[1, 'PVO'] > tail.loc[1, 'PVO_EMA']
+                pvo_down_1 = tail.loc[0, 'PVO'] < tail.loc[0, 'PVO_EMA']
 
-                    buy = pvo_up and pvo_down_1
-                    sell = not pvo_up and not pvo_down_1
+                buy = pvo_up and pvo_down_1
+                sell = not pvo_up and not pvo_down_1
 
-                    self.set_positions(buy, sell, mkt_name)
-            else:
-                mkt_data['SHORT_VOL_EMA'] = mkt_data[self.stat_key].rolling(window=self.short_vol_ema_window,
-                                                                            center=False).mean()
-                mkt_data['LONG_VOL_EMA'] = mkt_data[self.stat_key].rolling(window=self.long_vol_ema_window,
-                                                                            center=False).mean()
-            data[mkt_name] = mkt_data
-        return data
+                self.set_positions(buy, sell, mkt_name)
+        else:
+            mkt_data['SHORT_VOL_EMA'] = mkt_data[self.stat_key].rolling(window=self.short_vol_ema_window,
+                                                                        center=False).mean()
+            mkt_data['LONG_VOL_EMA'] = mkt_data[self.stat_key].rolling(window=self.long_vol_ema_window,
+                                                                        center=False).mean()
+        return mkt_data
 
     def calc_volume_metrics(self, df):
         # calculate stats

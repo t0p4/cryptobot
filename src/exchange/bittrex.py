@@ -69,8 +69,8 @@ class Bittrex(object):
                 results.append(market_data)
             return results
         else:
-            markets = pd.DataFrame(markets).drop(['created', 'issponsored', 'notice'], axis=1)
-            markets = markets[markets.apply((lambda mkt: mkt['marketname'][:3] in base_currencies), axis=1)]
+            markets = pd.DataFrame(markets).drop(['Created', 'IsSponsored', 'Notice'], axis=1)
+            markets = markets[markets.apply((lambda mkt: mkt['MarketName'][:3] in base_currencies), axis=1)]
             return normalize_columns(markets)
     
     def getcurrencies(self):
@@ -83,7 +83,9 @@ class Bittrex(object):
                 results.append(currency_data)
             return results
         else:
-            currencies = pd.DataFrame(currencies).drop(['notice'], axis=1)
+            currencies = pd.DataFrame(currencies)
+            if 'notice' in currencies:
+                currencies = currencies.drop(['notice'], axis=1)
             return normalize_columns(currencies)
     
     def getticker(self, market):

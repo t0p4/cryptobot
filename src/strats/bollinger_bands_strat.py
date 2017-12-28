@@ -11,28 +11,22 @@ class BollingerBandsStrat(BaseStrategy):
         self.num_standard_devs = options['num_standard_devs']
         self.sma_window = options['sma_window']
 
-    def handle_data(self, data):
-        log.info('Bollinger Band Strat :: handle_data')
-        start = datetime.now()
-        for mkt_name, mkt_data in data.iteritems():
-            if len(mkt_data) >= self.sma_window:
-                mkt_data = self.calc_bollinger_bands(mkt_data)
-                tail = mkt_data.tail(2)
+    def handle_data(self, mkt_data, mkt_name):
+        if len(mkt_data) >= self.sma_window:
+            mkt_data = self.calc_bollinger_bands(mkt_data)
+            tail = mkt_data.tail(2)
 
-                # # SPIKE CHASER
-                buy = tail['last'].values[1] >= tail['UPPER_BB'].values[1] and tail['last'].values[0] < tail['UPPER_BB'].values[0]
-                sell = tail['last'].values[1] < tail['SMA'].values[1] and tail['last'].values[0] >= tail['SMA'].values[0]
+            # # SPIKE CHASER
+            buy = tail['last'].values[1] >= tail['UPPER_BB'].values[1] and tail['last'].values[0] < tail['UPPER_BB'].values[0]
+            sell = tail['last'].values[1] < tail['SMA'].values[1] and tail['last'].values[0] >= tail['SMA'].values[0]
 
-                # # STANDARD
-                # buy = tail['last'].values[1] < tail['LOWER_BB'].values[1]
-                # sell = tail['last'].values[1] > tail['UPPER_BB'].values[1]
+            # # STANDARD
+            # buy = tail['last'].values[1] < tail['LOWER_BB'].values[1]
+            # sell = tail['last'].values[1] > tail['UPPER_BB'].values[1]
 
-                self.set_positions(buy, sell, mkt_name)
+            self.set_positions(buy, sell, mkt_name)
 
-            data[mkt_name] = mkt_data
-        end = datetime.now()
-        log.info('runtime :: ' + str(end - start))
-        return data
+        return mkt_data
 
     def calc_bollinger_bands(self, df):
         # cutoff tail, sized by window

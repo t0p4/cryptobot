@@ -18,7 +18,7 @@ class BaseStrategy:
         self.buy_positions = {mkt_name: False for mkt_name in markets['marketname']}
         self.sell_positions = {mkt_name: False for mkt_name in markets['marketname']}
 
-    def handle_data(self, data):
+    def handle_data(self, mkt_data, mkt_name):
         raise Exception('HANDLE_DATA function should be overwritten')
 
     def should_buy(self, mkt_name):
