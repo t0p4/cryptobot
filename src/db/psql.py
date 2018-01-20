@@ -128,6 +128,135 @@ class PostgresConnection:
         query = """ INSERT INTO btc_historical (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
+    def save_portfolio_report(self, portfolio_report):
+        fmt_str = """(
+                    {total_coins},
+                    {total_coins_change},
+                    {current_roi_btc},
+                    {current_roi_pct_btc},
+                    {current_roi_eth},
+                    {current_roi_pct_eth},
+                    {current_roi_usd},
+                    {current_roi_pct_usd},
+                    {est_btc},
+                    {est_btc_change_daily},
+                    {est_btc_pct_change_daily},
+                    {est_btc_change_weekly},
+                    {est_btc_pct_change_weekly},
+                    {est_eth},
+                    {est_eth_change_daily},
+                    {est_eth_pct_change_daily},
+                    {est_eth_change_weekly},
+                    {est_eth_pct_change_weekly},
+                    {est_usd},
+                    {est_usd_change_daily},
+                    {est_usd_pct_change_daily},
+                    {est_usd_change_weekly},
+                    {est_usd_pct_change_weekly},
+                )"""
+        columns = """
+                    total_coins,
+                    total_coins_change,
+                    current_roi_btc,
+                    current_roi_pct_btc,
+                    current_roi_eth,
+                    current_roi_pct_eth,
+                    current_roi_usd,
+                    current_roi_pct_usd,
+                    est_btc,
+                    est_btc_change_daily,
+                    est_btc_pct_change_daily,
+                    est_btc_change_weekly,
+                    est_btc_pct_change_weekly,
+                    est_eth,
+                    est_eth_change_daily,
+                    est_eth_pct_change_daily,
+                    est_eth_change_weekly,
+                    est_eth_pct_change_weekly,
+                    est_usd,
+                    est_usd_change_daily,
+                    est_usd_pct_change_daily,
+                    est_usd_change_weekly,
+                    est_usd_pct_change_weekly
+                """
+        values = fmt_str.format(**portfolio_report)
+        params = {
+            "columns": AsIs(columns),
+            "values": values
+        }
+        query = """ INSERT INTO """ + self.table_name('save_portfolio_report') + """ (%(columns)s) VALUES %(values)s ; """
+        self._exec_query(query, params)
+
+    def save_portfolio_assets(self, portfolio_assets):
+        log.debug('{PSQL} == SAVE portfolio report ==')
+        fmt_str = """(
+            {report_id},
+            '{currency}',
+            {total},
+            {total_holdings_change},
+            {pct_holdings_change},
+            {portfolio_pct},
+            {cost_avg},
+            {current_roi_btc},
+            {current_roi_pct_btc},
+            {current_roi_eth},
+            {current_roi_pct_eth},
+            {current_roi_usd},
+            {current_roi_pct_usd},
+            {est_btc},
+            {est_btc_change_daily},
+            {est_btc_pct_change_daily},
+            {est_btc_change_weekly},
+            {est_btc_pct_change_weekly},
+            {est_eth},
+            {est_eth_change_daily},
+            {est_eth_pct_change_daily},
+            {est_eth_change_weekly},
+            {est_eth_pct_change_weekly},
+            {est_usd},
+            {est_usd_change_daily},
+            {est_usd_pct_change_daily},
+            {est_usd_change_weekly},
+            {est_usd_pct_change_weekly},
+        )"""
+        columns = """
+            report_id,
+            currency,
+            total,
+            total_holdings_change,
+            pct_holdings_change,
+            portfolio_pct,
+            cost_avg,
+            current_roi_btc,
+            current_roi_pct_btc,
+            current_roi_eth,
+            current_roi_pct_eth,
+            current_roi_usd,
+            current_roi_pct_usd,
+            est_btc,
+            est_btc_change_daily,
+            est_btc_pct_change_daily,
+            est_btc_change_weekly,
+            est_btc_pct_change_weekly,
+            est_eth,
+            est_eth_change_daily,
+            est_eth_pct_change_daily,
+            est_eth_change_weekly,
+            est_eth_pct_change_weekly,
+            est_usd,
+            est_usd_change_daily,
+            est_usd_pct_change_daily,
+            est_usd_change_weekly,
+            est_usd_pct_change_weekly
+        """
+        values = AsIs(','.join(fmt_str.format(**asset) for asset in portfolio_assets))
+        params = {
+            "columns": AsIs(columns),
+            "values": values
+        }
+        query = """ INSERT INTO """ + self.table_name('save_assets') + """ (%(columns)s) VALUES %(values)s ; """
+        self._exec_query(query, params)
+
     def get_historical_data(self, start_date, end_date):
         log.debug('{PSQL} == GET historical data ==')
         params = {

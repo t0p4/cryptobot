@@ -21,5 +21,15 @@ TABLE_NAMES = {
         'PROD_TEST': 'prod_test_currencies',
         'BACKTEST': 'fixture_currencies',
         'COLLECT_FIXTURES': 'fixture_currencies'
+    },
+    'save_assets': {
+        'PROD': 'portfolio_assets',
+        'PROD_TEST': 'portfolio_assets',
+        'BACKTEST': 'portfolio_assets',
+    },
+    'save_portfolio_report': {
+        'PROD': 'portfolio_report',
+        'PROD_TEST': 'portfolio_report',
+        'BACKTEST': 'portfolio_report',
     }
 }

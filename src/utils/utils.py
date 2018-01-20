@@ -88,3 +88,7 @@ def normalize_inf_rows_dicts(data):
 
 def calculate_base_currency_volume(volume, rate):
     return volume * rate
+
+
+def calculate_base_value(amt, rate):
+    return amt * rate
