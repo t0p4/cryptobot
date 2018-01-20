@@ -47,3 +47,12 @@ class MixedTradeError(TradeWarning, BotError):
         self.sell_base_currency = sell_base_currency
         self.market_currency = market_currency
     pass
+
+
+class MissingTickError(BotError):
+    """Raise when in BACKTESTING mode but fixture data is missing a tick"""
+    def __init__(self, missing_tick):
+        msg = 'missing tick ' + str(missing_tick)
+        super(MissingTickError, self).__init__(msg)
+        self.missing_tick = missing_tick
+    pass

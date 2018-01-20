@@ -22,13 +22,9 @@ class Plotter:
         else:
             return self.plots
 
-    def plot_market(self, mkt_name, mkt_data, trades, strats):
+    def plot_market(self, mkt_name, mkt_data, trades, strats, save_plot=False, show_plot=True):
         time_series = mkt_data[:]['saved_timestamp']
         price_series = mkt_data[:]['last']
-        buy_times = trades[trades['order_type'] == 'buy'][:]['timestamp']
-        sell_times = trades[trades['order_type'] == 'sell'][:]['timestamp']
-        buys = trades[trades['order_type'] == 'buy'][:]['rate']
-        sells = trades[trades['order_type'] == 'sell'][:]['rate']
 
         self.num_non_overlayed_indicators = 0
         for strat in strats:
@@ -40,10 +36,16 @@ class Plotter:
         self.get_plot(0).set_title(mkt_name)
         self.get_plot(0).set_xlabel('Time')
         self.get_plot(0).set_ylabel('Rate')
-        self.get_plot(0).axes.axes.xaxis.major.formatter = self.date_formatter
-        self.get_plot(0).plot_date(buy_times, buys, color='green', marker='^')
-        self.get_plot(0).plot_date(sell_times, sells, color='red', marker='v')
         self.get_plot(0).plot(time_series, price_series)
+        self.get_plot(0).axes.xaxis.major.formatter = self.date_formatter
+
+        if not trades.empty:
+            buy_times = trades[trades['order_type'] == 'buy'][:]['timestamp']
+            sell_times = trades[trades['order_type'] == 'sell'][:]['timestamp']
+            buys = trades[trades['order_type'] == 'buy'][:]['rate']
+            sells = trades[trades['order_type'] == 'sell'][:]['rate']
+            self.get_plot(0).plot_date(buy_times, buys, color='green', marker='^')
+            self.get_plot(0).plot_date(sell_times, sells, color='red', marker='v')
 
         # self.plot_bb(mkt_data, time_series, plots[0])
         # self.plot_stochastic_rsi(mkt_data, time_series, plots[1])
@@ -55,7 +57,15 @@ class Plotter:
                 non_overlayed_indicator_idx += 1
                 subplot += non_overlayed_indicator_idx
             self.strat_plotters[strat.name](mkt_data, time_series, self.get_plot(subplot))
-        pylab.show()
+
+        if show_plot:
+            pylab.show()
+        if save_plot:
+            file_path = 'src/plots/'
+            file_ext = '.png'
+            fig.savefig(file_path + mkt_name + file_ext)
+            plot_file_meta_data = {'file_path': file_path, 'file_name': mkt_name, 'file_ext': file_ext}
+            return plot_file_meta_data
 
     def plot_stochastic_rsi(self, mkt_data, time_series, subplot):
         subplot.set_xlabel('Time')
@@ -87,7 +97,7 @@ class Plotter:
         subplot.axes.axes.xaxis.major.formatter = self.date_formatter
         pvo = mkt_data[:]['PVO']
         pvo_ema = mkt_data[:]['PVO_EMA']
-        volume = mkt_data[:]['volume']
+        # volume = mkt_data[:]['volume']
         subplot.plot(time_series, pvo)
         subplot.plot(time_series, pvo_ema)
         # subplot.bar(time_series, volume)

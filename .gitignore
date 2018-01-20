@@ -1,3 +1,4 @@
 .idea/*
 secrets.py
 tests/__pycache__/*.*
+src/plots

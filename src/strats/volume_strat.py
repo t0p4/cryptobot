@@ -26,7 +26,7 @@ class VolumeStrat(BaseStrategy):
                 buy = pvo_up and pvo_down_1
                 sell = not pvo_up and not pvo_down_1
 
-                self.set_positions(buy, sell, mkt_name)
+                self._set_positions(buy, sell, mkt_name)
         else:
             mkt_data['SHORT_VOL_EMA'] = mkt_data[self.stat_key].rolling(window=self.short_vol_ema_window,
                                                                         center=False).mean()

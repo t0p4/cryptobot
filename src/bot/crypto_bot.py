@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from src.db.psql import PostgresConnection
 from src.utils.utils import is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index, calculate_base_currency_volume
 from src.utils.logger import Logger
-from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsError, MixedTradeError
+from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsError, MixedTradeError, MissingTickError
 from src.utils.reporter import Reporter
 from src.utils.plotter import Plotter
 
@@ -21,8 +21,8 @@ MAX_CURRENCY_PER_BUY = {
 log = Logger(__name__)
 
 MAJOR_TICK_SIZE = int(os.getenv('MAJOR_TICK_SIZE', 5))
-EXECUTE_TRADES = False
-BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
+EXECUTE_TRADES = os.getenv('EXECUTE_TRADES', 'FALSE') == 'TRUE'
+BACKTESTING = os.getenv('BACKTESTING', 'FALSE') == 'TRUE'
 ORDER_BOOK_DEPTH = 20
 REQUIRE_STRAT_CONSENSUS = os.getenv('REQUIRE_STRAT_CONSENSUS', 'FALSE') == 'TRUE'
 SEND_REPORTS = os.getenv('SEND_REPORTS', 'FALSE') == 'TRUE'
@@ -65,7 +65,7 @@ class CryptoBot:
             return dict((m, True) for m in env_tradeable_markets.split(','))
 
     def init_markets(self):
-        if BACKTESTING == 'TRUE':
+        if BACKTESTING:
             self.btrx.init_tradeable_markets(self.tradeable_markets)
         if os.getenv('COLLECT_FIXTURES', 'FALSE') != 'TRUE':
             self.currencies = self.get_currencies()
@@ -83,7 +83,7 @@ class CryptoBot:
         self.active_currencies = dict((m, True) for m in self.currencies[self.currencies['cb_active']]['currency'].values)
 
     def run(self):
-        if BACKTESTING == 'TRUE':
+        if BACKTESTING:
             self.run_test()
         else:
             self.run_prod()
@@ -131,7 +131,7 @@ class CryptoBot:
             if is_valid_market(mkt_name, self.base_currencies) and mkt_name in self.summary_tickers:
                 self.summary_tickers[mkt_name] = self.summary_tickers[mkt_name].append(summary, ignore_index=True)
         end = datetime.datetime.now()
-        log.info('MINOR TICK STEP runtime :: ' + str(end - start))
+        log.info('MINOR TICK STEP ' + str(self.tick) + ' runtime :: ' + str(end - start))
 
     def major_tick_step(self):
         start = datetime.datetime.now()
@@ -150,8 +150,9 @@ class CryptoBot:
         for mkt_name, mkt_data in self.summary_tickers.iteritems():
             # tail = mkt_data.tail(MAJOR_TICK_SIZE).reset_index(drop=True)
             # mkt_data = mkt_data.drop(mkt_data.index[-MAJOR_TICK_SIZE:])
-            agg_funcs = {'bid': ['last'], 'last': ['last'], 'ask': ['last'], 'marketname': ['last'],
-                    'saved_timestamp': ['last'], 'volume': ['sum']}
+            agg_funcs = {'bid': ['last'], 'last': ['last'], 'ask': ['last'], 'marketname': ['last'], 'volume': ['sum']}
+            if BACKTESTING:
+                agg_funcs['saved_timestamp'] = ['last']
             mkt_data = mkt_data.groupby(mkt_data.index / MAJOR_TICK_SIZE).agg(agg_funcs)
             mkt_data.columns = mkt_data.columns.droplevel(1)
             self.compressed_summary_tickers[mkt_name] = self.compressed_summary_tickers[mkt_name].append(mkt_data, ignore_index=True)
@@ -179,7 +180,7 @@ class CryptoBot:
         return (current_tick - self.api_tick) < self.rate_limit
 
     def rate_limiter_limit(self):
-        if BACKTESTING != 'TRUE':
+        if not BACKTESTING:
             current_tick = datetime.datetime.now()
             if self.rate_limiter_check():
                 sleep_for = self.rate_limit - (current_tick - self.api_tick)
@@ -204,7 +205,12 @@ class CryptoBot:
 
     def get_market_summaries(self):
         log.debug('{BOT} == GET market summaries ==')
-        return self.btrx.getmarketsummaries()
+        try:
+            market_summaries = self.btrx.getmarketsummaries()
+            return market_summaries
+        except MissingTickError:
+            self.increment_minor_tick()
+            return self.get_market_summaries()
 
     def get_market_history(self, market):
         log.debug('{BOT} == GET market history ==')
@@ -311,7 +317,7 @@ class CryptoBot:
 
     def trade_success(self, order_type, market, quantity, rate, uuid):
         timestamp = datetime.datetime.now()
-        if os.getenv('BACKTESTING', 'FALSE') == 'TRUE':
+        if BACKTESTING:
             timestamp = self.btrx.current_timestamp
         trade_data = self.psql.save_trade(order_type, market, quantity, rate, uuid, timestamp)
         if market in self.completed_trades:
@@ -524,7 +530,7 @@ class CryptoBot:
             self.plotter.plot_market(market, self.compressed_summary_tickers[market], trades, self.strats)
 
     def generate_report(self):
-        if SEND_REPORTS:
+        if SEND_REPORTS and self.major_tick >= 50:
             self.reporter.generate_report(self.strats, self.markets, self.compressed_summary_tickers)
 
     def check_volume_threshold(self, mkt_data, mkt_name):

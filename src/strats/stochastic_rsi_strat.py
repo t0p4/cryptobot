@@ -28,7 +28,7 @@ class StochasticRSIStrat(BaseStrategy):
                     tail['STOCH_RSI'].values[0] > tail['STOCH_RSI_SMA'].values[0]) and (
                     tail['STOCH_RSI'].values[0] > .8)
 
-                self.set_positions(buy, sell, mkt_name)
+                self._set_positions(buy, sell, mkt_name)
         return mkt_data
 
     def calc_stochastic_rsi(self, df):

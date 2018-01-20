@@ -18,7 +18,7 @@ class WilliamsPctStrat(BaseStrategy):
             buy = tail['W_PCT'].values[0] >= -20
             sell = tail['W_PCT'].values[0] <= -80
 
-            self.set_positions(buy, sell, mkt_name)
+            self._set_positions(buy, sell, mkt_name)
         return mkt_data
 
     def calculate_williams_pct(self, data):

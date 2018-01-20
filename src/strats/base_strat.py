@@ -12,7 +12,6 @@ class BaseStrategy:
         self.window = options['window']
         self.buy_positions = {}
         self.sell_positions = {}
-        self.BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
 
     def init_market_positions(self, markets):
         self.buy_positions = {mkt_name: False for mkt_name in markets['marketname']}
@@ -27,19 +26,19 @@ class BaseStrategy:
     def should_sell(self, mkt_name):
         return self.sell_positions[mkt_name]
 
+    def get_mkt_report(self, mkt_name, mkt_data):
+        return self._get_mkt_report(mkt_name, mkt_data)
+
     def _get_mkt_report(self, mkt_name, mkt_data):
         mkt_report = {'strat_name': self.name, 'window': self.window}
-        mkt_report['recent_data'] = str(mkt_data.tail(self.window * 10))
+        mkt_report['recent_data'] = mkt_data.tail(self.window * 10)
         if self.buy_positions[mkt_name]:
             mkt_report['action'] = 'BUY'
         elif self.sell_positions[mkt_name]:
             mkt_report['action'] = 'SELL'
         return mkt_report
 
-    def get_mkt_report(self, mkt_name, mkt_data):
-        return self._get_mkt_report(mkt_name, mkt_data)
-
-    def set_positions(self, buy, sell, mkt_name):
+    def _set_positions(self, buy, sell, mkt_name):
         self.buy_positions[mkt_name] = buy
         self.sell_positions[mkt_name] = sell
         if buy:
