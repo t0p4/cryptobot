@@ -56,3 +56,12 @@ class MissingTickError(BotError):
         super(MissingTickError, self).__init__(msg)
         self.missing_tick = missing_tick
     pass
+
+
+class BadMathError(BotError):
+    """Raise when something goes wrong because of bad math (ex. coin holdings go below 0 for a give coin)"""
+    def __init__(self, func):
+        msg = 'BAD MATH! func: ' + func
+        super(BadMathError, self).__init__(msg)
+        self.func = func
+    pass

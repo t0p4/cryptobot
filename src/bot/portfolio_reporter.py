@@ -1,17 +1,18 @@
 import pandas as pd
-from exchange_adaptor import ExchangeAdaptor
-from src.utils.utils import calculate_base_value
+from src.bot.exchange_adaptor import ExchangeAdaptor
+from src.utils.utils import calculate_base_value, get_past_date
+from src.utils.conversion_utils import calculate_cost_average, get_usd_rate
+from src.exceptions import BotError, BadMathError
 
 
 class PortfolioReporter(ExchangeAdaptor):
     def __init__(self, pg, exchanges):
         ExchangeAdaptor.__init__(self)
         self.pg = pg
-        self.exchanges = exchanges
         self.p_report = {}
-        self.prev_daily = self.get_prev_daily()
-        self.prev_weekly = self.get_prev_weekly()
-        self.initial_investments = self.get_initial_investments()
+        self.prev_daily_report, self.prev_daily_assets = self.get_prev_daily()
+        self.prev_weekly_report, self.prev_weekly_assets = self.get_prev_weekly()
+        # self.initial_investments = self.get_initial_investments()
         """
             {'LTC': <DataFrame>, 'XLM': <DataFrame>, ...}
         """
@@ -24,97 +25,162 @@ class PortfolioReporter(ExchangeAdaptor):
     def get_initial_investments(self):
         return self.pg.get_initial_investments()
 
-    def get_exchange_adaptor(self, exchange):
-        return self.exchange_adaptors[exchange]()
-
     def generate_p_report(self):
         self.update_and_aggregate_exchange_portfolios()
         self.calculate_percentage_holdings()
         self.save_p_report()
 
-    def get_btc_usd_rate(self):
-        """TODO: pull from gdax & gemini, return best rate and which exchange"""
-        btc_usd_rate = 11500
-        exchange = 'gemini'
-        return btc_usd_rate, exchange
-
-    def get_eth_usd_rate(self):
-        """TODO: pull from gdax & gemini, return best rate and which exchange"""
-        eth_usd_rate = 1000
-        exchange = 'gemini'
-        return eth_usd_rate, exchange
-
     def get_prev_daily(self):
-        return self.pg.get_prev_daily()
+        return self.pg.get_full_report(get_past_date(1))
 
     def get_prev_weekly(self):
-        return self.pg.get_prev_weekly()
+        return self.pg.get_full_report(get_past_date(7))
 
     def update_and_aggregate_exchange_portfolios(self):
-        for exchange in self.exchanges:
-            current_exchange_balances = self.get_exchange_balances(exchange)
-            for cur_idx, cur_asset_data in current_exchange_balances.iterrows():
-                coin_idx = self.aggregate_portfolio[self.aggregate_portfolio['currency'] == cur_asset_data['currency']].index
-                if coin_idx:
-                    cur_amt = self.aggregate_portfolio.loc[coin_idx, 'total']
-                    self.aggregate_portfolio.set_value(coin_idx, 'total', cur_amt + cur_asset_data['balance'])
-                else:
-                    self.aggregate_portfolio.append(cur_asset_data)
-
-        self.p_report['total_coins'] = self.aggregate_portfolio.length
-        if self.prev_daily:
-            self.p_report['total_coins_change'] = self.p_report['total_coins'] - self.prev_daily['total_coins']
+        self.aggregate_portfolio = self.get_exchange_balances('coinigy')
+        self.p_report['total_coins'] = len(self.aggregate_portfolio)
 
         self.calculate_portfolio_totals()
 
     def calculate_portfolio_totals(self):
-        btc_usd_rate, btc_usd_rate_exchange = self.get_btc_usd_rate()
-        eth_usd_rate, eth_usd_rate_exchange = self.get_eth_usd_rate()
+        btc_usd_rate = self.get_btc_usd_rate()
+        # eth_usd_rate = self.get_eth_usd_rate()
 
-        est_btc = self.aggregate_portfolio['est_btc'].sum()
-        est_eth = self.aggregate_portfolio['est_eth'].sum()
+        est_btc = self.aggregate_portfolio['btc_balance'].sum()
+        # est_eth = self.aggregate_portfolio['est_eth'].sum()
+
         est_usd_btc = calculate_base_value(est_btc, btc_usd_rate)
-        est_usd_eth = calculate_base_value(est_eth, eth_usd_rate)
+        # est_usd_eth = calculate_base_value(est_eth, eth_usd_rate)
 
-        self.p_report['est_eth'] = est_eth
         self.p_report['est_btc'] = est_btc
-        self.p_report['est_usd'] = max(est_usd_btc, est_usd_eth)
+        # self.p_report['est_eth'] = est_eth
+        self.p_report['est_usd'] = max(est_usd_btc, 0)
 
-        if self.prev_daily:
-            self.calculate_daily_changes()
-        if self.prev_weekly:
-            self.calculate_weekly_changes()
+        if self.prev_daily_report is not None and not self.prev_daily_report.empty:
+            self.p_report = self.calculate_daily_changes(self.p_report, self.prev_daily_report)
+        if self.prev_weekly_report is not None and not self.prev_weekly_report.empty:
+            self.p_report = self.calculate_weekly_changes(self.p_report, self.prev_weekly_report)
         self.calculate_rois()
 
-    def calculate_daily_changes(self):
-        self.p_report['est_btc_change_daily'] = self.p_report['est_btc'] - self.prev_daily['est_btc']
-        self.p_report['est_btc_pct_change_daily'] = self.p_report['est_btc_change_daily'] / self.prev_daily['est_btc']
+    def get_timed_usd_market_rates(self, timestamp):
+        """
+            queries gemini for the btc_usd and eth_usd rates at a given time
+        :param timestamp: iso timestamp
+        :return: {"ETH": 1050, "BTC": 11070}
+        """
+        return {}
 
-        self.p_report['est_eth_change_daily'] = self.p_report['est_eth'] - self.prev_daily['est_eth']
-        self.p_report['est_eth_pct_change_daily'] = self.p_report['est_eth_change_daily'] / self.prev_daily['est_eth']
+    def get_timed_coin_exchange_rates(self, timestamp, exchange, coin):
+        """
+            gets the coin rates on a given exchange at the specified timestamp
+        :param timestamp: iso timestamp
+        :param coin: LTC
+        :return: {"ETH": 0.048, "BTC": 0.0094}
+        """
+        return {}
 
-        self.p_report['est_usd_change_daily'] = self.p_report['est_usd'] - self.prev_daily['est_usd']
-        self.p_report['est_usd_pct_change_daily'] = self.p_report['est_usd_change_daily'] / self.prev_daily['est_usd']
+    def run_full_trade_analysis(self):
+        all_trade_data = self.pg.get_all_trade_data()
+        # TODO: group dataframe by market_currency, loop thru groups and analyze_trades(currency_group)
+        # TODO: update trade data in database
 
-    def calculate_weekly_changes(self):
-        self.p_report['est_btc_change_weekly'] = self.p_report['est_btc'] - self.prev_weekly['est_btc']
-        self.p_report['est_btc_pct_change_weekly'] = self.p_report['est_btc_change_weekly'] / self.prev_weekly['est_btc']
+    def analyze_trades(self, trade_data):
+        """
+            run through trade data to calculate cost_averages
+        :param asset_data: dict
+        :param trade_data:  dataframe
+        :return:
+        """
+        total_coins = 0
+        cost_avg_btc = 0
+        cost_avg_eth = 0
+        cost_avg_usd = 0
+        rate_btc = 0
+        rate_eth = 0
 
-        self.p_report['est_eth_change_weekly'] = self.p_report['est_eth'] - self.prev_weekly['est_eth']
-        self.p_report['est_eth_pct_change_weekly'] = self.p_report['est_eth_change_weekly'] / self.prev_weekly['est_eth']
+        for idx, trade_row in trade_data.iterrows():
+            if trade_row['analyzed']:
+                cost_avg_btc = trade_row['cost_avg_btc']
+                cost_avg_eth = trade_row['cost_avg_eth']
+                cost_avg_usd = trade_row['cost_avg_usd']
+                if trade_row['trade_direction'] == 'buy':
+                    total_coins += trade_row['quantity']
+                elif trade_row['trade_direction'] == 'sell':
+                    total_coins -= trade_row['quantity']
+                    if total_coins < 0:
+                        raise BadMathError('calculate_cost_averages')
+                continue
 
-        self.p_report['est_usd_change_weekly'] = self.p_report['est_usd'] - self.prev_weekly['est_usd']
-        self.p_report['est_usd_pct_change_weekly'] = self.p_report['est_usd_change_weekly'] / self.prev_weekly['est_usd']
+            else:
+                num_new_coins = trade_row['quantity']
+                # calculate cost averages
+                if trade_row['trade_direction'] == 'buy':
+                    cost_avg_btc = calculate_cost_average(total_coins, cost_avg_btc, num_new_coins, trade_row['rate_btc'])
+                    cost_avg_eth = calculate_cost_average(total_coins, cost_avg_eth, num_new_coins, trade_row['rate_eth'])
+                    cost_avg_usd = calculate_cost_average(total_coins, cost_avg_usd, num_new_coins, trade_row['rate_usd'])
+                    total_coins += num_new_coins
+                elif trade_row['trade_direction'] == 'sell':
+                    total_coins -= num_new_coins
+                else:
+                    raise BotError('trade_direction should be either "buy" or "sell"')
 
-    def calculate_rois(self):
-        self.p_report['current_roi_btc'] = self.p_report['est_btc'] - self.initial_investments['est_btc']
-        self.p_report['current_roi_pct_btc'] = self.p_report['current_roi_btc'] / self.initial_investments['est_btc']
+                # calculate rates, needs to pull data from exchanges
+                # TODO: refactor to pull all data before this function?
+                base_currency_usd_rates = self.get_timed_usd_market_rates(trade_row['trade_time'])
+                coin_exchange_rates = self.get_timed_coin_exchange_rates(trade_row['trade_time'], trade_row['exchange_id'], trade_row['market_currency'])
+                if trade_row['base_currency'] == 'btc':
+                    rate_btc = trade_row['rate']
+                    rate_eth = coin_exchange_rates['eth']
+                if trade_row['base_currency'] == 'eth':
+                    rate_btc = coin_exchange_rates['btc']
+                    rate_eth = trade_row['rate']
+                rate_usd, rate_base_currency = get_usd_rate({'eth': rate_eth, 'btc': rate_btc}, base_currency_usd_rates)
 
-        self.p_report['current_roi_eth'] = self.p_report['est_eth'] - self.initial_investments['est_eth']
-        self.p_report['current_roi_pct_eth'] = self.p_report['current_roi_eth'] / self.initial_investments['est_eth']
+                # set all calculated values
+                trade_data.set_value(idx, 'cost_avg_btc', cost_avg_btc)
+                trade_data.set_value(idx, 'cost_avg_eth', cost_avg_eth)
+                trade_data.set_value(idx, 'cost_avg_usd', cost_avg_usd)
+                trade_data.set_value(idx, 'rate_btc', rate_btc)
+                trade_data.set_value(idx, 'rate_eth', rate_eth)
+                trade_data.set_value(idx, 'rate_usd', rate_usd)
+                trade_data.set_value(idx, 'analyzed', True)
 
-        self.p_report['current_roi_usd'] = self.p_report['est_usd'] - self.initial_investments['est_usd']
-        self.p_report['current_roi_pct_usd'] = self.p_report['current_roi_usd'] / self.initial_investments['est_usd']
+        return trade_data
+
+    def calculate_daily_changes(self, asset_data, asset_data_t_minus_1):
+        return self.calculate_time_changes(asset_data, asset_data_t_minus_1)
+
+    def calculate_weekly_changes(self, asset_data, asset_data_t_minus_7):
+        return self.calculate_time_changes(asset_data, asset_data_t_minus_7)
+
+    def calculate_portfolio_rois(self, portfolio_data, initial_investments):
+        return self.calculate_time_changes(portfolio_data, initial_investments)
+
+    @staticmethod
+    def calculate_time_changes(data, data_t_minus):
+        data['est_btc_change_daily'] = data['est_btc'] - data_t_minus['est_btc']
+        data['est_btc_pct_change_daily'] = data['est_btc_change_daily'] / data_t_minus['est_btc']
+
+        data['est_eth_change_daily'] = data['est_eth'] - data_t_minus['est_eth']
+        data['est_eth_pct_change_daily'] = data['est_eth_change_daily'] / data_t_minus['est_eth']
+
+        data['est_usd_change_daily'] = data['est_usd'] - data_t_minus['est_usd']
+        data['est_usd_pct_change_daily'] = data['est_usd_change_daily'] / data_t_minus['est_usd']
+
+        return data
+
+    @staticmethod
+    def calculate_asset_rois(data):
+        data['current_roi_btc'] = data['est_btc'] - (data['total_holdings'] * data['cost_avg_btc'])
+        data['current_roi_pct_btc'] = data['current_roi_btc'] / data['est_btc']
+
+        data['current_roi_eth'] = data['est_eth'] - (data['total_holdings'] * data['cost_avg_eth'])
+        data['current_roi_pct_eth'] = data['current_roi_eth'] / data['est_eth']
+
+        data['current_roi_usd'] = data['est_usd'] - (data['total_holdings'] * data['cost_avg_usd'])
+        data['current_roi_pct_usd'] = data['current_roi_usd'] / data['est_usd']
+
+        return data
 
     def calculate_percentage_holdings(self):
         for idx, row in self.aggregate_portfolio.iterrows():
@@ -125,4 +191,5 @@ class PortfolioReporter(ExchangeAdaptor):
             tickers = self.get_all_tickers(exchange)
 
     def save_p_report(self):
-        self.pg.save_p_report(self.aggregate_portfolio)
+        self.pg.save_p_report(self.p_report)
+

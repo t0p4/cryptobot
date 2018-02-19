@@ -1,5 +1,5 @@
-from backtest_exchange import BacktestExchange
-from bittrex import Bittrex
+from src.exchange.backtest_exchange import BacktestExchange
+from src.exchange.bittrex import Bittrex
 import os
 
 

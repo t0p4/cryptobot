@@ -4,6 +4,8 @@ from src.strats.stochastic_rsi_strat import StochasticRSIStrat
 from src.strats.williams_pct_strat import WilliamsPctStrat
 from src.strats.volume_strat import VolumeStrat
 from src.exchange.exchange_factory import ExchangeFactory
+from src.bot.portfolio_reporter import PortfolioReporter
+from src.db.psql import PostgresConnection
 import datetime
 import os
 
@@ -61,7 +63,7 @@ stoch_rsi_strat = StochasticRSIStrat(stoch_rsi_options)
 w_pct_strat = WilliamsPctStrat(w_pct_options)
 vol_strat = VolumeStrat(vol_options)
 
-bot = CryptoBot([bb_strat, vol_strat], btrx)
+# bot = CryptoBot([bb_strat, vol_strat], btrx)
 
 # bot.get_balance('ETH')
 # bot.get_balances()
@@ -78,6 +80,11 @@ bot = CryptoBot([bb_strat, vol_strat], btrx)
 # bot.collect_summaries()
 
 # bot.get_historical_data()
-bot.run()
+# bot.run()
 # bot.calculate_num_coins('buy', 'BTC-ETH', 1)
 # bot.send_report('This is a test', 'TEST REPORT')
+
+
+pg = PostgresConnection()
+rep = PortfolioReporter(pg, ['coinigy'])
+rep.update_and_aggregate_exchange_portfolios()

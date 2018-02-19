@@ -3,3 +3,6 @@ pandas
 beautifulsoup4
 html5lib
 pytest>=1.4.33
+requests[security]
+urllib
+dateparser

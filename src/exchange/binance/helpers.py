@@ -1,4 +1,4 @@
-import dateparser
+from dateparser import parse
 import pytz
 
 from datetime import datetime
@@ -9,7 +9,7 @@ def date_to_milliseconds(date_str):
 
     If using offset strings add "UTC" to date string e.g. "now UTC", "11 hours ago UTC"
 
-    See dateparse docs for formats http://dateparser.readthedocs.io/en/latest/
+    See dateparse docs for formats
 
     :param date_str: date in readable format, i.e. "January 01, 2018", "11 hours ago UTC", "now UTC"
     :type date_str: str
@@ -17,7 +17,7 @@ def date_to_milliseconds(date_str):
     # get epoch value in UTC
     epoch = datetime.utcfromtimestamp(0).replace(tzinfo=pytz.utc)
     # parse our date string
-    d = dateparser.parse(date_str)
+    d = parse(date_str)
     # if the date is not timezone aware apply UTC timezone
     if d.tzinfo is None or d.tzinfo.utcoffset(d) is None:
         d = d.replace(tzinfo=pytz.utc)

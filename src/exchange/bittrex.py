@@ -4,7 +4,7 @@ import hmac
 import json
 import time
 import urllib
-import urllib2
+from urllib.request import urlopen, Request
 import pandas
 import os
 import pandas as pd
@@ -49,8 +49,8 @@ class Bittrex(object):
         else:
             headers = {}
         
-        req = urllib2.Request(url, headers=headers)
-        response = json.loads(urllib2.urlopen(req).read())
+        req = Request(url, headers=headers)
+        response = json.loads(urlopen(req).read())
         
         if response["result"]:
             return response["result"]

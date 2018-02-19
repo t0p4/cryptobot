@@ -184,7 +184,7 @@ class PostgresConnection:
             "columns": AsIs(columns),
             "values": values
         }
-        query = """ INSERT INTO """ + self.table_name('save_portfolio_report') + """ (%(columns)s) VALUES %(values)s ; """
+        query = """ INSERT INTO """ + self.table_name('portfolio_reports') + """ (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
     def save_portfolio_assets(self, portfolio_assets):
@@ -254,7 +254,7 @@ class PostgresConnection:
             "columns": AsIs(columns),
             "values": values
         }
-        query = """ INSERT INTO """ + self.table_name('save_assets') + """ (%(columns)s) VALUES %(values)s ; """
+        query = """ INSERT INTO """ + self.table_name('portfolio_assets') + """ (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
     def get_historical_data(self, start_date, end_date):
@@ -302,8 +302,9 @@ class PostgresConnection:
         params = {
             'base_currencies': tuple(base_currencies)
         }
-        query = """ SELECT * FROM fixture_markets
-        WHERE basecurrency IN ('ETH', 'BTC');
+        query = """
+            SELECT * FROM fixture_markets
+            WHERE basecurrency IN ('ETH', 'BTC');
         """
         return self._fetch_query(query, params)
 
@@ -311,4 +312,52 @@ class PostgresConnection:
         log.debug('{PSQL} == GET fixture markets ==')
         params = {}
         query = """ SELECT * FROM fixture_currencies ; """
+        return self._fetch_query(query, params)
+
+    def get_all_trade_data(self):
+        log.debug('{PSQL} == GET trade data ==')
+        params = {}
+        query = """ SELECT * FROM """ + self.table_name('trade_data')
+        return self._fetch_query(query, params)
+
+    def get_most_recent_trades(self):
+        log.debug('{PSQL} == GET most recent trade data ==')
+        params = {}
+        query = """
+            SELECT * FROM """ + self.table_name('trade_data') + """
+            WHERE trade_time == MAX(trade_time) GROUP BY market_currency
+            ;
+        """
+        return self._fetch_query(query, params)
+
+    def get_full_report(self, report_date):
+        report_overview = self.get_report_overview(report_date)
+        if report_overview.empty:
+            return None, None
+        else:
+            report_assets = self.get_report_assets(report_overview.loc[0, 'report_id'])
+            return report_overview, report_assets
+
+    def get_report_overview(self, report_date):
+        log.debug('{PSQL} == GET most recent portfolio report data ==')
+        params = {
+            'report_date': report_date
+        }
+        query = """
+            SELECT * FROM """ + self.table_name('portfolio_reports') + """
+            WHERE report_date = %(report_date)s
+            ;
+        """
+        return self._fetch_query(query, params)
+
+    def get_report_assets(self, report_id):
+        log.debug('{PSQL} == GET most recent portfolio report asset data ==')
+        params = {
+            'report_id': report_id
+        }
+        query = """
+            SELECT * FROM """ + self.table_name('portfolio_assets') + """
+            WHERE report_id = %(report_id)s
+            ;
+        """
         return self._fetch_query(query, params)

@@ -1,5 +1,5 @@
 import pandas as pd
-from base_strat import BaseStrategy
+from src.strats.base_strat import BaseStrategy
 from src.utils.logger import Logger
 
 log = Logger(__name__)

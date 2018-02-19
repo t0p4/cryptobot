@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta
 from time import mktime
 
 import pandas as pd
@@ -16,7 +16,7 @@ def is_valid_market(mkt_name, currencies):
 
 
 def add_saved_timestamp(data, tick):
-    timestamp = datetime.datetime.utcnow().isoformat()
+    timestamp = datetime.utcnow().isoformat()
 
     def add_timestamp(series):
         series['saved_timestamp'] = timestamp
@@ -92,3 +92,7 @@ def calculate_base_currency_volume(volume, rate):
 
 def calculate_base_value(amt, rate):
     return amt * rate
+
+
+def get_past_date(minus_days):
+    return datetime.today() - timedelta(days=minus_days)

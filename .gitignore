@@ -2,3 +2,4 @@
 secrets.py
 tests/__pycache__/*.*
 src/plots
+cryptobot/
