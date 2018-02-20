@@ -8,7 +8,7 @@ import time
 from operator import itemgetter
 from .helpers import date_to_milliseconds, interval_to_milliseconds
 from .exceptions import BinanceAPIException, BinanceRequestException, BinanceWithdrawException
-
+import os
 
 class Client(object):
 
@@ -64,7 +64,7 @@ class Client(object):
     ORDER_RESP_TYPE_RESULT = 'RESULT'
     ORDER_RESP_TYPE_FULL = 'FULL'
 
-    def __init__(self, api_key, api_secret, requests_params=None):
+    def __init__(self, requests_params=None):
         """Binance API Client constructor
 
         :param api_key: Api Key
@@ -76,8 +76,8 @@ class Client(object):
 
         """
 
-        self.API_KEY = api_key
-        self.API_SECRET = api_secret
+        self.API_KEY = os.getenv('BINANCE_API_KEY', '')
+        self.API_SECRET = os.getenv('BINANCE_API_SECRET', '')
         self.session = self._init_session()
         self._requests_params = requests_params
 

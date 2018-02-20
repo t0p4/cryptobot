@@ -87,4 +87,5 @@ vol_strat = VolumeStrat(vol_options)
 
 pg = PostgresConnection()
 rep = PortfolioReporter(pg, ['coinigy'])
-rep.update_and_aggregate_exchange_portfolios()
+# rep.update_and_aggregate_exchange_portfolios()
+rep.pull_all_trade_data_from_exchanges()

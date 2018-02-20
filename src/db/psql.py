@@ -361,3 +361,51 @@ class PostgresConnection:
             ;
         """
         return self._fetch_query(query, params)
+
+    def save_historical_trade_data(self, trade_data):
+        log.debug('{PSQL} == SAVE historical_trade_data ==')
+        fmt_str = """(
+                    '{order_type}',
+                    '{base_currency}',
+                    '{market_currency}',
+                    {quantity},
+                    {rate},
+                    '{trade_id}',
+                    '{exchange_id}',
+                    {trade_time},
+                    {save_time},
+                    {rate_btc},
+                    {rate_eth},
+                    {rate_usd},
+                    '{trade_direction}',
+                    {cost_avg_btc},
+                    {cost_avg_eth},
+                    {cost_avg_usd},
+                    {analyzed}
+                )"""
+        columns = """
+                    order_type,
+                    base_currency,
+                    market_currency,
+                    quantity,
+                    rate,
+                    trade_id,
+                    exchange_id,
+                    trade_time,
+                    save_time,
+                    rate_btc,
+                    rate_eth,
+                    rate_usd,
+                    trade_direction,
+                    cost_avg_btc,
+                    cost_avg_eth,
+                    cost_avg_usd,
+                    analyzed
+                """
+        values = AsIs(','.join(fmt_str.format(**trade) for trade in trade_data))
+        params = {
+            "columns": AsIs(columns),
+            "values": values
+        }
+        query = """ INSERT INTO """ + self.table_name('save_currencies') + """ (%(columns)s) VALUES %(values)s ; """
+        self._exec_query(query, params)

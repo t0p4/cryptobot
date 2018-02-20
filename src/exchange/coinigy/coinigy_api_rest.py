@@ -77,7 +77,7 @@ class CoinigyREST:
                 if not dat.empty:
                     dat['base_ccy'] = d['primary_curr_code']
                     dat['counter_ccy'] = d['secondary_curr_code']
-                    
+
                 res[key] = dat
 
         return res
@@ -121,8 +121,9 @@ class CoinigyREST:
     def bids(self, exchange, market):
         return self.data(exchange=exchange, market=market, data_type='bids')['bids']
 
-    def orders(self, exchange, market):
-        return self.data(exchange=exchange, market=market, data_type='orders')
+    def orders(self):
+        return self.request('orders')
+        # return self.data(exchange=exchange, market=market, data_type='orders')
 
     def news_feed(self):
         dat = self.request('newsFeed')

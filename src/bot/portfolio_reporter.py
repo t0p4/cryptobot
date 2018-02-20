@@ -3,6 +3,7 @@ from src.bot.exchange_adaptor import ExchangeAdaptor
 from src.utils.utils import calculate_base_value, get_past_date
 from src.utils.conversion_utils import calculate_cost_average, get_usd_rate
 from src.exceptions import BotError, BadMathError
+from datetime import datetime
 
 
 class PortfolioReporter(ExchangeAdaptor):
@@ -62,14 +63,6 @@ class PortfolioReporter(ExchangeAdaptor):
             self.p_report = self.calculate_weekly_changes(self.p_report, self.prev_weekly_report)
         self.calculate_rois()
 
-    def get_timed_usd_market_rates(self, timestamp):
-        """
-            queries gemini for the btc_usd and eth_usd rates at a given time
-        :param timestamp: iso timestamp
-        :return: {"ETH": 1050, "BTC": 11070}
-        """
-        return {}
-
     def get_timed_coin_exchange_rates(self, timestamp, exchange, coin):
         """
             gets the coin rates on a given exchange at the specified timestamp
@@ -78,6 +71,14 @@ class PortfolioReporter(ExchangeAdaptor):
         :return: {"ETH": 0.048, "BTC": 0.0094}
         """
         return {}
+
+    def pull_all_trade_data_from_exchanges(self):
+        """
+            gets all historical trade data from exchanges and saves them to local db
+        :return: None
+        """
+        trade_data = self.get_historical_trade_data('binance')
+        self.pg.save_historical_trade_data(trade_data)
 
     def run_full_trade_analysis(self):
         all_trade_data = self.pg.get_all_trade_data()

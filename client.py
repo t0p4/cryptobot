@@ -9,7 +9,6 @@ from operator import itemgetter
 from .helpers import date_to_milliseconds, interval_to_milliseconds
 from .exceptions import BinanceAPIException, BinanceRequestException, BinanceWithdrawException
 
-
 class Client(object):
 
     API_URL = 'https://api.binance.com/api'
@@ -1388,7 +1387,7 @@ class Client(object):
                     return bal
         return None
 
-    def get_my_trades(self, **params):
+    def get_my_trades(self, base_currency, market_currency, **params):
         """Get trades for a specific symbol.
 
         https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md#account-trade-list-user_data

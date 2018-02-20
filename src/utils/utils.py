@@ -96,3 +96,11 @@ def calculate_base_value(amt, rate):
 
 def get_past_date(minus_days):
     return datetime.today() - timedelta(days=minus_days)
+
+
+def is_eth(coin):
+    return coin.lower() == 'eth'
+
+
+def is_btc(coin):
+    return coin.lower() == 'btc'
