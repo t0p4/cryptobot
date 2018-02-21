@@ -10,6 +10,7 @@ import time
 from src.exchange.gdax.public_client import PublicClient as GDaxPub
 from datetime import datetime
 from src.utils.logger import Logger
+from src.utils.rate_limiter import RateLimiter
 
 log = Logger(__name__)
 
@@ -23,6 +24,10 @@ class ExchangeAdaptor:
             'backtest': BacktestExchange,
             'gemini': Geminipy,
             'gdax_public': GDaxPub
+        }
+        self.rate_limiters = {
+            'binance': RateLimiter('binance'),
+            'gdax_public': RateLimiter('gdax_public')
         }
         self.exchange_pairs = {
             'binance': [],
@@ -61,6 +66,7 @@ class ExchangeAdaptor:
     def get_historical_usd_rate(self, start, end, interval=300, exchange='gdax_public', coin='BTC'):
         ex = self.exchange_adaptors[exchange]()
         pair = coin.upper() + '-USD'
+        self.rate_limiters[exchange].limit()
         usd_rate = ex.get_product_historic_rates(pair, start=start, end=end, granularity=interval)
         return usd_rate
 
@@ -87,9 +93,13 @@ class ExchangeAdaptor:
         start = datetime.fromtimestamp(timestamp/1000).isoformat()
         end = datetime.fromtimestamp(timestamp/1000 + 60).isoformat()
 
+        # need to index into each of these variables, lists of lists
+        # [0] gives the list of data requested, [4] is the 'close' price
         btc_usd = self.get_historical_usd_rate(start=start, end=end, coin='BTC')
         eth_usd = self.get_historical_usd_rate(start=start, end=end, coin='ETH')
-        return {'BTC': btc_usd, 'ETH': eth_usd}
+        print(repr(btc_usd))
+        print(repr(eth_usd))
+        return {'BTC': btc_usd[0][4], 'ETH': eth_usd[0][4]}
 
     def get_exchange_pairs(self, exchange):
         ex = self.exchange_adaptors[exchange]()
@@ -116,10 +126,10 @@ class ExchangeAdaptor:
             rate_eth = None
             rate_usd = None
             if is_btc(pair_meta_data['quoteAsset']):
-                rate_btc = trade['price']
+                rate_btc = float(trade['price'])
                 rate_usd = get_usd_rate({'BTC': rate_btc}, self.get_timed_usd_market_rates(trade['time']))
             elif is_eth(pair_meta_data['quoteAsset']):
-                rate_eth = trade['price']
+                rate_eth = float(trade['price'])
                 rate_usd = get_usd_rate({'ETH': rate_eth}, self.get_timed_usd_market_rates(trade['time']))
 
             normalized_trade_data.append({

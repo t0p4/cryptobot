@@ -35,7 +35,7 @@ def get_usd_rate(coin_rates, usd_rates):
     current_max = 0
     current_max_coin = ''
 
-    for coin, rate in coin_rates:
+    for coin, rate in coin_rates.items():
         current_val = rate * usd_rates[coin]
         if current_val > current_max:
             current_max = current_val
