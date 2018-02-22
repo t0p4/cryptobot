@@ -53,6 +53,25 @@ class ExchangeAdaptor:
         else:
             return {}
 
+    @staticmethod
+    def format_exchange_pair(mkt_coin, base_coin, exchange):
+        if exchange == 'binance':
+            return mkt_coin.upper() + base_coin.upper()
+        elif exchange == 'gdax_public':
+            return mkt_coin.upper() + '-' + base_coin.upper()
+
+    @staticmethod
+    def format_exchange_start_and_end_times(timestamp, minutes, exchange):
+        divisor = 1
+        if exchange == 'binance':
+            divisor = 1
+        elif exchange == 'gdax_public':
+            divisor = 1000
+
+        start = datetime.fromtimestamp(timestamp / divisor).isoformat()
+        end = datetime.fromtimestamp(timestamp / divisor + (minutes * 60000 / divisor)).isoformat()
+        return start, end
+
     def get_btc_usd_rate(self):
         ex = self.exchange_adaptors['gemini']()
         ticker = ex.pubticker('btcusd')
@@ -63,12 +82,23 @@ class ExchangeAdaptor:
         ticker = ex.pubticker('ethusd')
         return float(ticker['last'])
 
-    def get_historical_usd_rate(self, start, end, interval=300, exchange='gdax_public', coin='BTC'):
+    def get_historical_usd_rate(self, coin='btc', timestamp=datetime.now(), interval=300, exchange='gdax_public'):
+        start, end = self.format_exchange_start_and_end_times(timestamp, 1, exchange)
         ex = self.exchange_adaptors[exchange]()
-        pair = coin.upper() + '-USD'
+        pair = self.format_exchange_pair(coin, 'usd', exchange)
         self.rate_limiters[exchange].limit()
-        usd_rate = ex.get_product_historic_rates(pair, start=start, end=end, granularity=interval)
+        # TODO extend for other exchanges, this function is for gdax specificially
+        usd_rate = ex.get_product_historic_rate_close(pair, start=start, end=end, granularity=interval)
         return usd_rate
+
+    def get_historical_exchange_rate(self, mkt_coin, timestamp=datetime.now(), base_coin='btc', interval=300, exchange='binance'):
+        start, end = self.format_exchange_start_and_end_times(timestamp, 60, exchange)
+        ex = self.exchange_adaptors[exchange]()
+        pair = self.format_exchange_pair(mkt_coin, base_coin, exchange)
+        self.rate_limiters[exchange].limit()
+        # TODO extend for other exchanges, this function is for binance specificially
+        pair_rate = ex.get_klines(symbol=pair, limit=1, interval='1m', startTime=start, endTime=end)
+        return pair_rate
 
     def get_historical_trade_data(self, exchange):
         # binance
@@ -84,22 +114,33 @@ class ExchangeAdaptor:
         # order_data = ex.orders()
         return orders
 
-    def get_timed_usd_market_rates(self, timestamp):
+    def get_historical_usd_vs_btc_eth_rates(self, timestamp):
         """
             queries gemini for the btc_usd and eth_usd rates at a given time
         :param timestamp: iso timestamp
         :return: {"ETH": 1050, "BTC": 11070}
         """
-        start = datetime.fromtimestamp(timestamp/1000).isoformat()
-        end = datetime.fromtimestamp(timestamp/1000 + 60).isoformat()
-
         # need to index into each of these variables, lists of lists
         # [0] gives the list of data requested, [4] is the 'close' price
-        btc_usd = self.get_historical_usd_rate(start=start, end=end, coin='BTC')
-        eth_usd = self.get_historical_usd_rate(start=start, end=end, coin='ETH')
-        print(repr(btc_usd))
-        print(repr(eth_usd))
-        return {'BTC': btc_usd[0][4], 'ETH': eth_usd[0][4]}
+        btc_usd = self.get_historical_usd_rate(timestamp=timestamp, coin='BTC')
+        eth_usd = self.get_historical_usd_rate(timestamp=timestamp, coin='ETH')
+        usd_market_rates = {'BTC': btc_usd, 'ETH': eth_usd}
+        log.info("get_historical_usd_vs_btc_eth_rates :: " + repr(usd_market_rates))
+        return usd_market_rates
+
+    def get_historical_coin_vs_btc_eth_rates(self, timestamp, exchange, coin):
+        """
+            gets the coin rates on a given exchange at the specified timestamp
+        :param timestamp: iso timestamp
+        :param coin: LTC
+        :return: {"ETH": 0.048, "BTC": 0.0094}
+        """
+        # TODO, handle pair not found error
+        coin_btc_rate = self.get_historical_exchange_rate(mkt_coin=coin, timestamp=timestamp, base_coin='btc', exchange=exchange)
+        coin_eth_rate = self.get_historical_exchange_rate(mkt_coin=coin, timestamp=timestamp, base_coin='eth', exchange=exchange)
+        coin_mkt_rates = {'BTC': coin_btc_rate, 'ETH': coin_eth_rate}
+        log.info("get_historical_coin_vs_btc_eth_rates :: " + repr(coin_mkt_rates))
+        return coin_mkt_rates
 
     def get_exchange_pairs(self, exchange):
         ex = self.exchange_adaptors[exchange]()
@@ -127,10 +168,10 @@ class ExchangeAdaptor:
             rate_usd = None
             if is_btc(pair_meta_data['quoteAsset']):
                 rate_btc = float(trade['price'])
-                rate_usd = get_usd_rate({'BTC': rate_btc}, self.get_timed_usd_market_rates(trade['time']))
+                rate_usd = get_usd_rate({'BTC': rate_btc}, self.get_historical_usd_vs_btc_eth_rates(trade['time']))
             elif is_eth(pair_meta_data['quoteAsset']):
                 rate_eth = float(trade['price'])
-                rate_usd = get_usd_rate({'ETH': rate_eth}, self.get_timed_usd_market_rates(trade['time']))
+                rate_usd = get_usd_rate({'ETH': rate_eth}, self.get_historical_usd_vs_btc_eth_rates(trade['time']))
 
             normalized_trade_data.append({
                 'order_type': 'limit',

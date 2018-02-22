@@ -144,6 +144,9 @@ class PublicClient(object):
         """
         return self._get('/products/{}/trades'.format(str(product_id)))
 
+    def get_product_historic_rate_close(self, product_id, start=None, end=None, granularity=None):
+        return self.get_product_historic_rates(product_id=product_id, start=start, end=end, granularity=granularity)[0][4]
+
     def get_product_historic_rates(self, product_id, start=None, end=None,
                                    granularity=None):
         """Historic rates for a product.

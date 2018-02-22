@@ -63,15 +63,6 @@ class PortfolioReporter(ExchangeAdaptor):
             self.p_report = self.calculate_weekly_changes(self.p_report, self.prev_weekly_report)
         self.calculate_rois()
 
-    def get_timed_coin_exchange_rates(self, timestamp, exchange, coin):
-        """
-            gets the coin rates on a given exchange at the specified timestamp
-        :param timestamp: iso timestamp
-        :param coin: LTC
-        :return: {"ETH": 0.048, "BTC": 0.0094}
-        """
-        return {}
-
     def pull_all_trade_data_from_exchanges(self):
         """
             gets all historical trade data from exchanges and saves them to local db
@@ -127,8 +118,8 @@ class PortfolioReporter(ExchangeAdaptor):
 
                 # calculate rates, needs to pull data from exchanges
                 # TODO: refactor to pull all data before this function?
-                base_currency_usd_rates = self.get_timed_usd_market_rates(trade_row['trade_time'])
-                coin_exchange_rates = self.get_timed_coin_exchange_rates(trade_row['trade_time'], trade_row['exchange_id'], trade_row['market_currency'])
+                base_currency_usd_rates = self.get_historical_usd_vs_btc_eth_rates(trade_row['trade_time'])
+                coin_exchange_rates = self.get_historical_coin_vs_btc_eth_rates(trade_row['trade_time'], trade_row['exchange_id'], trade_row['market_currency'])
                 if trade_row['base_currency'] == 'btc':
                     rate_btc = trade_row['rate']
                     rate_eth = coin_exchange_rates['eth']
