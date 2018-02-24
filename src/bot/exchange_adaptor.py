@@ -16,7 +16,7 @@ log = Logger(__name__)
 
 
 class ExchangeAdaptor:
-    def __init__(self):
+    def __init__(self, historical_rates):
         self.exchange_adaptors = {
             'binance': Client,
             'bittrex': Bittrex,
@@ -34,6 +34,7 @@ class ExchangeAdaptor:
             'bittrex': [],
             'gemini': []
         }
+        self.historical_rates = historical_rates
 
     def get_exchange_adaptor(self, exchange):
         return self.exchange_adaptors[exchange]()
@@ -125,6 +126,7 @@ class ExchangeAdaptor:
         btc_usd = self.get_historical_usd_rate(timestamp=timestamp, coin='BTC')
         eth_usd = self.get_historical_usd_rate(timestamp=timestamp, coin='ETH')
         usd_market_rates = {'BTC': btc_usd, 'ETH': eth_usd}
+
         log.info("get_historical_usd_vs_btc_eth_rates :: " + repr(usd_market_rates))
         return usd_market_rates
 

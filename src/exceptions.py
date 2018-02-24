@@ -65,3 +65,14 @@ class BadMathError(BotError):
         super(BadMathError, self).__init__(msg)
         self.func = func
     pass
+
+
+class InvalidCoinError(BotError):
+    """Raise when something goes wrong because of a bad coin / coin that doesn't exist somewhere"""
+
+    def __init__(self, coin):
+        msg = 'BAD COIN! coin: ' + coin
+        super(InvalidCoinError, self).__init__(msg)
+        self.coin = coin
+
+    pass

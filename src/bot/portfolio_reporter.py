@@ -7,7 +7,7 @@ from datetime import datetime
 
 
 class PortfolioReporter(ExchangeAdaptor):
-    def __init__(self, pg, exchanges):
+    def __init__(self, pg, exchanges, historical_rates):
         ExchangeAdaptor.__init__(self)
         self.pg = pg
         self.p_report = {}
@@ -22,6 +22,7 @@ class PortfolioReporter(ExchangeAdaptor):
             {'LTCBTC': 0.023, 'XLMETH': 0.0093, ...}
         """
         self.current_exchange_rates = pd.DataFrame
+        self.historical_rates = historical_rates
 
     def get_initial_investments(self):
         return self.pg.get_initial_investments()

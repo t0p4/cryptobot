@@ -6,6 +6,7 @@ from src.strats.volume_strat import VolumeStrat
 from src.exchange.exchange_factory import ExchangeFactory
 from src.bot.portfolio_reporter import PortfolioReporter
 from src.db.psql import PostgresConnection
+from src.data_structures.historical_prices import HistoricalRates
 import datetime
 import os
 
@@ -86,6 +87,7 @@ vol_strat = VolumeStrat(vol_options)
 
 
 pg = PostgresConnection()
-rep = PortfolioReporter(pg, ['coinigy'])
+historical_rates = HistoricalRates()
+rep = PortfolioReporter(pg, ['coinigy'], historical_rates)
 # rep.update_and_aggregate_exchange_portfolios()
 rep.pull_all_trade_data_from_exchanges()
