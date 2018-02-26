@@ -8,6 +8,7 @@ import time
 from operator import itemgetter
 from .helpers import date_to_milliseconds, interval_to_milliseconds
 from .exceptions import BinanceAPIException, BinanceRequestException, BinanceWithdrawException
+from .src.exceptions import APIRequestError
 
 class Client(object):
 
@@ -82,6 +83,25 @@ class Client(object):
 
         # init DNS and SSL cert
         self.ping()
+
+    ###########################################
+    #                                         #
+    ## Normalized API Functions              ##
+    #                                         #
+    ###########################################
+
+    def get_historical_rate(self, pair, limit=1, interval='1m', start=None, end=None):
+        if pair is None or start is None or end is None:
+            raise APIRequestError("PAIR, START, and END required. pair: {0} start: {1}, end: {2}".format(pair, start, end))
+        else:
+            return self.get_klines(symbol=pair, limit=1, interval=interval, startTime=start, endTime=end)
+
+
+    ###########################################
+    #                                         #
+    ## Original API Functions                ##
+    #                                         #
+    ###########################################
 
     def _init_session(self):
 

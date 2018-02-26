@@ -30,9 +30,11 @@ class HistoricalRates:
             if found:
                 rate = self.rates_by_timestamp_by_base_coin[base_coin][held_timestamp]
                 if market_coin is not None and market_coin in rate:
-                    return rate[market_coin]
+                    return found, rate[market_coin]
                 else:
-                    return rate
+                    return found, rate
+            else:
+                return found, None
         except Exception:
             raise InvalidCoinError(base_coin)
 

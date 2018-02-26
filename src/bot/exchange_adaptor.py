@@ -11,6 +11,8 @@ from src.exchange.gdax.public_client import PublicClient as GDaxPub
 from datetime import datetime
 from src.utils.logger import Logger
 from src.utils.rate_limiter import RateLimiter
+from src.api.ticker_routes import get_historical_rate
+
 
 log = Logger(__name__)
 
@@ -83,23 +85,8 @@ class ExchangeAdaptor:
         ticker = ex.pubticker('ethusd')
         return float(ticker['last'])
 
-    def get_historical_usd_rate(self, coin='btc', timestamp=datetime.now(), interval=300, exchange='gdax_public'):
-        start, end = self.format_exchange_start_and_end_times(timestamp, 1, exchange)
-        ex = self.exchange_adaptors[exchange]()
-        pair = self.format_exchange_pair(coin, 'usd', exchange)
-        self.rate_limiters[exchange].limit()
-        # TODO extend for other exchanges, this function is for gdax specificially
-        usd_rate = ex.get_product_historic_rate_close(pair, start=start, end=end, granularity=interval)
-        return usd_rate
-
-    def get_historical_exchange_rate(self, mkt_coin, timestamp=datetime.now(), base_coin='btc', interval=300, exchange='binance'):
-        start, end = self.format_exchange_start_and_end_times(timestamp, 60, exchange)
-        ex = self.exchange_adaptors[exchange]()
-        pair = self.format_exchange_pair(mkt_coin, base_coin, exchange)
-        self.rate_limiters[exchange].limit()
-        # TODO extend for other exchanges, this function is for binance specificially
-        pair_rate = ex.get_klines(symbol=pair, limit=1, interval='1m', startTime=start, endTime=end)
-        return pair_rate
+    def check_rate_cache(self, timestamp, base_coin, mkt_coin):
+        return self.historical_rates.get_rate(timestamp, base_coin, mkt_coin)
 
     def get_historical_trade_data(self, exchange):
         # binance
@@ -115,6 +102,20 @@ class ExchangeAdaptor:
         # order_data = ex.orders()
         return orders
 
+    def get_historical_rate(self, exchange='binance', timestamp=None, base_coin='btc', mkt_coin='eth'):
+        if timestamp is None:
+            timestamp = datetime.now()
+        exists_in_cache, usd_rate = self.check_rate_cache(timestamp, base_coin, mkt_coin)
+        if exists_in_cache:
+            return usd_rate
+        else:
+            return get_historical_rate({
+                'exchange': exchange,
+                'base_coin': base_coin,
+                'mkt_coin': mkt_coin,
+                'timestamp': timestamp
+            })
+
     def get_historical_usd_vs_btc_eth_rates(self, timestamp):
         """
             queries gemini for the btc_usd and eth_usd rates at a given time
@@ -123,8 +124,8 @@ class ExchangeAdaptor:
         """
         # need to index into each of these variables, lists of lists
         # [0] gives the list of data requested, [4] is the 'close' price
-        btc_usd = self.get_historical_usd_rate(timestamp=timestamp, coin='BTC')
-        eth_usd = self.get_historical_usd_rate(timestamp=timestamp, coin='ETH')
+        btc_usd = self.get_historical_rate(base_coin='USD', mkt_coin='BTC', timestamp=timestamp)
+        eth_usd = self.get_historical_rate(base_coin='USD', mkt_coin='ETH', timestamp=timestamp)
         usd_market_rates = {'BTC': btc_usd, 'ETH': eth_usd}
 
         log.info("get_historical_usd_vs_btc_eth_rates :: " + repr(usd_market_rates))
@@ -138,8 +139,8 @@ class ExchangeAdaptor:
         :return: {"ETH": 0.048, "BTC": 0.0094}
         """
         # TODO, handle pair not found error
-        coin_btc_rate = self.get_historical_exchange_rate(mkt_coin=coin, timestamp=timestamp, base_coin='btc', exchange=exchange)
-        coin_eth_rate = self.get_historical_exchange_rate(mkt_coin=coin, timestamp=timestamp, base_coin='eth', exchange=exchange)
+        coin_btc_rate = self.get_historical_rate(base_coin='BTC', mkt_coin=coin, timestamp=timestamp, exchange=exchange)
+        coin_eth_rate = self.get_historical_rate(base_coin='ETH', mkt_coin=coin, timestamp=timestamp, exchange=exchange)
         coin_mkt_rates = {'BTC': coin_btc_rate, 'ETH': coin_eth_rate}
         log.info("get_historical_coin_vs_btc_eth_rates :: " + repr(coin_mkt_rates))
         return coin_mkt_rates

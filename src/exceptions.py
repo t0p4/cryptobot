@@ -76,3 +76,10 @@ class InvalidCoinError(BotError):
         self.coin = coin
 
     pass
+
+
+class APIRequestError(BotError):
+    """Raise when something goes wrong inside an API route"""
+    def __init__(self, error_msg):
+        super(APIRequestError, self).__init__(error_msg)
+        self.error_msg = error_msg

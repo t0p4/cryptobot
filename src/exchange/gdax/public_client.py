@@ -5,7 +5,7 @@
 # For public requests to the GDAX exchange
 
 import requests
-
+from src.exceptions import APIRequestError
 
 class PublicClient(object):
     """GDAX public client API.
@@ -27,6 +27,25 @@ class PublicClient(object):
         """
         self.url = api_url.rstrip('/')
         self.timeout = timeout
+
+    ###########################################
+    #                                         #
+    ## Normalized API Functions              ##
+    #                                         #
+    ###########################################
+
+    def get_historical_rate(self, pair, start=None, end=None, granularity=None):
+        if pair is None or start is None or end is None:
+            raise APIRequestError("PAIR, START, and END required. pair: {0} start: {1}, end: {2}".format(pair, start, end))
+        else:
+            return self.get_product_historic_rates(product_id=pair, start=start, end=end, granularity=granularity)[0][4]
+
+
+    ###########################################
+
+    ## Original API Functions                ##
+
+    ###########################################
 
     def _get(self, path, params=None):
         """Perform get request"""
