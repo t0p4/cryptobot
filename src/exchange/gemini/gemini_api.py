@@ -12,7 +12,7 @@ import requests
 import os
 
 
-class Geminipy(object):
+class GeminiAPI(object):
     """
     A class to make requests to the Gemini API.
 

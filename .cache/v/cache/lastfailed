@@ -1,5 +1,6 @@
 {
   "tests/bollinger_bands_strat_test.py::TestBBStrat::()::test_compress_and_calculate_mean": true, 
+  "tests/crypto_bot_test.py": true, 
   "tests/crypto_bot_test.py::TestCryptoBot::()::test_compress_and_calculate_mean": true, 
   "tests/crypto_bot_test.py::TestCryptoBot::()::test_tick_step": true
 }

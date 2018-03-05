@@ -11,7 +11,7 @@ connection = namedtuple('connection', ('hostname', 'port', 'secure'))
 alerts = namedtuple('alerts', ('open_alerts', 'alert_history'))
 
 
-class CoinigyREST:
+class CoinigyAPI:
     """
         This class implements coinigy's REST api as documented in the documentation
         available at

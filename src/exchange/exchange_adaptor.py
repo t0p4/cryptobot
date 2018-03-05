@@ -1,8 +1,8 @@
-from src.exchange.binance.binance_api import Client
-from src.exchange.bittrex import Bittrex
+from src.exchange.binance.binance_api import BinanceAPI
+from src.exchange.bittrex.bittrex_api import BittrexAPI
 from src.exchange.backtest_exchange import BacktestExchange
-from src.exchange.coinigy.coinigy_api import CoinigyREST
-from src.exchange.gemini import Geminipy
+from src.exchange.coinigy.coinigy_api import CoinigyAPI
+from src.exchange.gemini.gemini_api import GeminiAPI
 import pandas as pd
 from src.utils.conversion_utils import convert_str_columns_to_num, get_usd_rate
 from src.utils.utils import is_eth, is_btc
@@ -27,11 +27,11 @@ INTERVAL_RATES = {
 class ExchangeAdaptor:
     def __init__(self, historical_rates):
         self.exchange_adaptors = {
-            'binance': Client,
-            'bittrex': Bittrex,
-            'coinigy': CoinigyREST,
+            'binance': BinanceAPI,
+            'bittrex': BittrexAPI,
+            'coinigy': CoinigyAPI,
             'backtest': BacktestExchange,
-            'gemini': Geminipy,
+            'gemini': GeminiAPI,
             'gdax_public': GDaxPub
         }
         self.rate_limiters = {
@@ -118,30 +118,11 @@ class ExchangeAdaptor:
 
     #####################################################
     #                                                   #
-    #   Exchange-agnostic Routes                        #
+    #   Level 1 Routes                                  #
     #                                                   #
     #####################################################
 
-    def get_all_historical_trade_data(self, exchange):
-        """
-            gets all of the trade data from a specified exchange and normalizes it
-        :param exchange: 'binance'
-        :return: {'LTC-BTC': <trade_data>, 'NEO-ETH': <trade_data>, ...}
-        """
-        try:
-            pairs = self.get_exchange_pairs(exchange)
-            trades_by_pair = {}
-            for pair in pairs:
-                log.info('getting historical trade data for {0} on {1}'.format(pair, exchange))
-                ex = self.get_exchange_adaptor(exchange)
-                trade_data = ex.get_historical_trades({'symbol': pair['pair']})
-                trades_by_pair[pair['pair']] = self.normalize_trade_data(trade_data, pair, exchange=exchange)
-            return trades_by_pair
-        except APIRequestError as e:
-            log.error(e.error_msg)
-            return None
-
-    def get_historical_rate(self, exchange='binance', timestamp=None, base_coin='btc', mkt_coin='eth', interval='1m'):
+    def get_historical_rate(self, exchange, timestamp=None, base_coin='btc', mkt_coin='eth', interval='1m'):
         """
             gets the desired pair rate from the specified time period
         :param exchange: 'binance'
@@ -164,7 +145,144 @@ class ExchangeAdaptor:
                 pair = self.format_exchange_pair(exchange, mkt_coin, base_coin)
                 self.rate_limiters[exchange].limit()
                 pair_rate = ex.get_historical_rate(pair=pair, start=start, end=end, interval=interval)
-                return pair_rate
+                return pair_rates
+        except APIRequestError as e:
+            log.error(e.error_msg)
+            return None
+
+    def get_historical_pair_trades(self, exchange, start_time=None, end_time=None, base_coin='btc', mkt_coin='eth'):
+        """
+            gets all account trades on specified exchange pair between specified time period
+        :param exchange:
+        :param start_time:
+        :param end_time:
+        :param base_coin:
+        :param mkt_coin:
+        :return:
+        """
+
+    def get_historical_tickers(self, exchange, start_time=None, end_time=None, interval='1m'):
+        """
+            gets the tickers for a given exchange over a given time period with a specified interval
+        :param exchange:
+        :param start_time:
+        :param end_time:
+        :return:
+        """
+
+    def get_current_holdings(self, exchange, coin=None):
+        """
+            gets the current holdings on a given exchange, defaults to all coins, ability to specify a coin
+        :param exchange:
+        :param coin:
+        :return:
+        """
+
+    def get_current_tickers(self, exchange):
+        """
+            gets the current tickers for all pairs on a given exchange
+        :param exchange:
+        :return:
+        """
+
+    def get_current_pair_ticker(self, exchange, base_coin='btc', mkt_coin=None):
+        """
+            gets the most recent ticker data for a specified pair on a given exchange
+        :param exchange:
+        :param base_coin:
+        :param mkt_coin:
+        :return:
+        """
+
+    def buy_limit(self, exchange, amount, base_coin='btc', mkt_coin=None):
+        """
+            buys the specified amount of the specified mkt_coin on a given exchange
+        :param exchange:
+        :param amount:
+        :param base_coin:
+        :param mkt_coin:
+        :return:
+        """
+
+    def sell_limit(self, exchange, amount, base_coin='btc', mkt_coin=None):
+        """
+            sells the specified amount of the specified mkt_coin on a given exchange
+        :param exchange:
+        :param amount:
+        :param base_coin:
+        :param mkt_coin:
+        :return:
+        """
+
+    def get_order_status(self, exchange, order_id=None, base_coin=None, mkt_coin=None):
+        """
+            gets the orders status of a specified order_id on a given exchange
+        :param exchange:
+        :param order_id:
+        :param base_coin:
+        :param mkt_coin:
+        :return:
+        """
+
+    def get_order_book(self, exchange, base_coin='btc', mkt_coin=None, depth=None):
+        """
+            gets the order book to a given depth for a specified pair on a given exchange
+        :param exchange:
+        :param base_coin:
+        :param mkt_coin:
+        :param depth:
+        :return:
+        """
+
+    def get_account_info(self, exchange):
+        """
+            returns the information for the account on the given exchange
+        :param exchange:
+        :return:
+        """
+
+    def initiate_withdrawal(self, exchange, coin, dest_addr):
+        """
+            initiates the withdrawal of a specified coin to a specified address from a given exchange
+        :param exchange:
+        :param coin:
+        :param dest_addr:
+        :return:
+        """
+
+    def get_exchange_pairs(self, exchange):
+        """
+            gets a list of the available pairs on a given exchange
+        :param exchange: 'binance'
+        :return: [{'pair': 'LTC-BTC', 'base_coin': 'BTC', 'mkt_coin': 'LTC'}, ...]
+        """
+        ex = self.exchange_adaptors[exchange]()
+        exchange_info = ex.get_exchange_info()
+        if exchange == 'binance':
+            self.exchange_pairs[exchange] = create_normalized_exchange_pairs_binance(exchange_info)
+        return self.exchange_pairs[exchange]
+
+    #####################################################
+    #                                                   #
+    #   Level 2 Routes                                  #
+    #                                                   #
+    #####################################################
+
+    def get_all_historical_trade_data(self, exchange):
+        """
+            gets all of the trade data from a specified exchange and normalizes it
+        :param exchange: 'binance'
+        :return: {'LTC-BTC': <trade_data>, 'NEO-ETH': <trade_data>, ...}
+        """
+        try:
+            pairs = self.get_exchange_pairs(exchange)
+            trades_by_pair = {}
+            for pair in pairs:
+                log.info('getting historical trade data for {0} on {1}'.format(pair, exchange))
+                ex = self.get_exchange_adaptor(exchange)
+                trade_data = ex.get_historical_trades({'symbol': pair['pair']})
+                trades_by_pair[pair['pair']] = self.normalize_trade_data(trade_data, pair, exchange=exchange)
+            return trades_by_pair
         except APIRequestError as e:
             log.error(e.error_msg)
             return None
@@ -198,18 +316,6 @@ class ExchangeAdaptor:
         coin_mkt_rates = {'BTC': coin_btc_rate, 'ETH': coin_eth_rate}
         log.info("get_historical_coin_vs_btc_eth_rates :: " + repr(coin_mkt_rates))
         return coin_mkt_rates
-
-    def get_exchange_pairs(self, exchange):
-        """
-            gets a list of the available pairs on a given exchange
-        :param exchange: 'binance'
-        :return: [{'pair': 'LTC-BTC', 'base_coin': 'BTC', 'mkt_coin': 'LTC'}, ...]
-        """
-        ex = self.exchange_adaptors[exchange]()
-        exchange_info = ex.get_exchange_info()
-        if exchange == 'binance':
-            self.exchange_pairs[exchange] = create_normalized_exchange_pairs_binance(exchange_info)
-        return self.exchange_pairs[exchange]
 
     def normalize_trade_data(self, trade_data, pair_meta_data, exchange):
         if exchange == 'binance':
