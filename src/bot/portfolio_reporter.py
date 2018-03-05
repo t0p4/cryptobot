@@ -1,9 +1,9 @@
 import pandas as pd
-from src.bot.exchange_adaptor import ExchangeAdaptor
-from src.utils.utils import calculate_base_value, get_past_date
-from src.utils.conversion_utils import calculate_cost_average, get_usd_rate
+
 from src.exceptions import BotError, BadMathError
-from datetime import datetime
+from src.exchange.exchange_adaptor import ExchangeAdaptor
+from src.utils.conversion_utils import calculate_cost_average, get_usd_rate
+from src.utils.utils import calculate_base_value, get_past_date
 
 
 class PortfolioReporter(ExchangeAdaptor):
@@ -69,7 +69,7 @@ class PortfolioReporter(ExchangeAdaptor):
             gets all historical trade data from exchanges and saves them to local db
         :return: None
         """
-        trade_data = self.get_historical_trade_data('binance')
+        trade_data = self.get_exchange_trade_data('binance')
         self.pg.save_historical_trade_data(trade_data)
 
     def run_full_trade_analysis(self):

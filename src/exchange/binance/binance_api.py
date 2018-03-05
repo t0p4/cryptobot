@@ -10,7 +10,8 @@ from .helpers import date_to_milliseconds, interval_to_milliseconds
 from .exceptions import BinanceAPIException, BinanceRequestException, BinanceWithdrawException
 import os
 
-class Client(object):
+
+class BinanceAPI(object):
 
     API_URL = 'https://api.binance.com/api'
     WITHDRAW_API_URL = 'https://api.binance.com/wapi'
@@ -284,6 +285,10 @@ class Client(object):
         """
 
         return self._get('exchangeInfo')
+
+    def get_exchange_pairs(self):
+        ex_info = self._get('exchangeInfo')
+        return ex_info
 
     def get_symbol_info(self, symbol):
         """Return information about a symbol

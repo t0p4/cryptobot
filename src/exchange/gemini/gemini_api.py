@@ -220,7 +220,7 @@ class Geminipy(object):
 
         return requests.post(url, headers=self.prepare(params))
 
-    def past_trades(self, symbol='btcusd', limit_trades=50, timestamp=0):
+    def get_historical_trades(self, symbol='btcusd', limit_trades=50, timestamp=0):
         """
         Send a trade history request, return the response.
 

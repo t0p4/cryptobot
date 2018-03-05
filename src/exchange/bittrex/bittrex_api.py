@@ -16,8 +16,7 @@ from src.utils.logger import Logger
 log = Logger(__name__)
 
 
-
-class Bittrex(object):
+class BittrexAPI(object):
     
     def __init__(self):
         self.key = os.getenv('BITTREX_API_KEY', '')
