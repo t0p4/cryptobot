@@ -105,14 +105,17 @@ import os
 
 
 EXCHANGES = [
-    # 'binance',
-    # 'bittrex',
-    'gemini'
+    'binance',
+    # 'bittrex'
+    'gemin≥i'
 ]
 
 historical_rates = HistoricalRates()
 ex_ad = ExchangeAdaptor(historical_rates)
 for ex in EXCHANGES:
-    # bals = ex_ad.get_account_balances(ex)
+    bals = ex_ad.get_account_balances(ex)
     pairs = ex_ad.get_exchange_pairs(ex)
+    trades_by_pair = {}
+    for pair in pairs:
+        trades = ex_ad.get_historical_trades(ex, pair=pair)
     print(ex)

@@ -11,7 +11,7 @@ import os
 import pandas as pd
 import datetime
 from src.utils.utils import normalize_index, normalize_columns
-from src.exceptions import TradeFailureError, APIDoesNotExistError
+from src.exceptions import TradeFailureError, APIDoesNotExistError, APIRequestError
 from src.utils.logger import Logger
 
 log = Logger(__name__)
@@ -169,6 +169,9 @@ class BittrexAPI(object):
     
     def getorderhistory(self, market, count):
         return self.query('getorderhistory', {'market': market, 'count': count})
+
+    def getallorderhistory(self, count):
+        return self.query('getorderhistory', {'count': count})
     
     def getwithdrawalhistory(self, currency, count):
         return self.query('getwithdrawalhistory', {'currency': currency, 'count': count})
@@ -201,8 +204,43 @@ class BittrexAPI(object):
     def get_historical_rate(self, pair, timestamp=None, interval='1m'):
         raise APIDoesNotExistError('bittrex', 'get_historical_rate')
 
-    def get_historical_pair_trades(self, start_time=None, end_time=None, base_coin='btc', mkt_coin='eth'):
-        raise APIDoesNotExistError('bittrex', 'get_historical_pair_trades')
+    def get_historical_trades(self, pair=None):
+        if pair is None:
+            trades = self.getallorderhistory(500)
+        else:
+            trades = self.getorderhistory(pair, 500)
+
+        if trades == '':
+            return None
+        elif pair is None:
+            return [self.normalize_trade(trade) for trade in trades]
+        else:
+            return self.normalize_trade(trades)
+
+    @staticmethod
+    def normalize_trade(trade):
+        trade_dir = 'sell'
+        if trade['OrderType'] == 'LIMIT_BUY':
+            trade_dir = 'buy'
+
+        return {
+            'order_type': 'limit',
+            'quantity': trade['Quantity'],
+            'rate': trade['Price'],
+            'trade_id': trade['OrderUuid'],
+            'exchange_id': 'bittrex',
+            'trade_time': trade['TimeStamp'],
+            'trade_direction': trade_dir,
+            'cost_avg_btc': 0,
+            'cost_avg_eth': 0,
+            'cost_avg_usd': 0,
+            'analyzed': False,
+            'base_currency': None,
+            'market_currency': None,
+            'rate_btc': None,
+            'rate_eth': None,
+            'rate_usd': None
+        }
 
     def get_historical_tickers(self, start_time=None, end_time=None, interval='1m'):
         raise APIDoesNotExistError('bittrex', 'get_historical_tickers')

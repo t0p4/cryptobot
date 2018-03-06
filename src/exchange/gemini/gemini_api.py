@@ -215,7 +215,7 @@ class GeminiAPI(object):
 
         return requests.post(url, headers=self.prepare(params))
 
-    def get_historical_trades(self, symbol='btcusd', limit_trades=50, timestamp=0):
+    def _get_historical_trades(self, symbol='btcusd', limit_trades=50, timestamp=0):
         """
         Send a trade history request, return the response.
 
@@ -340,8 +340,30 @@ class GeminiAPI(object):
     def get_historical_rate(self, pair, timestamp=None, interval='1m'):
         raise APIDoesNotExistError('gemini', 'get_historical_rate')
 
-    def get_historical_pair_trades(self, start_time=None, end_time=None, base_coin='btc', mkt_coin='eth'):
-        raise APIDoesNotExistError('gemini', 'get_historical_pair_trades')
+    def get_historical_trades(self, pair=None):
+        trades = self._get_historical_trades(symbol=pair['pair'], limit_trades=500)
+        return [self.normalize_trade(trade) for trade in trades.json()]
+
+    @staticmethod
+    def normalize_trade(trade):
+        return {
+            'order_type': 'limit',
+            'quantity': trade['amount'],
+            'rate': trade['price'],
+            'trade_id': trade['tid'],
+            'exchange_id': 'gemini',
+            'trade_time': trade['timestampms'],
+            'trade_direction': trade['type'],
+            'cost_avg_btc': 0,
+            'cost_avg_eth': 0,
+            'cost_avg_usd': 0,
+            'analyzed': False,
+            'base_currency': None,
+            'market_currency': None,
+            'rate_btc': None,
+            'rate_eth': None,
+            'rate_usd': None
+        }
 
     def get_historical_tickers(self, start_time=None, end_time=None, interval='1m'):
         raise APIDoesNotExistError('gemini', 'get_historical_tickers')

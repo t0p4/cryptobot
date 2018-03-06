@@ -10,7 +10,7 @@ from .helpers import date_to_milliseconds, interval_to_milliseconds
 from .exceptions import BinanceAPIException, BinanceRequestException, BinanceWithdrawException
 import os
 
-from src.exceptions import APIDoesNotExistError
+from src.exceptions import APIDoesNotExistError, APIRequestError
 
 
 class BinanceAPI(object):
@@ -498,7 +498,7 @@ class BinanceAPI(object):
         """
         return self._get('trades', data=params)
 
-    def get_historical_trades(self, **params):
+    def _get_historical_trades(self, **params):
         """Get older trades.
 
         https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md#recent-trades-list
@@ -1705,8 +1705,36 @@ class BinanceAPI(object):
     def get_historical_rate(self, pair, timestamp=None, interval='1m'):
         raise APIDoesNotExistError('binance', 'get_historical_rate')
 
-    def get_historical_pair_trades(self, start_time=None, end_time=None, base_coin='btc', mkt_coin='eth'):
-        raise APIDoesNotExistError('binance', 'get_historical_pair_trades')
+    def get_historical_trades(self, pair=None):
+        if pair is None:
+            raise APIRequestError('please specify a pair')
+        trades = self._get_historical_trades(symbol=pair)
+        return [self.normalize_trade(trade) for trade in trades]
+
+    @staticmethod
+    def normalize_trade(trade):
+        trade_dir = 'sell'
+        if trade['isBuyerMaker']:
+            trade_dir = 'buy'
+
+        return {
+            'order_type': 'limit',
+            'quantity': trade['qty'],
+            'rate': trade['price'],
+            'trade_id': trade['id'],
+            'exchange_id': 'binance',
+            'trade_time': trade['time'],
+            'trade_direction': trade_dir,
+            'cost_avg_btc': 0,
+            'cost_avg_eth': 0,
+            'cost_avg_usd': 0,
+            'analyzed': False,
+            'base_currency': None,
+            'market_currency': None,
+            'rate_btc': None,
+            'rate_eth': None,
+            'rate_usd': None
+        }
 
     def get_historical_tickers(self, start_time=None, end_time=None, interval='1m'):
         raise APIDoesNotExistError('binance', 'get_historical_tickers')

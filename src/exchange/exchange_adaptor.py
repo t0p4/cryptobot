@@ -152,7 +152,7 @@ class ExchangeAdaptor:
             log.error(e.error_msg)
             return None
 
-    def get_historical_pair_trades(self, exchange, start_time=None, end_time=None, base_coin='btc', mkt_coin='eth'):
+    def get_historical_trades(self, exchange, pair=None, start_time=None, end_time=None):
         """
             gets all account trades on specified exchange pair between specified time period
         :param exchange:
@@ -162,6 +162,14 @@ class ExchangeAdaptor:
         :param mkt_coin:
         :return:
         """
+        try:
+            ex = self.exchange_adaptors[exchange]()
+            self.rate_limiters[exchange].limit()
+            trade_data = ex.get_historical_trades(pair=pair)
+            return trade_data
+        except APIRequestError as e:
+            log.error(e.error_msg)
+            return None
 
     def get_historical_tickers(self, exchange, start_time=None, end_time=None, interval='1m'):
         """
@@ -355,3 +363,10 @@ class ExchangeAdaptor:
 
             normalized_trade_data.append(create_normalized_trade_data_binance(trade, pair_meta_data, trade_dir, rates))
         return normalized_trade_data
+
+    # def add_rates_to_trades(self, trade_data):
+        # 'base_currency': pair_meta_data['base_coin'],
+        # 'market_currency': pair_meta_data['mkt_coin'],
+        # 'rate_btc': rates['btc'],
+        # 'rate_eth': rates['eth'],
+        # 'rate_usd': rates['usd'],
