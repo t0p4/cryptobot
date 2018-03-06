@@ -10,6 +10,8 @@ from .helpers import date_to_milliseconds, interval_to_milliseconds
 from .exceptions import BinanceAPIException, BinanceRequestException, BinanceWithdrawException
 import os
 
+from src.exceptions import APIDoesNotExistError
+
 
 class BinanceAPI(object):
 
@@ -1681,3 +1683,61 @@ class BinanceAPI(object):
             'listenKey': listenKey
         }
         return self._delete('userDataStream', False, data=params)
+
+        #####################################################
+        #                                                   #
+        #   CC Functions                                    #
+        #                                                   #
+        #####################################################
+
+    def get_account_balances(self, coin=None):
+        if coin is None:
+            balances = self.get_account()
+            return [self.normalize_balance(balance) for balance in balances['balances']]
+        else:
+            balances = self.get_asset_balance(asset=coin)
+            return self.normalize_balance(balances)
+
+    @staticmethod
+    def normalize_balance(balance):
+        return {
+            'coin': balance['asset'],
+            'balance': balance['free'],
+            'address': None
+        }
+
+    def get_historical_rate(self, exchange, pair, timestamp=None, interval='1m'):
+        raise APIDoesNotExistError('binance', 'get_historical_rate')
+
+    def get_historical_pair_trades(self, exchange, start_time=None, end_time=None, base_coin='btc', mkt_coin='eth'):
+        raise APIDoesNotExistError('binance', 'get_historical_pair_trades')
+
+    def get_historical_tickers(self, exchange, start_time=None, end_time=None, interval='1m'):
+        raise APIDoesNotExistError('binance', 'get_historical_tickers')
+
+    def get_current_tickers(self, exchange):
+        raise APIDoesNotExistError('binance', 'get_current_tickers')
+
+    def get_current_pair_ticker(self, exchange, base_coin='btc', mkt_coin=None):
+        raise APIDoesNotExistError('binance', 'get_current_pair_ticker')
+
+    def buy_limit(self, exchange, amount, base_coin='btc', mkt_coin=None):
+        raise APIDoesNotExistError('binance', 'buy_limit')
+
+    def sell_limit(self, exchange, amount, base_coin='btc', mkt_coin=None):
+        raise APIDoesNotExistError('binance', 'sell_limit')
+
+    def get_order_status(self, exchange, order_id=None, base_coin=None, mkt_coin=None):
+        raise APIDoesNotExistError('binance', 'get_order_status')
+
+    def get_order_book(self, exchange, base_coin='btc', mkt_coin=None, depth=None):
+        raise APIDoesNotExistError('binance', 'get_order_book')
+
+    def get_account_info(self, exchange):
+        raise APIDoesNotExistError('binance', 'get_account_info')
+
+    def initiate_withdrawal(self, exchange, coin, dest_addr):
+        raise APIDoesNotExistError('binance', 'initiate_withdrawal')
+
+    def get_exchange_pairs(self, exchange):
+        raise APIDoesNotExistError('binance', 'get_exchange_pairs')

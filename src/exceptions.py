@@ -83,3 +83,11 @@ class APIRequestError(BotError):
     def __init__(self, error_msg):
         super(APIRequestError, self).__init__(error_msg)
         self.error_msg = error_msg
+
+
+class APIDoesNotExistError(BotError):
+    """Raise when an function has not been filled in yet"""
+    def __init__(self, from_class, from_function):
+        super(APIDoesNotExistError, self).__init__(from_class + " :: " + from_function)
+        self.from_class = from_class
+        self.from_function = from_function

@@ -5,12 +5,13 @@ import json
 import time
 import urllib
 from urllib.request import urlopen, Request
+from urllib.parse import urlencode
 import pandas
 import os
 import pandas as pd
 import datetime
 from src.utils.utils import normalize_index, normalize_columns
-from src.exceptions import TradeFailureError
+from src.exceptions import TradeFailureError, APIDoesNotExistError
 from src.utils.logger import Logger
 
 log = Logger(__name__)
@@ -20,7 +21,7 @@ class BittrexAPI(object):
     
     def __init__(self):
         self.key = os.getenv('BITTREX_API_KEY', '')
-        self.secret = os.getenv('BITTREX_API_SECRET', '')
+        self.secret = str(os.getenv('BITTREX_API_SECRET', ''))
         self.public = ['getmarkets', 'getcurrencies', 'getticker', 'getmarketsummaries', 'getmarketsummary', 'getorderbook', 'getmarkethistory']
         self.market = ['buylimit', 'buymarket', 'selllimit', 'sellmarket', 'cancel', 'getopenorders']
         self.account = ['getbalances', 'getbalance', 'getdepositaddress', 'withdraw', 'getorder', 'getorderhistory', 'getwithdrawalhistory', 'getdeposithistory']
@@ -38,12 +39,12 @@ class BittrexAPI(object):
         else:
             return 'Something went wrong, sorry.'
         
-        url += method + '?' + urllib.urlencode(values)
+        url += method + '?' + urlencode(values)
         
         if method not in self.public:
             url += '&apikey=' + self.key
             url += '&nonce=' + str(int(time.time()))
-            signature = hmac.new(self.secret, url, hashlib.sha512).hexdigest()
+            signature = hmac.new(self.secret.encode(), url.encode(), hashlib.sha512).hexdigest()
             headers = {'apisign': signature}
         else:
             headers = {}
@@ -169,3 +170,61 @@ class BittrexAPI(object):
     
     def getdeposithistory(self, currency, count):
         return self.query('getdeposithistory', {'currency': currency, 'count': count})
+
+        #####################################################
+        #                                                   #
+        #   CC Functions                                    #
+        #                                                   #
+        #####################################################
+
+    def get_account_balances(self, coin=None):
+        if coin is None:
+            balances = self.getbalances()
+            return [self.normalize_balance(balance) for balance in balances]
+        else:
+            balances = self.getbalance(coin)
+            return self.normalize_balance(balances)
+
+    @staticmethod
+    def normalize_balance(balance):
+        return {
+            'coin': balance['Currency'],
+            'balance': balance['Balance'],
+            'address': balance['CryptoAddress']
+        }
+
+    def get_historical_rate(self, exchange, pair, timestamp=None, interval='1m'):
+        raise APIDoesNotExistError('bittrex', 'get_historical_rate')
+
+    def get_historical_pair_trades(self, exchange, start_time=None, end_time=None, base_coin='btc', mkt_coin='eth'):
+        raise APIDoesNotExistError('bittrex', 'get_historical_pair_trades')
+
+    def get_historical_tickers(self, exchange, start_time=None, end_time=None, interval='1m'):
+        raise APIDoesNotExistError('bittrex', 'get_historical_tickers')
+
+    def get_current_tickers(self, exchange):
+        raise APIDoesNotExistError('bittrex', 'get_current_tickers')
+
+    def get_current_pair_ticker(self, exchange, base_coin='btc', mkt_coin=None):
+        raise APIDoesNotExistError('bittrex', 'get_current_pair_ticker')
+
+    def buy_limit(self, exchange, amount, base_coin='btc', mkt_coin=None):
+        raise APIDoesNotExistError('bittrex', 'buy_limit')
+
+    def sell_limit(self, exchange, amount, base_coin='btc', mkt_coin=None):
+        raise APIDoesNotExistError('bittrex', 'sell_limit')
+
+    def get_order_status(self, exchange, order_id=None, base_coin=None, mkt_coin=None):
+        raise APIDoesNotExistError('bittrex', 'get_order_status')
+
+    def get_order_book(self, exchange, base_coin='btc', mkt_coin=None, depth=None):
+        raise APIDoesNotExistError('bittrex', 'get_order_book')
+
+    def get_account_info(self, exchange):
+        raise APIDoesNotExistError('bittrex', 'get_account_info')
+
+    def initiate_withdrawal(self, exchange, coin, dest_addr):
+        raise APIDoesNotExistError('bittrex', 'initiate_withdrawal')
+
+    def get_exchange_pairs(self, exchange):
+        raise APIDoesNotExistError('bittrex', 'get_exchange_pairs')

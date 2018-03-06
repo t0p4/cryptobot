@@ -36,7 +36,9 @@ class ExchangeAdaptor:
         }
         self.rate_limiters = {
             'binance': RateLimiter('binance'),
-            'gdax_public': RateLimiter('gdax_public')
+            'bittrex': RateLimiter('bittrex'),
+            'gdax_public': RateLimiter('gdax_public'),
+            'gemini': RateLimiter('gemini')
         }
         self.exchange_pairs = {
             'binance': [],
@@ -141,11 +143,11 @@ class ExchangeAdaptor:
             else:
                 start, end = self.format_exchange_start_and_end_times(exchange, timestamp, 1)
                 interval = self.format_exchange_interval(exchange, interval)
-                ex = self.exchange_adaptors[exchange]()
                 pair = self.format_exchange_pair(exchange, mkt_coin, base_coin)
+                ex = self.exchange_adaptors[exchange]()
                 self.rate_limiters[exchange].limit()
                 pair_rate = ex.get_historical_rate(pair=pair, start=start, end=end, interval=interval)
-                return pair_rates
+                return pair_rate
         except APIRequestError as e:
             log.error(e.error_msg)
             return None
@@ -170,13 +172,21 @@ class ExchangeAdaptor:
         :return:
         """
 
-    def get_current_holdings(self, exchange, coin=None):
+    def get_account_balances(self, exchange, coin=None):
         """
             gets the current holdings on a given exchange, defaults to all coins, ability to specify a coin
         :param exchange:
         :param coin:
         :return:
         """
+        try:
+            ex = self.exchange_adaptors[exchange]()
+            self.rate_limiters[exchange].limit()
+            pair_rate = ex.get_account_balances(coin=coin)
+            return pair_rate
+        except APIRequestError as e:
+            log.error(e.error_msg)
+            return None
 
     def get_current_tickers(self, exchange):
         """

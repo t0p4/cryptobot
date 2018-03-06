@@ -10,6 +10,7 @@ import base64
 import hashlib
 import requests
 import os
+from src.exceptions import InvalidCoinError, APIDoesNotExistError
 
 
 class GeminiAPI(object):
@@ -20,13 +21,7 @@ class GeminiAPI(object):
     https://docs.gemini.com/
     """
 
-    live_url = 'https://api.gemini.com'
-    sandbox_url = 'https://api.sandbox.gemini.com'
-    base_url = sandbox_url
-    api_key = os.getenv('GEMINI_API_KEY', '')
-    secret_key = os.getenv('GEMINI_API_SECRET', '')
-
-    def __init__(self, api_key='', secret_key='', live=False):
+    def __init__(self):
         """
         Initialize the class.
 
@@ -35,11 +30,11 @@ class GeminiAPI(object):
         secret_key -- your Gemini API secret key for signatures
         live -- use the live API? otherwise, use the sandbox (default False)
         """
-        self.api_key = api_key
-        self.secret_key = secret_key
-
-        if live:
-            self.base_url = self.live_url
+        self.api_key = os.getenv('GEMINI_API_KEY', '')
+        self.secret_key = os.getenv('GEMINI_API_SECRET', '')
+        self.live_url = 'https://api.gemini.com'
+        self.sandbox_url = 'https://api.sandbox.gemini.com'
+        self.base_url = self.live_url
 
     # public requests
     def symbols(self):
@@ -317,3 +312,63 @@ class GeminiAPI(object):
         return {'X-GEMINI-APIKEY': self.api_key,
                 'X-GEMINI-PAYLOAD': payload,
                 'X-GEMINI-SIGNATURE': signature}
+
+        #####################################################
+        #                                                   #
+        #   CC Functions                                    #
+        #                                                   #
+        #####################################################
+
+    def get_account_balances(self, coin=None):
+        balances = self.balances()
+        if coin is None:
+            return [self.normalize_balance(balance) for balance in balances.json()]
+        else:
+            for bal in balances:
+                if bal['currency'].lower() == coin.lower():
+                    return self.normalize_balance(bal)
+            raise InvalidCoinError(coin + ' does not exist on Gemini')
+
+    @staticmethod
+    def normalize_balance(balance):
+        return {
+            'coin': balance['currency'],
+            'balance': balance['amount'],
+            'address': None
+        }
+
+    def get_historical_rate(self, exchange, pair, timestamp=None, interval='1m'):
+        raise APIDoesNotExistError('gemini', 'get_historical_rate')
+
+    def get_historical_pair_trades(self, exchange, start_time=None, end_time=None, base_coin='btc', mkt_coin='eth'):
+        raise APIDoesNotExistError('gemini', 'get_historical_pair_trades')
+
+    def get_historical_tickers(self, exchange, start_time=None, end_time=None, interval='1m'):
+        raise APIDoesNotExistError('gemini', 'get_historical_tickers')
+
+    def get_current_tickers(self, exchange):
+        raise APIDoesNotExistError('gemini', 'get_current_tickers')
+
+    def get_current_pair_ticker(self, exchange, base_coin='btc', mkt_coin=None):
+        raise APIDoesNotExistError('gemini', 'get_current_pair_ticker')
+
+    def buy_limit(self, exchange, amount, base_coin='btc', mkt_coin=None):
+        raise APIDoesNotExistError('gemini', 'buy_limit')
+
+    def sell_limit(self, exchange, amount, base_coin='btc', mkt_coin=None):
+        raise APIDoesNotExistError('gemini', 'sell_limit')
+
+    def get_order_status(self, exchange, order_id=None, base_coin=None, mkt_coin=None):
+        raise APIDoesNotExistError('gemini', 'get_order_status')
+
+    def get_order_book(self, exchange, base_coin='btc', mkt_coin=None, depth=None):
+        raise APIDoesNotExistError('gemini', 'get_order_book')
+
+    def get_account_info(self, exchange):
+        raise APIDoesNotExistError('gemini', 'get_account_info')
+
+    def initiate_withdrawal(self, exchange, coin, dest_addr):
+        raise APIDoesNotExistError('gemini', 'initiate_withdrawal')
+
+    def get_exchange_pairs(self, exchange):
+        raise APIDoesNotExistError('gemini', 'get_exchange_pairs')
