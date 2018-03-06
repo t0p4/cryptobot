@@ -337,38 +337,48 @@ class GeminiAPI(object):
             'address': None
         }
 
-    def get_historical_rate(self, exchange, pair, timestamp=None, interval='1m'):
+    def get_historical_rate(self, pair, timestamp=None, interval='1m'):
         raise APIDoesNotExistError('gemini', 'get_historical_rate')
 
-    def get_historical_pair_trades(self, exchange, start_time=None, end_time=None, base_coin='btc', mkt_coin='eth'):
+    def get_historical_pair_trades(self, start_time=None, end_time=None, base_coin='btc', mkt_coin='eth'):
         raise APIDoesNotExistError('gemini', 'get_historical_pair_trades')
 
-    def get_historical_tickers(self, exchange, start_time=None, end_time=None, interval='1m'):
+    def get_historical_tickers(self, start_time=None, end_time=None, interval='1m'):
         raise APIDoesNotExistError('gemini', 'get_historical_tickers')
 
-    def get_current_tickers(self, exchange):
+    def get_current_tickers(self):
         raise APIDoesNotExistError('gemini', 'get_current_tickers')
 
-    def get_current_pair_ticker(self, exchange, base_coin='btc', mkt_coin=None):
+    def get_current_pair_ticker(self, base_coin='btc', mkt_coin=None):
         raise APIDoesNotExistError('gemini', 'get_current_pair_ticker')
 
-    def buy_limit(self, exchange, amount, base_coin='btc', mkt_coin=None):
+    def buy_limit(self, amount, base_coin='btc', mkt_coin=None):
         raise APIDoesNotExistError('gemini', 'buy_limit')
 
-    def sell_limit(self, exchange, amount, base_coin='btc', mkt_coin=None):
+    def sell_limit(self, amount, base_coin='btc', mkt_coin=None):
         raise APIDoesNotExistError('gemini', 'sell_limit')
 
-    def get_order_status(self, exchange, order_id=None, base_coin=None, mkt_coin=None):
+    def get_order_status(self, order_id=None, base_coin=None, mkt_coin=None):
         raise APIDoesNotExistError('gemini', 'get_order_status')
 
-    def get_order_book(self, exchange, base_coin='btc', mkt_coin=None, depth=None):
+    def get_order_book(self, base_coin='btc', mkt_coin=None, depth=None):
         raise APIDoesNotExistError('gemini', 'get_order_book')
 
-    def get_account_info(self, exchange):
+    def get_account_info(self):
         raise APIDoesNotExistError('gemini', 'get_account_info')
 
-    def initiate_withdrawal(self, exchange, coin, dest_addr):
+    def initiate_withdrawal(self, coin, dest_addr):
         raise APIDoesNotExistError('gemini', 'initiate_withdrawal')
 
-    def get_exchange_pairs(self, exchange):
-        raise APIDoesNotExistError('gemini', 'get_exchange_pairs')
+    def get_exchange_pairs(self):
+        symbols = self.symbols()
+        return [self.normalize_exchange_pair(sym) for sym in symbols.json()]
+
+    @staticmethod
+    def normalize_exchange_pair(pair):
+        # can add BaseCurrencyLong and MarketCurrencyLong
+        return {
+            'pair': pair,
+            'base_coin': pair[3:],
+            'mkt_coin': pair[:3]
+        }

@@ -288,10 +288,6 @@ class BinanceAPI(object):
 
         return self._get('exchangeInfo')
 
-    def get_exchange_pairs(self):
-        ex_info = self._get('exchangeInfo')
-        return ex_info
-
     def get_symbol_info(self, symbol):
         """Return information about a symbol
 
@@ -1706,38 +1702,47 @@ class BinanceAPI(object):
             'address': None
         }
 
-    def get_historical_rate(self, exchange, pair, timestamp=None, interval='1m'):
+    def get_historical_rate(self, pair, timestamp=None, interval='1m'):
         raise APIDoesNotExistError('binance', 'get_historical_rate')
 
-    def get_historical_pair_trades(self, exchange, start_time=None, end_time=None, base_coin='btc', mkt_coin='eth'):
+    def get_historical_pair_trades(self, start_time=None, end_time=None, base_coin='btc', mkt_coin='eth'):
         raise APIDoesNotExistError('binance', 'get_historical_pair_trades')
 
-    def get_historical_tickers(self, exchange, start_time=None, end_time=None, interval='1m'):
+    def get_historical_tickers(self, start_time=None, end_time=None, interval='1m'):
         raise APIDoesNotExistError('binance', 'get_historical_tickers')
 
-    def get_current_tickers(self, exchange):
+    def get_current_tickers(self):
         raise APIDoesNotExistError('binance', 'get_current_tickers')
 
-    def get_current_pair_ticker(self, exchange, base_coin='btc', mkt_coin=None):
+    def get_current_pair_ticker(self, base_coin='btc', mkt_coin=None):
         raise APIDoesNotExistError('binance', 'get_current_pair_ticker')
 
-    def buy_limit(self, exchange, amount, base_coin='btc', mkt_coin=None):
+    def buy_limit(self, amount, base_coin='btc', mkt_coin=None):
         raise APIDoesNotExistError('binance', 'buy_limit')
 
-    def sell_limit(self, exchange, amount, base_coin='btc', mkt_coin=None):
+    def sell_limit(self, amount, base_coin='btc', mkt_coin=None):
         raise APIDoesNotExistError('binance', 'sell_limit')
 
-    def get_order_status(self, exchange, order_id=None, base_coin=None, mkt_coin=None):
+    def get_order_status(self, order_id=None, base_coin=None, mkt_coin=None):
         raise APIDoesNotExistError('binance', 'get_order_status')
 
-    def get_order_book(self, exchange, base_coin='btc', mkt_coin=None, depth=None):
+    def get_order_book(self, base_coin='btc', mkt_coin=None, depth=None):
         raise APIDoesNotExistError('binance', 'get_order_book')
 
-    def get_account_info(self, exchange):
+    def get_account_info(self):
         raise APIDoesNotExistError('binance', 'get_account_info')
 
-    def initiate_withdrawal(self, exchange, coin, dest_addr):
+    def initiate_withdrawal(self, coin, dest_addr):
         raise APIDoesNotExistError('binance', 'initiate_withdrawal')
 
-    def get_exchange_pairs(self, exchange):
-        raise APIDoesNotExistError('binance', 'get_exchange_pairs')
+    def get_exchange_pairs(self):
+        e_info = self.get_exchange_info()
+        return [self.normalize_exchange_pair(pair) for pair in e_info['symbols']]
+
+    @staticmethod
+    def normalize_exchange_pair(pair):
+        return {
+            'pair': pair['symbol'],
+            'base_coin': pair['quoteAsset'],
+            'mkt_coin': pair['baseAsset']
+        }

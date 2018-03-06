@@ -21,8 +21,3 @@ def create_normalized_trade_data_binance(trade_data, pair_meta_data, trade_dir, 
         'cost_avg_usd': 0,
         'analyzed': False
     }
-
-
-def create_normalized_exchange_pairs_binance(exchange_pair_data):
-    return [{'pair': ex['symbol'], 'base_coin': ex['baseAsset'], 'mkt_coin': ex['quoteAsset']} for ex in
-            exchange_pair_data['symbols']]

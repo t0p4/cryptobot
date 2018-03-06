@@ -11,7 +11,7 @@ from datetime import datetime
 from src.utils.logger import Logger
 from src.utils.rate_limiter import RateLimiter
 from src.exceptions import APIRequestError
-from src.exchange.exchange_utils.binance_utils import create_normalized_trade_data_binance, create_normalized_exchange_pairs_binance
+from src.exchange.exchange_utils.binance_utils import create_normalized_trade_data_binance
 
 log = Logger(__name__)
 
@@ -267,9 +267,7 @@ class ExchangeAdaptor:
         :return: [{'pair': 'LTC-BTC', 'base_coin': 'BTC', 'mkt_coin': 'LTC'}, ...]
         """
         ex = self.exchange_adaptors[exchange]()
-        exchange_info = ex.get_exchange_info()
-        if exchange == 'binance':
-            self.exchange_pairs[exchange] = create_normalized_exchange_pairs_binance(exchange_info)
+        self.exchange_pairs[exchange] = ex.get_exchange_pairs()
         return self.exchange_pairs[exchange]
 
     #####################################################
