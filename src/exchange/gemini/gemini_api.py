@@ -369,10 +369,22 @@ class GeminiAPI(object):
         raise APIDoesNotExistError('gemini', 'get_historical_tickers')
 
     def get_current_tickers(self):
-        raise APIDoesNotExistError('gemini', 'get_current_tickers')
+        return self.pubticker()
 
-    def get_current_pair_ticker(self, base_coin='btc', mkt_coin=None):
-        raise APIDoesNotExistError('gemini', 'get_current_pair_ticker')
+    def get_current_pair_ticker(self, pair=None):
+        return self.normalize_ticker(self.pubticker(pair['pair']), pair)
+
+    @staticmethod
+    def normalize_ticker(tick, pair):
+        return {
+            'bid': tick['bid'],
+            'ask': tick['ask'],
+            'last': tick['last'],
+            'vol_base': tick['volume'][pair['base_coin'].upper()],
+            'vol_mkt': tick['volume'][pair['mkt_coin'].upper()],
+            'timestamp': tick['volume']['timestamp'],
+            **pair
+        }
 
     def buy_limit(self, amount, base_coin='btc', mkt_coin=None):
         raise APIDoesNotExistError('gemini', 'buy_limit')

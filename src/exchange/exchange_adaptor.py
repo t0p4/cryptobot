@@ -206,7 +206,7 @@ class ExchangeAdaptor:
         :return:
         """
 
-    def get_current_pair_ticker(self, exchange, base_coin='btc', mkt_coin=None):
+    def get_current_pair_ticker(self, exchange, pair):
         """
             gets the most recent ticker data for a specified pair on a given exchange
         :param exchange:
@@ -214,6 +214,14 @@ class ExchangeAdaptor:
         :param mkt_coin:
         :return:
         """
+        try:
+            ex = self.exchange_adaptors[exchange]()
+            self.rate_limiters[exchange].limit()
+            ticker = ex.get_current_pair_ticker(pair)
+            return ticker
+        except APIRequestError as e:
+            log.error(e.error_msg)
+            return None
 
     def buy_limit(self, exchange, amount, base_coin='btc', mkt_coin=None):
         """

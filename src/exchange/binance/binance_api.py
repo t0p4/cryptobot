@@ -1742,8 +1742,20 @@ class BinanceAPI(object):
     def get_current_tickers(self):
         raise APIDoesNotExistError('binance', 'get_current_tickers')
 
-    def get_current_pair_ticker(self, base_coin='btc', mkt_coin=None):
-        raise APIDoesNotExistError('binance', 'get_current_pair_ticker')
+    def get_current_pair_ticker(self, pair=None):
+        return self.normalize_ticker(self.get_ticker(symbol=pair['pair']), pair)
+
+    @staticmethod
+    def normalize_ticker(tick, pair):
+        return {
+            'bid': tick['bidPrice'],
+            'ask': tick['askPrice'],
+            'last': tick['lastPrice'],
+            'vol_base': tick['quoteVolume'],
+            'vol_mkt': tick['volume'],
+            'timestamp': tick['volume'],
+            **pair
+        }
 
     def buy_limit(self, amount, base_coin='btc', mkt_coin=None):
         raise APIDoesNotExistError('binance', 'buy_limit')

@@ -248,8 +248,20 @@ class BittrexAPI(object):
     def get_current_tickers(self):
         raise APIDoesNotExistError('bittrex', 'get_current_tickers')
 
-    def get_current_pair_ticker(self, base_coin='btc', mkt_coin=None):
-        raise APIDoesNotExistError('bittrex', 'get_current_pair_ticker')
+    def get_current_pair_ticker(self, pair=None):
+        return self.normalize_ticker(self.getticker(pair['pair']), pair)
+
+    @staticmethod
+    def normalize_ticker(tick, pair):
+        return {
+            'bid': tick['Bid'],
+            'ask': tick['Ask'],
+            'last': tick['Last'],
+            'vol_base': None,           ## TODO :: GET CURRENT VOLUME
+            'vol_mkt': None,
+            'timestamp': time.time(),
+            **pair
+        }
 
     def buy_limit(self, amount, base_coin='btc', mkt_coin=None):
         raise APIDoesNotExistError('bittrex', 'buy_limit')

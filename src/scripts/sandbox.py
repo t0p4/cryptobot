@@ -106,7 +106,7 @@ import os
 
 EXCHANGES = [
     # 'binance',
-    'bittrex',
+    # 'bittrex',
     'gemini'
 ]
 
@@ -117,5 +117,6 @@ for ex in EXCHANGES:
     pairs = ex_ad.get_exchange_pairs(ex)
     trades_by_pair = {}
     for pair in pairs:
-        trades = ex_ad.get_historical_trades(ex, pair=pair)
+    #     trades = ex_ad.get_historical_trades(ex, pair=pair)
+        ticker = ex_ad.get_current_pair_ticker(ex, pair)
     print(ex)
