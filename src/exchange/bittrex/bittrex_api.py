@@ -205,15 +205,15 @@ class BittrexAPI(object):
         raise APIDoesNotExistError('bittrex', 'get_historical_rate')
 
     def get_historical_trades(self, pair=None):
-        if pair is None:
-            trades = self.getallorderhistory(500)
-        else:
-            trades = self.getorderhistory(pair, 500)
+        # if pair is None:
+        trades = self.getallorderhistory(500)
+        # else:
+        #     trades = self.getorderhistory(None, 500)
 
         if trades == '':
             return None
         elif pair is None:
-            return [self.normalize_trade(trade) for trade in trades]
+            return [{**self.normalize_trade(trade), **pair} for trade in trades]
         else:
             return self.normalize_trade(trades)
 
@@ -235,11 +235,11 @@ class BittrexAPI(object):
             'cost_avg_eth': 0,
             'cost_avg_usd': 0,
             'analyzed': False,
-            'base_currency': None,
-            'market_currency': None,
             'rate_btc': None,
             'rate_eth': None,
-            'rate_usd': None
+            'rate_usd': None,
+            'commish': None,            ## TODO :: CALCULATE COMMISH
+            'commish_asset': None
         }
 
     def get_historical_tickers(self, start_time=None, end_time=None, interval='1m'):

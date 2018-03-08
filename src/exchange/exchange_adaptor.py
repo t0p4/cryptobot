@@ -166,10 +166,13 @@ class ExchangeAdaptor:
             ex = self.exchange_adaptors[exchange]()
             self.rate_limiters[exchange].limit()
             trade_data = ex.get_historical_trades(pair=pair)
-            return trade_data
+            if isinstance(trade_data, list):
+                return trade_data
+            else:
+                raise APIRequestError('no trade data')
         except APIRequestError as e:
             log.error(e.error_msg)
-            return None
+            return []
 
     def get_historical_tickers(self, exchange, start_time=None, end_time=None, interval='1m'):
         """

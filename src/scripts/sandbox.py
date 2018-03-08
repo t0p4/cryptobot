@@ -105,9 +105,9 @@ import os
 
 
 EXCHANGES = [
-    'binance',
-    # 'bittrex'
-    'gemin≥i'
+    # 'binance',
+    'bittrex',
+    'gemini'
 ]
 
 historical_rates = HistoricalRates()

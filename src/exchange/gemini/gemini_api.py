@@ -342,7 +342,7 @@ class GeminiAPI(object):
 
     def get_historical_trades(self, pair=None):
         trades = self._get_historical_trades(symbol=pair['pair'], limit_trades=500)
-        return [self.normalize_trade(trade) for trade in trades.json()]
+        return [{**self.normalize_trade(trade), **pair} for trade in trades.json()]
 
     @staticmethod
     def normalize_trade(trade):
@@ -358,11 +358,11 @@ class GeminiAPI(object):
             'cost_avg_eth': 0,
             'cost_avg_usd': 0,
             'analyzed': False,
-            'base_currency': None,
-            'market_currency': None,
             'rate_btc': None,
             'rate_eth': None,
-            'rate_usd': None
+            'rate_usd': None,
+            'commish': None,  ## TODO :: CALCULATE COMMISH
+            'commish_asset': None
         }
 
     def get_historical_tickers(self, start_time=None, end_time=None, interval='1m'):

@@ -1708,20 +1708,20 @@ class BinanceAPI(object):
     def get_historical_trades(self, pair=None):
         if pair is None:
             raise APIRequestError('please specify a pair')
-        trades = self._get_historical_trades(symbol=pair)
-        return [self.normalize_trade(trade) for trade in trades]
+        trades = self.get_my_trades(symbol=pair['pair'])
+        return [{**self.normalize_trade(trade), **pair} for trade in trades]
 
     @staticmethod
     def normalize_trade(trade):
         trade_dir = 'sell'
-        if trade['isBuyerMaker']:
+        if trade['isBuyer']:
             trade_dir = 'buy'
 
         return {
             'order_type': 'limit',
             'quantity': trade['qty'],
             'rate': trade['price'],
-            'trade_id': trade['id'],
+            'trade_id': trade['orderId'],
             'exchange_id': 'binance',
             'trade_time': trade['time'],
             'trade_direction': trade_dir,
@@ -1729,11 +1729,11 @@ class BinanceAPI(object):
             'cost_avg_eth': 0,
             'cost_avg_usd': 0,
             'analyzed': False,
-            'base_currency': None,
-            'market_currency': None,
             'rate_btc': None,
             'rate_eth': None,
-            'rate_usd': None
+            'rate_usd': None,
+            'commish': trade['commission'],
+            'commish_asset': trade['commissionAsset']
         }
 
     def get_historical_tickers(self, start_time=None, end_time=None, interval='1m'):
