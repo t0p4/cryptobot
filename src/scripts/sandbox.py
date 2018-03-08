@@ -105,8 +105,8 @@ import os
 
 
 EXCHANGES = [
-    # 'binance',
-    # 'bittrex',
+    'binance',
+    'bittrex',
     'gemini'
 ]
 

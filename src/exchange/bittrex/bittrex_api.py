@@ -263,17 +263,48 @@ class BittrexAPI(object):
             **pair
         }
 
-    def buy_limit(self, amount, base_coin='btc', mkt_coin=None):
-        raise APIDoesNotExistError('bittrex', 'buy_limit')
+    def buy_limit(self, amount, price, pair):
+        return self.buylimit(pair['pair'], amount, price)
 
-    def sell_limit(self, amount, base_coin='btc', mkt_coin=None):
-        raise APIDoesNotExistError('bittrex', 'sell_limit')
+    def sell_limit(self, amount, price, pair):
+        return self.selllimit(pair['pair'], amount, price)
 
-    def get_order_status(self, order_id=None, base_coin=None, mkt_coin=None):
-        raise APIDoesNotExistError('bittrex', 'get_order_status')
+    def get_order_status(self, order_id=None):
+        if order_id is None:
+            raise APIRequestError('please specify an order_id')
+        return self.normalize_order_status(self.getorder(order_id).json())
 
-    def get_order_book(self, base_coin='btc', mkt_coin=None, depth=None):
-        raise APIDoesNotExistError('bittrex', 'get_order_book')
+    @staticmethod
+    def normalize_order_status(order_status):
+        return {
+            'price': order_status['Price'],
+            'side': order_status['Type'].split('_')[1],
+            'is_live': order_status['IsOpen'],
+            'is_cancelled': order_status['CancelInitiated'],
+            'executed_amount': order_status['Quantity'] - order_status['QuantityRemaining'],
+            'remaining_amount': order_status['QuantityRemaining'],
+            'original_amount': order_status['Quantity'],
+            'order_id': order_status['OrderUuid']
+        }
+
+    def get_order_book(self, pair):
+        if pair is None:
+            raise APIRequestError('please specify an pair')
+        return self.normalize_order_book(self.getorderbook(pair['pair']).json())
+
+    def normalize_order_book(self, order_book):
+        return {
+            'buy': [self.normalize_order(order) for order in order_book['bids']],
+            'sell': [self.normalize_order(order) for order in order_book['asks']]
+        }
+
+    @staticmethod
+    def normalize_order(order):
+        return {
+            'price': order['Rate'],
+            'amount': order['Quantity'],
+            'timestamp': time.time()
+        }
 
     def get_account_info(self):
         raise APIDoesNotExistError('bittrex', 'get_account_info')

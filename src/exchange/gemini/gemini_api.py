@@ -10,7 +10,7 @@ import base64
 import hashlib
 import requests
 import os
-from src.exceptions import InvalidCoinError, APIDoesNotExistError
+from src.exceptions import InvalidCoinError, APIDoesNotExistError, APIRequestError
 
 
 class GeminiAPI(object):
@@ -386,23 +386,57 @@ class GeminiAPI(object):
             **pair
         }
 
-    def buy_limit(self, amount, base_coin='btc', mkt_coin=None):
-        raise APIDoesNotExistError('gemini', 'buy_limit')
+    def order_limit(self, amount, price, side, pair):
+        return self.new_order(self, amount, price, side, symbol=pair['pair'], type='exchange limit')
 
-    def sell_limit(self, amount, base_coin='btc', mkt_coin=None):
-        raise APIDoesNotExistError('gemini', 'sell_limit')
+    def buy_limit(self, amount, price, pair):
+        return self.order_limit(amount, price, 'buy', pair['pair'])
 
-    def get_order_status(self, order_id=None, base_coin=None, mkt_coin=None):
-        raise APIDoesNotExistError('gemini', 'get_order_status')
+    def sell_limit(self, amount, price, pair):
+        return self.order_limit(amount, price, 'sell', pair['pair'])
 
-    def get_order_book(self, base_coin='btc', mkt_coin=None, depth=None):
-        raise APIDoesNotExistError('gemini', 'get_order_book')
+    def get_order_status(self, order_id=None):
+        if order_id is None:
+            raise APIRequestError('please specify an order_id')
+        return self.normalize_order_status(self.order_status(order_id).json())
 
-    def get_account_info(self):
-        raise APIDoesNotExistError('gemini', 'get_account_info')
+    @staticmethod
+    def normalize_order_status(order_status):
+        return {
+            'price': order_status['price'],
+            'side': order_status['side'],
+            'is_live': order_status['is_live'],
+            'is_cancelled': order_status['is_cancelled'],
+            'executed_amount': order_status['executed_amount'],
+            'remaining_amount': order_status['remaining_amount'],
+            'original_amount': order_status['original_amount'],
+            'order_id': order_status['order_id']
+        }
 
-    def initiate_withdrawal(self, coin, dest_addr):
-        raise APIDoesNotExistError('gemini', 'initiate_withdrawal')
+    def get_order_book(self, pair=None):
+        if pair is None:
+            raise APIRequestError('please specify an pair')
+        return self.normalize_order_book(self.book(pair['pair']).json())
+
+    def normalize_order_book(self, order_book):
+        return {
+            'bids': [self.normalize_order(order) for order in order_book['bids']],
+            'asks': [self.normalize_order(order) for order in order_book['asks']]
+        }
+
+    @staticmethod
+    def normalize_order(order):
+        return {
+            'price': order['price'],
+            'amount': order['amount'],
+            'timestamp': order['timestamp']
+        }
+
+    # def get_account_info(self):
+    #     raise APIDoesNotExistError('gemini', 'get_account_info')
+    #
+    # def initiate_withdrawal(self, coin, dest_addr):
+    #     raise APIDoesNotExistError('gemini', 'initiate_withdrawal')
 
     def get_exchange_pairs(self):
         symbols = self.symbols()
