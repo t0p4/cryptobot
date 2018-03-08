@@ -429,7 +429,8 @@ class GeminiAPI(object):
         return {
             'price': order['price'],
             'amount': order['amount'],
-            'timestamp': order['timestamp']
+            'timestamp': order['tim'
+                               'estamp']
         }
 
     # def get_account_info(self):

@@ -431,7 +431,7 @@ class BinanceAPI(object):
         """
         return self._get('ticker/allBookTickers')
 
-    def get_order_book(self, **params):
+    def _get_order_book(self, **params):
         """Get the Order Book for the market
 
         https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md#order-book
@@ -1757,17 +1757,30 @@ class BinanceAPI(object):
             **pair
         }
 
-    def buy_limit(self, amount, base_coin='btc', mkt_coin=None):
-        raise APIDoesNotExistError('binance', 'buy_limit')
+    def buy_limit(self, amount, price, pair):
+        return self.order_limit_buy(symbol=pair['pair'], quantity=amount, price=price)
 
-    def sell_limit(self, amount, base_coin='btc', mkt_coin=None):
-        raise APIDoesNotExistError('binance', 'sell_limit')
+    def sell_limit(self, amount, price, pair):
+        return self.order_limit_sell(symbol=pair['pair'], quantity=amount, price=price)
 
     def get_order_status(self, order_id=None, base_coin=None, mkt_coin=None):
-        raise APIDoesNotExistError('binance', 'get_order_status')
+        return self.normalize_order_status(get_order())
 
     def get_order_book(self, base_coin='btc', mkt_coin=None, depth=None):
-        raise APIDoesNotExistError('binance', 'get_order_book')
+        return self._get_order_book()
+
+    @staticmethod
+    def normalize_order_status(order_status):
+        return {
+            "symbol": order_status['symbol'],
+            "order_id": order_status['orderId'],
+            "price": float(order_status['price']),
+            "original_amount":float(order_status['origQty']),
+            "executed_amount": float(order_status['executedQty']),
+            "status": "NEW",
+            "side": order_status['side'].upper(),
+            "time": 1499827319559
+        }
 
     def get_account_info(self):
         raise APIDoesNotExistError('binance', 'get_account_info')
