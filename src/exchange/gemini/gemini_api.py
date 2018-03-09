@@ -428,9 +428,7 @@ class GeminiAPI(object):
     def normalize_order(order):
         return {
             'price': order['price'],
-            'amount': order['amount'],
-            'timestamp': order['tim'
-                               'estamp']
+            'amount': order['amount']
         }
 
     # def get_account_info(self):

@@ -1763,23 +1763,39 @@ class BinanceAPI(object):
     def sell_limit(self, amount, price, pair):
         return self.order_limit_sell(symbol=pair['pair'], quantity=amount, price=price)
 
-    def get_order_status(self, order_id=None, base_coin=None, mkt_coin=None):
-        return self.normalize_order_status(get_order())
+    def get_order_status(self, order_id=None, pair=None):
+        if pair is None:
+            raise APIRequestError('please specify a pair')
+        if order_id is None:
+            raise APIRequestError('please specify an order_id')
+        return self.normalize_order_status(self.get_order(symbol=pair['pair'], orderId=order_id))
 
-    def get_order_book(self, base_coin='btc', mkt_coin=None, depth=None):
-        return self._get_order_book()
+    def normalize_order_status(self, order_status):
+        return {
+            "price": float(order_status['price']),
+            "side": order_status['side'].upper(),
+            "is_live": order_status['status'] in (self.ORDER_STATUS_NEW, self.ORDER_STATUS_PARTIALLY_FILLED),
+            "is_cancelled": order_status['status'] == self.ORDER_STATUS_CANCELED,
+            "executed_amount": float(order_status['executedQty']),
+            "remaining_amount": float(order_status['origQty']) - float(order_status['executedQty']),
+            "original_amount": float(order_status['origQty']),
+            "order_id": order_status['orderId']
+        }
+
+    def get_order_book(self, pair=None):
+        return self._get_order_book(symbol=pair['pair'])
+
+    def normalize_order_book(self, order_book):
+        return {
+            'bids': [self.normalize_order(order) for order in order_book['bids']],
+            'asks': [self.normalize_order(order) for order in order_book['asks']]
+        }
 
     @staticmethod
-    def normalize_order_status(order_status):
+    def normalize_order(order):
         return {
-            "symbol": order_status['symbol'],
-            "order_id": order_status['orderId'],
-            "price": float(order_status['price']),
-            "original_amount":float(order_status['origQty']),
-            "executed_amount": float(order_status['executedQty']),
-            "status": "NEW",
-            "side": order_status['side'].upper(),
-            "time": 1499827319559
+            'price': order[0],
+            'amount': order[1]
         }
 
     def get_account_info(self):

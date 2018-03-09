@@ -294,16 +294,15 @@ class BittrexAPI(object):
 
     def normalize_order_book(self, order_book):
         return {
-            'buy': [self.normalize_order(order) for order in order_book['bids']],
-            'sell': [self.normalize_order(order) for order in order_book['asks']]
+            'bids': [self.normalize_order(order) for order in order_book['bids']],
+            'asks': [self.normalize_order(order) for order in order_book['asks']]
         }
 
     @staticmethod
     def normalize_order(order):
         return {
             'price': order['Rate'],
-            'amount': order['Quantity'],
-            'timestamp': time.time()
+            'amount': order['Quantity']
         }
 
     def get_account_info(self):
