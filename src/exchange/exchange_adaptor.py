@@ -223,7 +223,7 @@ class ExchangeAdaptor:
             log.error(e.error_msg)
             return None
 
-    def buy_limit(self, exchange, amount, base_coin='btc', mkt_coin=None):
+    def buy_limit(self, exchange, amount, price, pair=None):
         """
             buys the specified amount of the specified mkt_coin on a given exchange
         :param exchange:
@@ -233,7 +233,16 @@ class ExchangeAdaptor:
         :return:
         """
 
-    def sell_limit(self, exchange, amount, base_coin='btc', mkt_coin=None):
+        try:
+            ex = self.exchange_adaptors[exchange]()
+            self.rate_limiters[exchange].limit()
+            ticker = ex.buy_limit(amount, price, pair)
+            return ticker
+        except APIRequestError as e:
+            log.error(e.error_msg)
+            return None
+
+    def sell_limit(self, exchange, amount, price, pair=None):
         """
             sells the specified amount of the specified mkt_coin on a given exchange
         :param exchange:
@@ -242,26 +251,94 @@ class ExchangeAdaptor:
         :param mkt_coin:
         :return:
         """
+        try:
+            ex = self.exchange_adaptors[exchange]()
+            self.rate_limiters[exchange].limit()
+            ticker = ex.sell_limit(amount, price, pair)
+            return ticker
+        except APIRequestError as e:
+            log.error(e.error_msg)
+            return None
 
-    def get_order_status(self, exchange, order_id=None, base_coin=None, mkt_coin=None):
+    def cancel_order(self, exchange, order_id=None, pair=None):
+        """
+            cancels an existing order
+        :param exchange:
+        :param order_id:
+        :param pair:
+        :return:
+        """
+
+        try:
+            ex = self.exchange_adaptors[exchange]()
+            self.rate_limiters[exchange].limit()
+            ticker = ex.cancel_order(order_id, pair)
+            return ticker
+        except APIRequestError as e:
+            log.error(e.error_msg)
+            return None
+
+    def get_order_status(self, exchange, order_id=None, pair=None):
         """
             gets the orders status of a specified order_id on a given exchange
         :param exchange:
         :param order_id:
         :param base_coin:
         :param mkt_coin:
-        :return:
+        :return:    {
+                        "price": <price>,
+                        "side": <"bid" / "ask">,
+                        "is_live": true/false,
+                        "is_cancelled": true/false,
+                        "executed_amount": <executed_amount>,
+                        "remaining_amount": <remaining_amount>,
+                        "original_amount": <original_amount>,
+                        "order_id": <order_id>
+                    }
         """
+        try:
+            if pair is None:
+                raise APIRequestError(exchange, 'get_order_status', 'please specify a pair')
+            if order_id is None:
+                raise APIRequestError(exchange, 'get_order_status', 'please specify an order_id')
 
-    def get_order_book(self, exchange, base_coin='btc', mkt_coin=None, depth=None):
+            ex = self.exchange_adaptors[exchange]()
+            self.rate_limiters[exchange].limit()
+            order_status = ex.get_order_status(order_id=order_id, pair=pair)
+            return order_status
+        except APIRequestError as e:
+            log.error(e.error_msg)
+            return None
+
+    def get_order_book(self, exchange, pair=None, side=None):
         """
             gets the order book to a given depth for a specified pair on a given exchange
         :param exchange:
-        :param base_coin:
-        :param mkt_coin:
-        :param depth:
-        :return:
+        :param pair:
+        :param side:
+        :return: {  'bids': [
+                        {'price': <price>, 'amount': <amount>},
+                        {...}
+                    ],
+                    'asks': [
+                        {'price': <price>, 'amount': <amount>},
+                        {...}
+                    ],
+                }
         """
+        if side is None:
+            side = 'both'
+        try:
+            if pair is None:
+                raise APIRequestError('please specify a pair')
+
+            ex = self.exchange_adaptors[exchange]()
+            self.rate_limiters[exchange].limit()
+            order_book = ex.get_order_book(pair, side)
+            return order_book
+        except APIRequestError as e:
+            log.error(e.error_msg)
+            return None
 
     def get_account_info(self, exchange):
         """

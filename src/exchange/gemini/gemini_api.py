@@ -47,7 +47,7 @@ class GeminiAPI(object):
         """Send a request for latest ticker info, return the response."""
         url = self.base_url + '/v1/pubticker/' + symbol
 
-        return json.loads(requests.get(url).text)
+        return requests.get(url)
 
     def book(self, symbol='btcusd', limit_bids=0, limit_asks=0):
         """
@@ -148,7 +148,7 @@ class GeminiAPI(object):
 
         return requests.post(url, headers=self.prepare(params))
 
-    def cancel_order(self, order_id):
+    def _cancel_order(self, order_id):
         """
         Send a request to cancel an order, return the response.
 
@@ -292,7 +292,7 @@ class GeminiAPI(object):
 
     def get_nonce(self):
         """Return the current millisecond timestamp as the nonce."""
-        return int(round(time.time() * 1000))
+        return 0
 
     def prepare(self, params):
         """
@@ -313,21 +313,33 @@ class GeminiAPI(object):
                 'X-GEMINI-PAYLOAD': payload,
                 'X-GEMINI-SIGNATURE': signature}
 
-        #####################################################
-        #                                                   #
-        #   CC Functions                                    #
-        #                                                   #
-        #####################################################
+    #####################################################
+    #                                                   #
+    #   CC Functions                                    #
+    #                                                   #
+    #####################################################
+
+    @staticmethod
+    def throw_error(fn, err):
+        raise APIRequestError('gemini', fn, "gemini :: " + err['reason'] + " - " + err['message'])
+
+    #
+    # GET ACCOUNT BALANCES
+    #
 
     def get_account_balances(self, coin=None):
-        balances = self.balances()
-        if coin is None:
-            return [self.normalize_balance(balance) for balance in balances.json()]
+        res = self.balances()
+        res_json = res.json()
+        if res.status_code != 200:
+            self.throw_error('get_account_balances', res_json)
         else:
-            for bal in balances:
-                if bal['currency'].lower() == coin.lower():
-                    return self.normalize_balance(bal)
-            raise InvalidCoinError(coin + ' does not exist on Gemini')
+            if coin is None:
+                return [self.normalize_balance(balance) for balance in res_json]
+            else:
+                for bal in res:
+                    if bal['currency'].lower() == coin.lower():
+                        return self.normalize_balance(bal)
+                raise InvalidCoinError(coin + ' does not exist on Gemini')
 
     @staticmethod
     def normalize_balance(balance):
@@ -337,12 +349,17 @@ class GeminiAPI(object):
             'address': None
         }
 
-    def get_historical_rate(self, pair, timestamp=None, interval='1m'):
-        raise APIDoesNotExistError('gemini', 'get_historical_rate')
+    #
+    # GET HISTORICAL TRADES
+    #
 
     def get_historical_trades(self, pair=None):
-        trades = self._get_historical_trades(symbol=pair['pair'], limit_trades=500)
-        return [{**self.normalize_trade(trade), **pair} for trade in trades.json()]
+        res = self._get_historical_trades(symbol=pair['pair'], limit_trades=500)
+        res_json = res.json()
+        if res.status_code != 200:
+            self.throw_error('get_historical_trades', res_json)
+        else:
+            return [{**self.normalize_trade(trade), **pair} for trade in res_json]
 
     @staticmethod
     def normalize_trade(trade):
@@ -365,14 +382,17 @@ class GeminiAPI(object):
             'commish_asset': None
         }
 
-    def get_historical_tickers(self, start_time=None, end_time=None, interval='1m'):
-        raise APIDoesNotExistError('gemini', 'get_historical_tickers')
+    #
+    # GET PAIR TICKER
+    #
 
-    def get_current_tickers(self):
-        return self.pubticker()
-
-    def get_current_pair_ticker(self, pair=None):
-        return self.normalize_ticker(self.pubticker(pair['pair']), pair)
+    def get_current_pair_ticker(self, pair):
+        res = self.pubticker(symbol=pair['pair'])
+        res_json = res.json()
+        if res.status_code != 200:
+            self.throw_error('get_current_pair_ticker', res_json)
+        else:
+            return self.normalize_ticker(res_json, pair)
 
     @staticmethod
     def normalize_ticker(tick, pair):
@@ -386,8 +406,9 @@ class GeminiAPI(object):
             **pair
         }
 
-    def order_limit(self, amount, price, side, pair):
-        return self.new_order(self, amount, price, side, symbol=pair['pair'], type='exchange limit')
+    #
+    # PLACE ORDER
+    #
 
     def buy_limit(self, amount, price, pair):
         return self.order_limit(amount, price, 'buy', pair['pair'])
@@ -395,10 +416,71 @@ class GeminiAPI(object):
     def sell_limit(self, amount, price, pair):
         return self.order_limit(amount, price, 'sell', pair['pair'])
 
+    def order_limit(self, amount, price, side, pair):
+        res = self.new_order(self, amount, price, side, symbol=pair['pair'], type='exchange limit')
+        res_json = res.json()
+        if res.status_code != 200:
+            self.throw_error('order_limit_' + side, res_json)
+        else:
+            return self.normalize_order(res_json)
+
+    @staticmethod
+    def normalize_order_resp(order_resp):
+        return {
+            "order_id": order_resp['order_id'],
+            "pair": order_resp['symbol'],
+            "price": order_resp['price'],
+            "avg_price": order_resp['avg_execution_price'],
+            "side": order_resp['side'],
+            "type": order_resp['type'],
+            "timestampms": order_resp['timestampms'],
+            "is_live": order_resp['is_live'],
+            "is_cancelled": order_resp['is_cancelled'],
+            'executed_amount': order_resp['executed_amount'],
+            'remaining_amount': order_resp['remaining_amount'],
+            'original_amount': order_resp['original_amount']
+        }
+
+    #
+    # CANCEL ORDER
+    #
+
+    def cancel_order(self, order_id):
+        res = self._cancel_order(order_id)
+        res_json = res.json()
+        if res.status_code != 200:
+            self.throw_error('cancel_order', res_json)
+        else:
+            return self.normalize_cancel_order(res_json)
+
+    @staticmethod
+    def normalize_cancel_order(cancelled_order):
+        return {
+            "order_id": cancelled_order['order_id'],
+            "pair": cancelled_order['symbol'],
+            "price": cancelled_order['price'],
+            "avg_price": cancelled_order['avg_execution_price'],
+            "side": cancelled_order['side'],
+            "type": cancelled_order['type'],
+            "timestampms": cancelled_order['timestampms'],
+            "is_live": cancelled_order['is_live'],
+            "is_cancelled": cancelled_order['is_cancelled'],
+            'executed_amount': cancelled_order['executed_amount'],
+            'remaining_amount': cancelled_order['remaining_amount'],
+            'original_amount': cancelled_order['original_amount']
+        }
+
+    #
+    # GET ORDER STATUS
+    #
+
     def get_order_status(self, order_id=None):
-        if order_id is None:
-            raise APIRequestError('please specify an order_id')
-        return self.normalize_order_status(self.order_status(order_id).json())
+        res = self.order_status(order_id)
+        res_json = res.json()
+        if res.status_code != 200:
+            self.throw_error('get_order_status', res_json)
+        else:
+            return self.normalize_order_status(res_json)
 
     @staticmethod
     def normalize_order_status(order_status):
@@ -413,10 +495,17 @@ class GeminiAPI(object):
             'order_id': order_status['order_id']
         }
 
-    def get_order_book(self, pair=None):
-        if pair is None:
-            raise APIRequestError('please specify an pair')
-        return self.normalize_order_book(self.book(pair['pair']).json())
+    #
+    # GET ORDER BOOK
+    #
+
+    def get_order_book(self, pair):
+        res = self.book(pair['pair'])
+        res_json = res.json()
+        if res.status_code != 200:
+            self.throw_error('get_order_book', res_json)
+        else:
+            return self.normalize_order_book(res_json)
 
     def normalize_order_book(self, order_book):
         return {
@@ -431,15 +520,17 @@ class GeminiAPI(object):
             'amount': order['amount']
         }
 
-    # def get_account_info(self):
-    #     raise APIDoesNotExistError('gemini', 'get_account_info')
     #
-    # def initiate_withdrawal(self, coin, dest_addr):
-    #     raise APIDoesNotExistError('gemini', 'initiate_withdrawal')
+    # GET EXCHANGE PAIRS
+    #
 
     def get_exchange_pairs(self):
-        symbols = self.symbols()
-        return [self.normalize_exchange_pair(sym) for sym in symbols.json()]
+        res = self.symbols()
+        res_json = res.json()
+        if res.status_code != 200:
+            self.throw_error('get_exchange_pairs', res_json)
+        else:
+            return [self.normalize_exchange_pair(sym) for sym in res_json]
 
     @staticmethod
     def normalize_exchange_pair(pair):
@@ -449,3 +540,17 @@ class GeminiAPI(object):
             'base_coin': pair[3:],
             'mkt_coin': pair[:3]
         }
+
+    # TODO, get_historical_rate, get_historical_tickers, get_account_info, initiate_withdrawal
+
+    # def get_historical_rate(self, pair, timestamp=None, interval='1m'):
+    #     raise APIDoesNotExistError('gemini', 'get_historical_rate')
+    #
+    # def get_historical_tickers(self, start_time=None, end_time=None, interval='1m'):
+    #     raise APIDoesNotExistError('gemini', 'get_historical_tickers')
+    #
+    # def get_account_info(self):
+    #     raise APIDoesNotExistError('gemini', 'get_account_info')
+    #
+    # def initiate_withdrawal(self, coin, dest_addr):
+    #     raise APIDoesNotExistError('gemini', 'initiate_withdrawal')

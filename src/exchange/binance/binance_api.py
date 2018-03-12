@@ -1251,7 +1251,7 @@ class BinanceAPI(object):
         """
         return self._get('allOrders', True, data=params)
 
-    def cancel_order(self, **params):
+    def _cancel_order(self, **params):
         """Cancel an active order. Either orderId or origClientOrderId must be sent.
 
         https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md#cancel-order-trade
@@ -1763,11 +1763,14 @@ class BinanceAPI(object):
     def sell_limit(self, amount, price, pair):
         return self.order_limit_sell(symbol=pair['pair'], quantity=amount, price=price)
 
-    def get_order_status(self, order_id=None, pair=None):
-        if pair is None:
-            raise APIRequestError('please specify a pair')
-        if order_id is None:
-            raise APIRequestError('please specify an order_id')
+    def cancel_order(self, order_id, pair):
+        return self.normalize_cancel_orderf(self._cancel_order(symbol=order_id, orderId=pair['pair']))
+
+    @staticmethod
+    def normalize_cancel_orderf(cancelled_order):
+        return cancelled_order
+
+    def get_order_status(self, order_id, pair):
         return self.normalize_order_status(self.get_order(symbol=pair['pair'], orderId=order_id))
 
     def normalize_order_status(self, order_status):
@@ -1782,7 +1785,7 @@ class BinanceAPI(object):
             "order_id": order_status['orderId']
         }
 
-    def get_order_book(self, pair=None):
+    def get_order_book(self, pair, side=None):
         return self._get_order_book(symbol=pair['pair'])
 
     def normalize_order_book(self, order_book):

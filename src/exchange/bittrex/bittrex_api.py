@@ -269,9 +269,14 @@ class BittrexAPI(object):
     def sell_limit(self, amount, price, pair):
         return self.selllimit(pair['pair'], amount, price)
 
+    def cancel_order(self, order_id, pair):
+        return self.normalize_cancel_order(self.cancel(order_id))
+
+    @staticmethod
+    def normalize_cancel_order(cancelled_order):
+        return cancelled_order
+
     def get_order_status(self, order_id=None):
-        if order_id is None:
-            raise APIRequestError('please specify an order_id')
         return self.normalize_order_status(self.getorder(order_id).json())
 
     @staticmethod
@@ -287,10 +292,8 @@ class BittrexAPI(object):
             'order_id': order_status['OrderUuid']
         }
 
-    def get_order_book(self, pair):
-        if pair is None:
-            raise APIRequestError('please specify an pair')
-        return self.normalize_order_book(self.getorderbook(pair['pair']).json())
+    def get_order_book(self, pair, side=None):
+        return self.normalize_order_book(self.getorderbook(pair['pair'], side).json())
 
     def normalize_order_book(self, order_book):
         return {
