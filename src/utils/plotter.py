@@ -10,7 +10,8 @@ class Plotter:
             'BollingerBands': self.plot_bb,
             'StochasticRSI': self.plot_stochastic_rsi,
             'WilliamsPct': self.plot_w_pct,
-            'VolumeOSC': self.plot_vol_osc
+            'VolumeOSC': self.plot_vol_osc,
+            'MACD': self.plot_macd
         }
         self.num_non_overlayed_indicators = 0
         self.plots = {}
@@ -101,3 +102,12 @@ class Plotter:
         subplot.plot(time_series, pvo)
         subplot.plot(time_series, pvo_ema)
         # subplot.bar(time_series, volume)
+
+    def plot_macd(self, mkt_data, time_series, subplot):
+        subplot.set_xlabel('Time')
+        subplot.set_ylabel('MACD')
+        subplot.axes.axes.xaxis.major.formatter = self.date_formatter
+        macd = mkt_data[:]['MACD']
+        macd_sign = mkt_data[:]['MACD_sign']
+        subplot.plot(time_series, macd)
+        subplot.plot(time_series, macd_sign)

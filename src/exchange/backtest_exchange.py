@@ -35,9 +35,9 @@ class BacktestExchange:
                 'balance': 0.0,
                 'available': 0.0,
                 'pending': 0.0,
-                'cryptoaddress': hashlib.sha1(currency).hexdigest(),
+                'cryptoaddress': hashlib.sha1(currency.encode()).hexdigest(),
                 'requested': False,
-                'uuid': hashlib.sha1(currency + 'uuid').hexdigest()
+                'uuid': hashlib.sha1((currency + 'uuid').encode()).hexdigest()
             })
             balances[currency] = balance
         balances['BTC']['balance'] = 20.0

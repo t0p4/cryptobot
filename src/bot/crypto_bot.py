@@ -51,7 +51,7 @@ class CryptoBot:
         self.markets_to_watch = []
         self.balances = self.get_balances()
         self.accounts = []
-        self.tick = 1
+        self.tick = 0
         self.major_tick = 0
         self.reporter = Reporter()
         self.plotter = Plotter()
@@ -96,7 +96,7 @@ class CryptoBot:
 
     def run_test(self):
         log.info('* * * ! * * * BEGIN TEST RUN * * * ! * * *')
-        while self.tick < 2600:
+        while self.tick < 1970:
             # if self.tick == 10:
             #     self.enable_volume_threshold()
             self.tick_step()
@@ -139,7 +139,7 @@ class CryptoBot:
         self.compress_tickers()
         for strat in self.strats:
             log.info(strat.name + ' :: handle_data')
-            for mkt_name, mkt_data in self.compressed_summary_tickers.iteritems():
+            for mkt_name, mkt_data in self.compressed_summary_tickers.items():
                 self.compressed_summary_tickers[mkt_name] = strat.handle_data(mkt_data, mkt_name)
         self.generate_report()
         end = datetime.datetime.now()
@@ -147,13 +147,13 @@ class CryptoBot:
 
     def compress_tickers(self):
         start = datetime.datetime.now()
-        for mkt_name, mkt_data in self.summary_tickers.iteritems():
+        for mkt_name, mkt_data in self.summary_tickers.items():
             # tail = mkt_data.tail(MAJOR_TICK_SIZE).reset_index(drop=True)
             # mkt_data = mkt_data.drop(mkt_data.index[-MAJOR_TICK_SIZE:])
             agg_funcs = {'bid': ['last'], 'last': ['last'], 'ask': ['last'], 'marketname': ['last'], 'volume': ['sum']}
             if BACKTESTING:
                 agg_funcs['saved_timestamp'] = ['last']
-            mkt_data = mkt_data.groupby(mkt_data.index / MAJOR_TICK_SIZE).agg(agg_funcs)
+            mkt_data = mkt_data.groupby('marketname').agg(agg_funcs)
             mkt_data.columns = mkt_data.columns.droplevel(1)
             self.compressed_summary_tickers[mkt_name] = self.compressed_summary_tickers[mkt_name].append(mkt_data, ignore_index=True)
             self.summary_tickers[mkt_name] = pd.DataFrame()
@@ -162,7 +162,7 @@ class CryptoBot:
 
     def enable_volume_threshold(self):
         log.info('* * * ! * * * VOLUME THRESHOLD ENABLED * * * ! * * *')
-        for mkt_name, mkt_data in self.compressed_summary_tickers.iteritems():
+        for mkt_name, mkt_data in self.compressed_summary_tickers.items():
             currency = mkt_name.split('-')[1]
             if not self.check_volume_threshold(mkt_data, mkt_name) and currency in self.active_currencies:
                 del self.active_currencies[currency]
@@ -295,7 +295,7 @@ class CryptoBot:
             num_coins = self.calculate_num_coins(market, order_type, quantity)
             rate = self.calculate_order_rate(market, order_type, num_coins, ORDER_BOOK_DEPTH)
             trade_resp = self.trade_functions[order_type](market, num_coins, rate)
-            if trade_resp and not isinstance(trade_resp, basestring):
+            if trade_resp and not isinstance(trade_resp, str):
                 self.trade_success(order_type, market, num_coins, rate, trade_resp['uuid'])
                 return trade_resp
             else:
@@ -526,7 +526,7 @@ class CryptoBot:
                 self.trade_instant('sell', mkt_name, 1)
 
     def plot_market_data(self):
-        for market, trades in self.completed_trades.iteritems():
+        for market, trades in self.completed_trades.items():
             self.plotter.plot_market(market, self.compressed_summary_tickers[market], trades, self.strats)
 
     def generate_report(self):

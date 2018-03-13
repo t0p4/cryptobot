@@ -53,7 +53,7 @@ class Reporter:
         report_body = ""
         report_images = []
         if something_to_report:
-            for mkt_name, action_data in market_action_data.iteritems():
+            for mkt_name, action_data in market_action_data.items():
                 if len(action_data['strat_data']) > 0:
                     mkt_report = self.create_mkt_report(mkt_name, action_data)
                     report_body = report_body + "\n" + mkt_report
