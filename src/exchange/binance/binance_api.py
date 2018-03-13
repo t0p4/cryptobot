@@ -1686,13 +1686,24 @@ class BinanceAPI(object):
         #                                                   #
         #####################################################
 
+    @staticmethod
+    def throw_error(fn, err):
+        raise APIRequestError('binance', fn, err)
+
+    #
+    # GET ACCOUNT BALANCES
+    #
+
     def get_account_balances(self, coin=None):
-        if coin is None:
-            balances = self.get_account()
-            return [self.normalize_balance(balance) for balance in balances['balances']]
-        else:
-            balances = self.get_asset_balance(asset=coin)
-            return self.normalize_balance(balances)
+        try:
+            if coin is None:
+                balances = self.get_account()
+                return [self.normalize_balance(balance) for balance in balances['balances']]
+            else:
+                balances = self.get_asset_balance(asset=coin)
+                return self.normalize_balance(balances)
+        except (BinanceAPIException, BinanceRequestException) as e:
+            self.throw_error('get_account_balances', e.__str__())
 
     @staticmethod
     def normalize_balance(balance):
@@ -1702,14 +1713,16 @@ class BinanceAPI(object):
             'address': None
         }
 
-    def get_historical_rate(self, pair, timestamp=None, interval='1m'):
-        raise APIDoesNotExistError('binance', 'get_historical_rate')
+    #
+    # GET HISTORICAL TRADES
+    #
 
-    def get_historical_trades(self, pair=None):
-        if pair is None:
-            raise APIRequestError('please specify a pair')
-        trades = self.get_my_trades(symbol=pair['pair'])
-        return [{**self.normalize_trade(trade), **pair} for trade in trades]
+    def get_historical_trades(self, pair):
+        try:
+            trades = self.get_my_trades(symbol=pair['pair'])
+            return [{**self.normalize_trade(trade), **pair} for trade in trades]
+        except (BinanceAPIException, BinanceRequestException) as e:
+            self.throw_error('get_account_balances', e.__str__())
 
     @staticmethod
     def normalize_trade(trade):
@@ -1736,14 +1749,15 @@ class BinanceAPI(object):
             'commish_asset': trade['commissionAsset']
         }
 
-    def get_historical_tickers(self, start_time=None, end_time=None, interval='1m'):
-        raise APIDoesNotExistError('binance', 'get_historical_tickers')
+    #
+    # GET PAIR TICKER
+    #
 
-    def get_current_tickers(self):
-        raise APIDoesNotExistError('binance', 'get_current_tickers')
-
-    def get_current_pair_ticker(self, pair=None):
-        return self.normalize_ticker(self.get_ticker(symbol=pair['pair']), pair)
+    def get_current_pair_ticker(self, pair):
+        try:
+            return self.normalize_ticker(self.get_ticker(symbol=pair['pair']), pair)
+        except (BinanceAPIException, BinanceRequestException) as e:
+            self.throw_error('get_account_balances', e.__str__())
 
     @staticmethod
     def normalize_ticker(tick, pair):
@@ -1757,21 +1771,63 @@ class BinanceAPI(object):
             **pair
         }
 
+    #
+    # PLACE ORDER
+    #
+
     def buy_limit(self, amount, price, pair):
-        return self.order_limit_buy(symbol=pair['pair'], quantity=amount, price=price)
+        try:
+            return self.order_limit_buy(symbol=pair['pair'], quantity=amount, price=price)
+        except (BinanceAPIException, BinanceRequestException) as e:
+            self.throw_error('get_account_balances', e.__str__())
 
     def sell_limit(self, amount, price, pair):
-        return self.order_limit_sell(symbol=pair['pair'], quantity=amount, price=price)
+        try:
+            return self.order_limit_sell(symbol=pair['pair'], quantity=amount, price=price)
+        except (BinanceAPIException, BinanceRequestException) as e:
+            self.throw_error('get_account_balances', e.__str__())
+
+    def normalize_order_resp(self, order_data):
+        return {
+            "order_id": order_data['orderId'],
+            "pair": order_data['symbol'],
+            "price": order_data['price'],
+            "timestampms": order_data['transactTime'],
+            "original_amount": order_data['origQty'],
+            "executed_amount": order_data['executedQty'],
+            "remaining_amount": order_data['origQty'] - order_data['executedQty'],
+            "is_live": order_data['status'] in (self.ORDER_STATUS_NEW, self.ORDER_STATUS_PARTIALLY_FILLED),
+            "is_cancelled": order_data['status'] in (self.ORDER_STATUS_CANCELED, self.ORDER_STATUS_PENDING_CANCEL),
+            "type": order_data['type'],
+            "side": order_data['side'].lower()
+        }
+
+    #
+    # CANCEL ORDER
+    #
 
     def cancel_order(self, order_id, pair):
-        return self.normalize_cancel_orderf(self._cancel_order(symbol=order_id, orderId=pair['pair']))
+        try:
+            return self.normalize_cancel_order(self._cancel_order(symbol=order_id, orderId=pair['pair']))
+        except (BinanceAPIException, BinanceRequestException) as e:
+            self.throw_error('get_account_balances', e.__str__())
 
     @staticmethod
-    def normalize_cancel_orderf(cancelled_order):
-        return cancelled_order
+    def normalize_cancel_order(cancelled_order):
+        return {
+          "pair": cancelled_order['symbol'],
+          "orderId": cancelled_order['orderId']
+        }
+
+    #
+    # GET ORDER STATUS
+    #
 
     def get_order_status(self, order_id, pair):
-        return self.normalize_order_status(self.get_order(symbol=pair['pair'], orderId=order_id))
+        try:
+            return self.normalize_order_status(self.get_order(symbol=pair['pair'], orderId=order_id))
+        except (BinanceAPIException, BinanceRequestException) as e:
+            self.throw_error('get_account_balances', e.__str__())
 
     def normalize_order_status(self, order_status):
         return {
@@ -1785,8 +1841,15 @@ class BinanceAPI(object):
             "order_id": order_status['orderId']
         }
 
-    def get_order_book(self, pair, side=None):
-        return self._get_order_book(symbol=pair['pair'])
+    #
+    # GET ORDER BOOK
+    #
+
+    def get_order_book(self, pair):
+        try:
+            return self._get_order_book(symbol=pair['pair'])
+        except (BinanceAPIException, BinanceRequestException) as e:
+            self.throw_error('get_account_balances', e.__str__())
 
     def normalize_order_book(self, order_book):
         return {
@@ -1801,15 +1864,16 @@ class BinanceAPI(object):
             'amount': order[1]
         }
 
-    def get_account_info(self):
-        raise APIDoesNotExistError('binance', 'get_account_info')
-
-    def initiate_withdrawal(self, coin, dest_addr):
-        raise APIDoesNotExistError('binance', 'initiate_withdrawal')
+    #
+    # GET EXCHANGE PAIRS
+    #
 
     def get_exchange_pairs(self):
-        e_info = self.get_exchange_info()
-        return [self.normalize_exchange_pair(pair) for pair in e_info['symbols']]
+        try:
+            e_info = self.get_exchange_info()
+            return [self.normalize_exchange_pair(pair) for pair in e_info['symbols']]
+        except (BinanceAPIException, BinanceRequestException) as e:
+            self.throw_error('get_account_balances', e.__str__())
 
     @staticmethod
     def normalize_exchange_pair(pair):
@@ -1818,3 +1882,20 @@ class BinanceAPI(object):
             'base_coin': pair['quoteAsset'],
             'mkt_coin': pair['baseAsset']
         }
+
+    # TODO, get_historical_rate, get_account_info, initiate_withdrawal, get_historical_tickers, get_current_tickers
+
+    # def get_historical_rate(self, pair, timestamp=None, interval='1m'):
+    #     raise APIDoesNotExistError('binance', 'get_historical_rate')
+    #
+    # def get_account_info(self):
+    #     raise APIDoesNotExistError('binance', 'get_account_info')
+    #
+    # def initiate_withdrawal(self, coin, dest_addr):
+    #     raise APIDoesNotExistError('binance', 'initiate_withdrawal')
+    #
+    # def get_historical_tickers(self, start_time=None, end_time=None, interval='1m'):
+    #     raise APIDoesNotExistError('binance', 'get_historical_tickers')
+    #
+    # def get_current_tickers(self):
+    #     raise APIDoesNotExistError('binance', 'get_current_tickers')
