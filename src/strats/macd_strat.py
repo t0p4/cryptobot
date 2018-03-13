@@ -18,11 +18,9 @@ class MACDStrat(BaseStrategy):
             mkt_data = self.calc_macd(mkt_data)
             tail = mkt_data.tail(2)
 
-            # buy = tail['MACD'].values[1] >= tail['MACD_sign'].values[1] and tail['MACD'].values[0] < tail['MACD_sign'].values[0]
-            # sell = tail['MACD'].values[1] < tail['MACD_sign'].values[1] and tail['MACD'].values[0] >= tail['MACD_sign'].values[0]
+            buy = tail['MACD'].values[1] >= tail['MACD_sign'].values[1] and tail['MACD'].values[0] < tail['MACD_sign'].values[0]
+            sell = tail['MACD'].values[1] < tail['MACD_sign'].values[1] and tail['MACD'].values[0] >= tail['MACD_sign'].values[0]
 
-            buy = len(mkt_data) % 20 == 0
-            sell = len(mkt_data) % 37 == 0
             self._set_positions(buy, sell, mkt_name)
 
         return mkt_data
@@ -35,7 +33,6 @@ class MACDStrat(BaseStrategy):
         df = df.drop(df.index[-1:])
 
         # calculate stats
-        # tail[['MACD', 'emaSlw', 'emaFst']] = df[self.stat_key].apply(self.moving_average_convergence)
         tail[['MACD', 'emaSlw', 'emaFst']] = self.moving_average_convergence(tail['last'])
         tail['MACD_sign'] = self.moving_average(tail['MACD'])
 
