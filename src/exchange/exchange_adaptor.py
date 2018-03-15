@@ -207,7 +207,7 @@ class ExchangeAdaptor:
         :return:
         """
 
-    def get_current_pair_ticker(self, exchange, pair):
+    def get_current_pair_ticker(self, exchange, pair=None):
         """
             gets the most recent ticker data for a specified pair on a given exchange
         :param exchange:
@@ -215,6 +215,8 @@ class ExchangeAdaptor:
         :return:
         """
         try:
+            if pair is None:
+                raise APIRequestError(exchange, 'get_order_status', 'please specify a pair')
             ex = self.exchange_adaptors[exchange]()
             self.rate_limiters[exchange].limit()
             ticker = ex.get_current_pair_ticker(pair)
@@ -229,17 +231,23 @@ class ExchangeAdaptor:
             log.error(e.error_msg)
             return None
 
-    def buy_limit(self, exchange, amount, price, pair=None):
+    def buy_limit(self, exchange, amount=None, price=None, pair=None):
         """
             buys the specified amount of the specified mkt_coin on a given exchange
         :param exchange:
         :param amount:
-        :param base_coin:
-        :param mkt_coin:
+        :param price:
+        :param pair:
         :return:
         """
 
         try:
+            if pair is None:
+                raise APIRequestError(exchange, 'get_order_status', 'pair missing')
+            if amount is None:
+                raise APIRequestError(exchange, 'get_order_status', 'amount missing')
+            if price is None:
+                raise APIRequestError(exchange, 'get_order_status', 'price missing')
             ex = self.exchange_adaptors[exchange]()
             self.rate_limiters[exchange].limit()
             ticker = ex.buy_limit(amount, price, pair)
@@ -248,16 +256,22 @@ class ExchangeAdaptor:
             log.error(e.error_msg)
             return None
 
-    def sell_limit(self, exchange, amount, price, pair=None):
+    def sell_limit(self, exchange, amount=None, price=None, pair=None):
         """
             sells the specified amount of the specified mkt_coin on a given exchange
         :param exchange:
         :param amount:
-        :param base_coin:
-        :param mkt_coin:
+        :param price:
+        :param pair:
         :return:
         """
         try:
+            if pair is None:
+                raise APIRequestError(exchange, 'get_order_status', 'pair missing')
+            if amount is None:
+                raise APIRequestError(exchange, 'get_order_status', 'amount missing')
+            if price is None:
+                raise APIRequestError(exchange, 'get_order_status', 'price missing')
             ex = self.exchange_adaptors[exchange]()
             self.rate_limiters[exchange].limit()
             ticker = ex.sell_limit(amount, price, pair)
@@ -321,7 +335,7 @@ class ExchangeAdaptor:
             gets the order book to a given depth for a specified pair on a given exchange
         :param exchange:
         :param pair:
-        :param side:
+        :param side: <bids / asks>
         :return: {  'bids': [
                         {'price': <price>, 'amount': <amount>},
                         {...}

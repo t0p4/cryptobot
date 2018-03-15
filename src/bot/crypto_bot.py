@@ -36,7 +36,7 @@ class CryptoBot:
         self.ex = ExchangeAdaptor()
         self.strats = strats
         self.btrx = exchange
-        self.trade_functions = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
+        self.trade_functions = {'buy': self.buy_limit, 'sell': self.sell_limit}
         self.base_coins = ['btc']
         # self.tradeable_markets = self.init_tradeable_markets()
         self.active_currencies = {}
@@ -235,7 +235,6 @@ class CryptoBot:
                 sleep(sleep_for.seconds)
                 self.rate_limiter_reset()
 
-
     ## TICKER ##
 
     def increment_minor_tick(self):
@@ -247,50 +246,55 @@ class CryptoBot:
     def check_major_tick(self):
         return (self.tick % MAJOR_TICK_SIZE) == 0
 
-
     ## MARKET ##
 
-    def get_market_summaries(self):
-        log.debug('{BOT} == GET market summaries ==')
-        try:
-            market_summaries = self.btrx.getmarketsummaries()
-            return market_summaries
-        except MissingTickError:
-            self.increment_minor_tick()
-            return self.get_market_summaries()
+    # def get_market_summaries(self):
+    #     log.debug('{BOT} == GET market summaries ==')
+    #     try:
+    #         market_summaries = self.btrx.getmarketsummaries()
+    #         return market_summaries
+    #     except MissingTickError:
+    #         self.increment_minor_tick()
+    #         return self.get_market_summaries()
+    #
+    # def get_market_history(self, market):
+    #     log.debug('{BOT} == GET market history ==')
+    #     return self.btrx.getmarkethistory(market)
 
-    def get_market_history(self, market):
-        log.debug('{BOT} == GET market history ==')
-        return self.btrx.getmarkethistory(market)
+    # def get_order_book(self, market, order_type, depth):
+    #     log.debug('{BOT} == GET order book ==')
+    #     return self.btrx.getorderbook(market, order_type, depth)
 
-    def get_order_book(self, market, order_type, depth):
-        log.debug('{BOT} == GET order book ==')
-        return self.btrx.getorderbook(market, order_type, depth)
+    # def get_ticker(self, market):
+    #     log.debug('{BOT} == GET ticker ==')
+    #     return self.btrx.getticker(market)
 
-    def get_ticker(self, market):
-        log.debug('{BOT} == GET ticker ==')
-        return self.btrx.getticker(market)
+    # def get_pairs(self):
+    #     log.debug('{BOT} == GET markets ==')
+    #     # return self.btrx.getmarkets(self.base_coins)
+    #     return self.ex.get_exchange_pairs(self.exchange)
 
-    def get_pairs(self):
-        log.debug('{BOT} == GET markets ==')
-        # return self.btrx.getmarkets(self.base_coins)
-        return self.ex.get_exchange_pairs(self.exchange)
-
-    def get_currencies(self):
-        log.debug('{BOT} == GET currencies ==')
-        return self.btrx.getcurrencies()
+    # def get_currencies(self):
+    #     log.debug('{BOT} == GET currencies ==')
+    #     return self.btrx.getcurrencies()
 
     # NEW MARKET #
+
     def get_exchange_pairs(self):
+        log.debug('{BOT} == GET exchange pairs ==')
         return self.ex.get_exchange_pairs(self.exchange)
 
     def get_current_pair_ticker(self, pair):
+        log.debug('{BOT} == GET current pair ticker ==')
         return self.ex.get_current_pair_ticker(self.exchange, pair)
 
+    def get_order_book(self, pair, side):
+        log.debug('{BOT} == GET order book ==')
+        return self.ex.get_order_book(self.exchange, pair=pair, side=side)
 
     ## ORDERS ##
 
-    def calculate_num_coins(self, market, order_type, quantity):
+    def calculate_num_coins(self, pair, order_type, quantity):
         """Calculates the QUANTITY for a trade
             -   if the order_type is 'buy', input parameter quantity is an amount of the base_currency to spend
             -   if the order_type is 'sell', inpute parameter quantity is a pct of the market_currency to sell
@@ -299,20 +303,20 @@ class CryptoBot:
             base currency for a 'buy' order
         """
         if order_type == 'buy':
-            coin = market[:3]
-            balance = self.get_balance(coin)
-            rate = self.compressed_tickers[market].loc[0, 'last']
+            base_coin = pair['base_coin']
+            balance = self.get_balance(base_coin)
+            rate = self.compressed_tickers[pair['pair']].loc[0, 'last']
             if balance['balance'] >= quantity:
                 return round(quantity / rate, 8)
             else:
-                msg = 'Not enough ' + coin + ' to complete this trade'
-                raise InsufficientFundsError(balance, market, quantity, rate, msg)
+                msg = 'Not enough ' + base_coin + ' to complete this trade'
+                raise InsufficientFundsError(balance, pair['base_coin'], quantity, rate, msg)
         else:
-            coin = market[4:]
-            balance = self.get_balance(coin)
+            mkt_coin = pair['mkt_coin']
+            balance = self.get_balance(mkt_coin)
             return round(balance['balance'] * quantity, 8)
 
-    def calculate_order_rate(self, market, order_type, quantity, order_book_depth=20):
+    def calculate_order_rate(self, pair, order_type, quantity, order_book_depth=20):
         """Calculates the RATE for a trade
 
             gets the order_book for the desired market and adds up the available coins within
@@ -320,12 +324,12 @@ class CryptoBot:
             for the integrated quantity of open orders in the specified book.
         """
         if order_type == 'buy':
-            book_type = 'sell'
+            book_type = 'asks'
         elif order_type == 'sell':
-            book_type = 'buy'
+            book_type = 'bids'
         else:
             book_type = 'both'
-        order_book = self.get_order_book(market, book_type, order_book_depth)
+        order_book = self.get_order_book(pair, book_type)
         current_total = 0
         rate = 0
         # calculate an instant price
@@ -335,6 +339,12 @@ class CryptoBot:
             if current_total >= quantity:
                 break
         return rate
+
+    def buy_limit(self, amount, price, pair):
+        return self.ex.buy_limit(self.exchange, amount=amount, price=price, pair=pair)
+
+    def sell_limit(self, amount, price, pair):
+        return self.ex.sell_limit(self.exchange, amount=amount, price=price, pair=pair)
 
     def buy_instant(self, market, quantity):
         log.debug('{BOT} == BUY instant ==')
@@ -349,7 +359,7 @@ class CryptoBot:
         try:
             num_coins = self.calculate_num_coins(market, order_type, quantity)
             rate = self.calculate_order_rate(market, order_type, num_coins, ORDER_BOOK_DEPTH)
-            trade_resp = self.trade_functions[order_type](market, num_coins, rate)
+            trade_resp = self.trade_functions[order_type](num_coins, rate, market)
             if trade_resp and not isinstance(trade_resp, str):
                 self.trade_success(order_type, market, num_coins, rate, trade_resp['uuid'])
                 return trade_resp

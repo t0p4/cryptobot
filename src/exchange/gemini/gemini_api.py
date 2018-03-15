@@ -499,13 +499,17 @@ class GeminiAPI(object):
     # GET ORDER BOOK
     #
 
-    def get_order_book(self, pair):
+    def get_order_book(self, pair, side):
         res = self.book(pair['pair'])
         res_json = res.json()
         if res.status_code != 200:
             self.throw_error('get_order_book', res_json)
         else:
-            return self.normalize_order_book(res_json)
+            book = self.normalize_order_book(res_json)
+            if side == 'both':
+                return book
+            else:
+                return book[side]
 
     def normalize_order_book(self, order_book):
         return {
