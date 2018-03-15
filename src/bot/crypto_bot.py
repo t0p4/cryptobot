@@ -7,11 +7,12 @@ from time import sleep
 import pandas as pd
 from bs4 import BeautifulSoup
 from src.db.psql import PostgresConnection
-from src.utils.utils import is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index, calculate_base_currency_volume
+from src.utils.utils import is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index, calculate_base_currency_volume, is_valid_pair
 from src.utils.logger import Logger
 from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsError, MixedTradeError, MissingTickError
 from src.utils.reporter import Reporter
 from src.utils.plotter import Plotter
+from src.exchange.exchange_adaptor import ExchangeAdaptor
 
 MAX_CURRENCY_PER_BUY = {
     'BTC': .2,
@@ -32,11 +33,12 @@ class CryptoBot:
     def __init__(self, strats, exchange):
         log.info('Initializing bot...')
         self.psql = PostgresConnection()
+        self.ex = ExchangeAdaptor()
         self.strats = strats
         self.btrx = exchange
         self.trade_functions = {'buy': self.btrx.buylimit, 'sell': self.btrx.selllimit}
-        self.base_currencies = os.getenv('BASE_CURRENCIES', 'BTC,ETH').split(',')
-        self.tradeable_markets = self.init_tradeable_markets()
+        self.base_coins = ['btc']
+        # self.tradeable_markets = self.init_tradeable_markets()
         self.active_currencies = {}
         self.tradeable_currencies = dict((m[4:], True) for m in os.getenv('TRADEABLE_MARKETS', 'BTC-LTC').split(','))
         self.volume_thresholds = {'BTC': 5000, 'ETH': 50000}
@@ -44,43 +46,74 @@ class CryptoBot:
         self.rate_limit = datetime.timedelta(0, 60, 0)
         self.api_tick = datetime.datetime.now()
         self.currencies = []
-        self.compressed_summary_tickers = {}
-        self.summary_tickers = {}
-        self.markets = None
-        self.init_markets()
-        self.markets_to_watch = []
+        self.compressed_tickers = {}
+        self.tickers = {}
+        # self.init_markets()
+        self.pairs_to_watch = []
         self.balances = self.get_balances()
         self.accounts = []
         self.tick = 0
         self.major_tick = 0
         self.reporter = Reporter()
         self.plotter = Plotter()
+        self.exchange = 'gemini'
+        self.exchange_pairs = {}
+        self.valid_mkt_coins = None
+        self.valid_base_coins = None
         log.info('...bot successfully initialized')
 
-    def init_tradeable_markets(self):
-        env_tradeable_markets = os.getenv('TRADEABLE_MARKETS', 'ALL')
-        if env_tradeable_markets == 'ALL':
-            return env_tradeable_markets
+    # def init_tradeable_markets(self):
+    #     env_tradeable_markets = os.getenv('TRADEABLE_MARKETS', 'ALL')
+    #     if env_tradeable_markets == 'ALL':
+    #         return env_tradeable_markets
+    #     else:
+    #         return dict((m, True) for m in env_tradeable_markets.split(','))
+
+    def init_pairs(self):
+        self.exchange_pairs[self.exchange] = self.get_exchange_pairs()
+        self.init_valid_base_coins()
+        self.init_valid_mkt_coins()
+        for pair in self.exchange_pairs[self.exchange]:
+            if self.is_valid_pair(pair):
+                self.compressed_tickers[pair['pair']] = pd.DataFrame()
+                self.tickers[pair['pair']] = pd.DataFrame()
+        for strat in self.strats:
+            strat.init_market_positions(self.exchange_pairs[self.exchange])
+
+    @staticmethod
+    def init_valid_coins(coin_type):
+        env_valid_coins = os.getenv(coin_type, 'ALL')
+        if env_valid_coins == 'ALL':
+            return env_valid_coins
         else:
-            return dict((m, True) for m in env_tradeable_markets.split(','))
+            return dict((m, True) for m in env_valid_coins.split(','))
 
-    def init_markets(self):
-        if BACKTESTING:
-            self.btrx.init_tradeable_markets(self.tradeable_markets)
-        if os.getenv('COLLECT_FIXTURES', 'FALSE') != 'TRUE':
-            self.currencies = self.get_currencies()
-            self.currencies['cb_active'] = True
-            self.refresh_active_currencies()
-            self.markets = self.get_markets()
-            for mkt_name in self.markets['marketname']:
-                if is_valid_market(mkt_name, self.base_currencies):
-                    self.compressed_summary_tickers[mkt_name] = pd.DataFrame()
-                    self.summary_tickers[mkt_name] = pd.DataFrame()
-            for strat in self.strats:
-                strat.init_market_positions(self.markets)
+    def init_valid_base_coins(self):
+        self.valid_base_coins = self.init_valid_coins('VALID_BASE_COINS')
 
-    def refresh_active_currencies(self):
-        self.active_currencies = dict((m, True) for m in self.currencies[self.currencies['cb_active']]['currency'].values)
+    def init_valid_mkt_coins(self):
+        self.valid_mkt_coins = self.init_valid_coins('VALID_MKT_COINS')
+
+    def is_valid_pair(self, pair):
+        return self.valid_base_coins[pair['base_coin']] and self.valid_mkt_coins[pair['mkt_coin']]
+
+    # def init_markets(self):
+    #     # if BACKTESTING:
+    #     #     self.btrx.init_tradeable_markets(self.tradeable_markets)
+    #     if os.getenv('COLLECT_FIXTURES', 'FALSE') != 'TRUE':
+    #         self.currencies = self.get_currencies()
+    #         self.currencies['cb_active'] = True
+    #         self.refresh_active_currencies()
+    #         self.pairs = self.get_pairs()
+    #         for pair in self.pairs:
+    #             if self.is_valid_pair(pair):
+    #                 self.compressed_tickers[mkt_name] = pd.DataFrame()
+    #                 self.tickers[mkt_name] = pd.DataFrame()
+    #         for strat in self.strats:
+    #             strat.init_market_positions(self.pairs)
+
+    # def refresh_active_currencies(self):
+    #     self.active_currencies = dict((m, True) for m in self.currencies[self.currencies['cb_active']]['currency'].values)
 
     def run(self):
         if BACKTESTING:
@@ -122,47 +155,61 @@ class CryptoBot:
             self.execute_trades()
 
     def minor_tick_step(self):
-        start = datetime.datetime.now()
+        # start = datetime.datetime.now()
+
         self.increment_minor_tick()
         # get the ticker for all the markets
-        summaries = self.get_market_summaries()
-        for summary in summaries:
-            mkt_name = summary['marketname']
-            if is_valid_market(mkt_name, self.base_currencies) and mkt_name in self.summary_tickers:
-                self.summary_tickers[mkt_name] = self.summary_tickers[mkt_name].append(summary, ignore_index=True)
-        end = datetime.datetime.now()
-        log.info('MINOR TICK STEP ' + str(self.tick) + ' runtime :: ' + str(end - start))
+        for p, pair in self.exchange_pairs[self.exchange].items():
+            ticker = self.get_current_pair_ticker(pair)
+            self.tickers[pair['pair']] = self.tickers[pair['pair']].append(ticker, ignore_index=True)
+
+        # end = datetime.datetime.now()
+        # log.info('MINOR TICK STEP ' + str(self.tick) + ' runtime :: ' + str(end - start))
 
     def major_tick_step(self):
-        start = datetime.datetime.now()
+        # start = datetime.datetime.now()
+
         self.increment_major_tick()
         self.compress_tickers()
         for strat in self.strats:
             log.info(strat.name + ' :: handle_data')
-            for mkt_name, mkt_data in self.compressed_summary_tickers.items():
-                self.compressed_summary_tickers[mkt_name] = strat.handle_data(mkt_data, mkt_name)
+            for mkt_name, mkt_data in self.compressed_tickers.items():
+                self.compressed_tickers[mkt_name] = strat.handle_data(mkt_data, mkt_name)
         self.generate_report()
-        end = datetime.datetime.now()
-        log.info('MAJOR TICK STEP runtime :: ' + str(end - start))
+
+        # end = datetime.datetime.now()
+        # log.info('MAJOR TICK STEP runtime :: ' + str(end - start))
 
     def compress_tickers(self):
-        start = datetime.datetime.now()
-        for mkt_name, mkt_data in self.summary_tickers.items():
-            # tail = mkt_data.tail(MAJOR_TICK_SIZE).reset_index(drop=True)
-            # mkt_data = mkt_data.drop(mkt_data.index[-MAJOR_TICK_SIZE:])
-            agg_funcs = {'bid': ['last'], 'last': ['last'], 'ask': ['last'], 'marketname': ['last'], 'volume': ['sum']}
+        # start = datetime.datetime.now()
+
+        for mkt_name, mkt_data in self.tickers.items():
+            mkt_data = mkt_data.drop(mkt_data.index[-MAJOR_TICK_SIZE:])
+            agg_funcs = {
+                'open': ['first'],
+                'high': ['max'],
+                'low': ['min'],
+                'close': ['last'],
+                'bid': ['last'],
+                'last': ['last'],
+                'ask': ['last'],
+                'pair': ['last'],
+                'vol_base': ['sum'],
+                'vol_mkt': ['sum']
+            }
             if BACKTESTING:
                 agg_funcs['saved_timestamp'] = ['last']
-            mkt_data = mkt_data.groupby('marketname').agg(agg_funcs)
+            mkt_data = mkt_data.groupby('pair').agg(agg_funcs)
             mkt_data.columns = mkt_data.columns.droplevel(1)
-            self.compressed_summary_tickers[mkt_name] = self.compressed_summary_tickers[mkt_name].append(mkt_data, ignore_index=True)
-            self.summary_tickers[mkt_name] = pd.DataFrame()
-        end = datetime.datetime.now()
-        log.info('COMPRESS TICKERS runtime :: ' + str(end - start))
+            self.compressed_tickers[mkt_name] = self.compressed_tickers[mkt_name].append(mkt_data, ignore_index=True)
+            self.tickers[mkt_name] = pd.DataFrame()
+
+        # end = datetime.datetime.now()
+        # log.info('COMPRESS TICKERS runtime :: ' + str(end - start))
 
     def enable_volume_threshold(self):
         log.info('* * * ! * * * VOLUME THRESHOLD ENABLED * * * ! * * *')
-        for mkt_name, mkt_data in self.compressed_summary_tickers.items():
+        for mkt_name, mkt_data in self.compressed_tickers.items():
             currency = mkt_name.split('-')[1]
             if not self.check_volume_threshold(mkt_data, mkt_name) and currency in self.active_currencies:
                 del self.active_currencies[currency]
@@ -224,13 +271,21 @@ class CryptoBot:
         log.debug('{BOT} == GET ticker ==')
         return self.btrx.getticker(market)
 
-    def get_markets(self):
+    def get_pairs(self):
         log.debug('{BOT} == GET markets ==')
-        return self.btrx.getmarkets(self.base_currencies)
+        # return self.btrx.getmarkets(self.base_coins)
+        return self.ex.get_exchange_pairs(self.exchange)
 
     def get_currencies(self):
         log.debug('{BOT} == GET currencies ==')
         return self.btrx.getcurrencies()
+
+    # NEW MARKET #
+    def get_exchange_pairs(self):
+        return self.ex.get_exchange_pairs(self.exchange)
+
+    def get_current_pair_ticker(self, pair):
+        return self.ex.get_current_pair_ticker(self.exchange, pair)
 
 
     ## ORDERS ##
@@ -246,7 +301,7 @@ class CryptoBot:
         if order_type == 'buy':
             coin = market[:3]
             balance = self.get_balance(coin)
-            rate = self.compressed_summary_tickers[market].loc[0, 'last']
+            rate = self.compressed_tickers[market].loc[0, 'last']
             if balance['balance'] >= quantity:
                 return round(quantity / rate, 8)
             else:
@@ -356,12 +411,11 @@ class CryptoBot:
             return False
 
     def execute_trades(self):
-        for idx, market in self.markets.iterrows():
-            mkt_name = market['marketname']
-            if self.should_buy(mkt_name, REQUIRE_STRAT_CONSENSUS) and self.can_buy(mkt_name):
-                self.buy_instant(mkt_name, MAX_CURRENCY_PER_BUY[mkt_name[:3]])
-            elif self.should_sell(mkt_name, REQUIRE_STRAT_CONSENSUS) and self.can_sell(mkt_name):
-                self.sell_instant(mkt_name, 1)
+        for p, pair in self.exchange_pairs.items():
+            if self.should_buy(p, REQUIRE_STRAT_CONSENSUS) and self.can_buy(pair):
+                self.buy_instant(p, MAX_CURRENCY_PER_BUY[pair['base_coin']])
+            elif self.should_sell(p, REQUIRE_STRAT_CONSENSUS) and self.can_sell(pair):
+                self.sell_instant(p, 1)
 
     def complete_sell(self, market):
         currencies = market.split('-')
@@ -402,16 +456,16 @@ class CryptoBot:
             log.error(e)
             return 0, 0, 0
 
-    ## ACCOUNT ##
+    # # ACCOUNT # #
 
-    def can_sell(self, mkt):
-        balance = self.get_balance(mkt[4:])
-        print("CAN SELL current " + mkt + " balance : " + str(balance['balance']))
+    def can_sell(self, pair):
+        balance = self.get_balance(pair['mkt_coin'])
+        print("CAN SELL current " + pair['pair'] + " balance : " + str(balance['balance']))
         return balance['balance'] > 0
 
-    def can_buy(self, mkt):
-        balance = self.get_balance(mkt[:3])
-        print("CAN BUY current " + mkt + " balance : " + str(balance['balance']))
+    def can_buy(self, pair):
+        balance = self.get_balance(pair['base_coin'])
+        print("CAN BUY current " + pair['pair'] + " balance : " + str(balance['balance']))
         return balance['balance'] > 0
 
     def get_balances(self):
@@ -434,11 +488,11 @@ class CryptoBot:
 
     def collect_order_books(self):
         order_books = {}
-        for market in self.markets:
+        for market in self.pairs:
             order_books[market['MarketName']] = []
         self.rate_limiter_reset()
         while True:
-            for market in self.markets:
+            for market in self.pairs:
                 market_name = market['MarketName']
                 log.info('Collecting order book for: ' + market_name)
                 order_book = self.get_order_book(market_name, 'both', 50)
@@ -459,7 +513,7 @@ class CryptoBot:
                 self.reporter.send_report('Collect OrderBooks Failure', type(e).__name__ + ' :: ' + e.message)
 
     def collect_markets(self):
-        markets = self.get_markets()
+        markets = self.get_pairs()
         self.psql.save_markets(markets)
 
     def collect_currencies(self):
@@ -505,19 +559,19 @@ class CryptoBot:
         current_balances = self.btrx.getbalances()
         log.info('*** PERFORMANCE RESULTS ***')
         for currency in starting_balances:
-            if currency not in self.tradeable_currencies and currency not in self.base_currencies:
+            if currency not in self.tradeable_currencies and currency not in self.base_coins:
                 continue
             start = starting_balances[currency]['balance']
             end = current_balances[currency]['balance']
             log_statement = currency + ' :: ' + 'Start = ' + str(start) + ' , End = ' + str(end)
-            if currency in self.base_currencies:
+            if currency in self.base_coins:
                 log_statement += '% diff   :: ' + str((end - start) / start)
             log.info(log_statement)
 
     def cash_out(self):
         log.info('*** CASHING OUT ***')
         current_balances = self.btrx.getbalances()
-        for idx, market in self.markets.iterrows():
+        for idx, market in self.pairs.iterrows():
             mkt_name = market['marketname']
             coins = mkt_name.split('-')
             cur_balance = current_balances[coins[1]]['balance']
@@ -527,11 +581,11 @@ class CryptoBot:
 
     def plot_market_data(self):
         for market, trades in self.completed_trades.items():
-            self.plotter.plot_market(market, self.compressed_summary_tickers[market], trades, self.strats)
+            self.plotter.plot_market(market, self.compressed_tickers[market], trades, self.strats)
 
     def generate_report(self):
         if SEND_REPORTS and self.major_tick >= 50:
-            self.reporter.generate_report(self.strats, self.markets, self.compressed_summary_tickers)
+            self.reporter.generate_report(self.strats, self.exchange_pairs, self.compressed_tickers)
 
     def check_volume_threshold(self, mkt_data, mkt_name):
         base_currency = mkt_name.split('-')[0]

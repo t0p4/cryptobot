@@ -13,37 +13,37 @@ class BaseStrategy:
         self.buy_positions = {}
         self.sell_positions = {}
 
-    def init_market_positions(self, markets):
-        self.buy_positions = {mkt_name: False for mkt_name in markets['marketname']}
-        self.sell_positions = {mkt_name: False for mkt_name in markets['marketname']}
+    def init_market_positions(self, pairs):
+        self.buy_positions = {pair: False for pair, p in pairs.items()}
+        self.sell_positions = {pair: False for pair, p in pairs.items()}
 
-    def handle_data(self, mkt_data, mkt_name):
+    def handle_data(self, mkt_data, pair):
         raise Exception('HANDLE_DATA function should be overwritten')
 
-    def should_buy(self, mkt_name):
-        return self.buy_positions[mkt_name]
+    def should_buy(self, pair):
+        return self.buy_positions[pair['pair']]
 
-    def should_sell(self, mkt_name):
-        return self.sell_positions[mkt_name]
+    def should_sell(self, pair):
+        return self.sell_positions[pair['pair']]
 
-    def get_mkt_report(self, mkt_name, mkt_data):
-        return self._get_mkt_report(mkt_name, mkt_data)
+    def get_mkt_report(self, pair, mkt_data):
+        return self._get_mkt_report(pair['pair'], mkt_data)
 
-    def _get_mkt_report(self, mkt_name, mkt_data):
-        mkt_report = {'strat_name': self.name, 'window': self.window}
+    def _get_mkt_report(self, pair, mkt_data):
+        mkt_report = dict(strat_name=self.name, window=self.window)
         mkt_report['recent_data'] = mkt_data.tail(self.window * 10)
-        if self.buy_positions[mkt_name]:
+        if self.buy_positions[pair['pair']]:
             mkt_report['action'] = 'BUY'
-        elif self.sell_positions[mkt_name]:
+        elif self.sell_positions[pair['pair']]:
             mkt_report['action'] = 'SELL'
         return mkt_report
 
-    def _set_positions(self, buy, sell, mkt_name):
-        self.buy_positions[mkt_name] = buy
-        self.sell_positions[mkt_name] = sell
+    def _set_positions(self, buy, sell, pair):
+        self.buy_positions[pair['pair']] = buy
+        self.sell_positions[pair['pair']] = sell
         if buy:
-            log.info(' * * * BUY :: ' + mkt_name)
+            log.info(' * * * BUY :: ' + pair)
         elif sell:
-            log.info(' * * * SELL :: ' + mkt_name)
+            log.info(' * * * SELL :: ' + pair)
         else:
-            log.debug(' * * * HOLD :: ' + mkt_name)
+            log.debug(' * * * HOLD :: ' + pair)

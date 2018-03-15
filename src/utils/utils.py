@@ -15,6 +15,10 @@ def is_valid_market(mkt_name, currencies):
     return mkts[0] in currencies
 
 
+def is_valid_pair(pair, valid_bases, valid_mkts):
+    return pair['base_coin'] in valid_bases and pair['mkt_coin'] in valid_mkts
+
+
 def add_saved_timestamp(data, tick):
     timestamp = datetime.utcnow().isoformat()
 

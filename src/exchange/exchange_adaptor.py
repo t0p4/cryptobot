@@ -12,6 +12,7 @@ from src.utils.logger import Logger
 from src.utils.rate_limiter import RateLimiter
 from src.exceptions import APIRequestError
 from src.exchange.exchange_utils.binance_utils import create_normalized_trade_data_binance
+from src.data_structures.historical_prices import HistoricalRates
 
 log = Logger(__name__)
 
@@ -25,7 +26,7 @@ INTERVAL_RATES = {
 
 
 class ExchangeAdaptor:
-    def __init__(self, historical_rates):
+    def __init__(self):
         self.exchange_adaptors = {
             'binance': BinanceAPI,
             'bittrex': BittrexAPI,
@@ -41,11 +42,11 @@ class ExchangeAdaptor:
             'gemini': RateLimiter('gemini')
         }
         self.exchange_pairs = {
-            'binance': [],
-            'bittrex': [],
-            'gemini': []
+            'binance': {},
+            'bittrex': {},
+            'gemini': {}
         }
-        self.historical_rates = historical_rates
+        self.historical_rates = HistoricalRates()
 
     def get_exchange_adaptor(self, exchange):
         return self.exchange_adaptors[exchange]()
@@ -210,15 +211,20 @@ class ExchangeAdaptor:
         """
             gets the most recent ticker data for a specified pair on a given exchange
         :param exchange:
-        :param base_coin:
-        :param mkt_coin:
+        :param pair:
         :return:
         """
         try:
             ex = self.exchange_adaptors[exchange]()
             self.rate_limiters[exchange].limit()
             ticker = ex.get_current_pair_ticker(pair)
-            return ticker
+            return {
+                **ticker,
+                'open': ticker['last'],
+                'high': ticker['last'],
+                'low': ticker['last'],
+                'close': ticker['last']
+            }
         except APIRequestError as e:
             log.error(e.error_msg)
             return None
@@ -360,10 +366,12 @@ class ExchangeAdaptor:
         """
             gets a list of the available pairs on a given exchange
         :param exchange: 'binance'
-        :return: [{'pair': 'LTC-BTC', 'base_coin': 'BTC', 'mkt_coin': 'LTC'}, ...]
+        :return: {'LTC-BTC': {'pair': 'LTC-BTC', 'base_coin': 'BTC', 'mkt_coin': 'LTC'}, ...}
         """
         ex = self.exchange_adaptors[exchange]()
-        self.exchange_pairs[exchange] = ex.get_exchange_pairs()
+        pair_list = ex.get_exchange_pairs()
+        for pair in pair_list:
+            self.exchange_pairs[exchange][pair['pair']] = pair
         return self.exchange_pairs[exchange]
 
     #####################################################
