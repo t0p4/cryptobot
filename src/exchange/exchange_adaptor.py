@@ -206,6 +206,23 @@ class ExchangeAdaptor:
         :param exchange:
         :return:
         """
+        try:
+            ex = self.exchange_adaptors[exchange]()
+            self.rate_limiters[exchange].limit()
+            tickers = ex.get_current_tickers()
+            result = []
+            for ticker in tickers:
+                result.append({
+                    **ticker,
+                    'open': float(ticker['last']),
+                    'high': float(ticker['last']),
+                    'low': float(ticker['last']),
+                    'close': float(ticker['last'])
+                })
+            return result
+        except APIRequestError as e:
+            log.error(e.error_msg)
+            return None
 
     def get_current_pair_ticker(self, exchange, pair=None):
         """
@@ -216,17 +233,18 @@ class ExchangeAdaptor:
         """
         try:
             if pair is None:
-                raise APIRequestError(exchange, 'get_order_status', 'please specify a pair')
+                raise APIRequestError(exchange, 'get_current_pair_ticker', 'please specify a pair')
             ex = self.exchange_adaptors[exchange]()
             self.rate_limiters[exchange].limit()
             ticker = ex.get_current_pair_ticker(pair)
-            return {
+            ticker = {
                 **ticker,
-                'open': ticker['last'],
-                'high': ticker['last'],
-                'low': ticker['last'],
-                'close': ticker['last']
+                'open': float(ticker['last']),
+                'high': float(ticker['last']),
+                'low': float(ticker['last']),
+                'close': float(ticker['last'])
             }
+            return pd.DataFrame(ticker, index=[0])
         except APIRequestError as e:
             log.error(e.error_msg)
             return None

@@ -36,6 +36,8 @@ class GeminiAPI(object):
         self.sandbox_url = 'https://api.sandbox.gemini.com'
         self.base_url = self.live_url
 
+        self.pairs = None
+
     # public requests
     def symbols(self):
         """Send a request for all trading symbols, return the response."""
@@ -345,7 +347,7 @@ class GeminiAPI(object):
     def normalize_balance(balance):
         return {
             'coin': balance['currency'],
-            'balance': balance['amount'],
+            'balance': float(balance['amount']),
             'address': None
         }
 
@@ -365,8 +367,8 @@ class GeminiAPI(object):
     def normalize_trade(trade):
         return {
             'order_type': 'limit',
-            'quantity': trade['amount'],
-            'rate': trade['price'],
+            'quantity': float(trade['amount']),
+            'rate': float(trade['price']),
             'trade_id': trade['tid'],
             'exchange_id': 'gemini',
             'trade_time': trade['timestampms'],
@@ -383,6 +385,18 @@ class GeminiAPI(object):
         }
 
     #
+    # GET TICKERS
+    #
+
+    def get_current_tickers(self):
+        if self.pairs is None:
+            self.pairs = self.get_exchange_pairs()
+        pairs = []
+        for p in self.pairs:
+            pairs.append(self.get_current_pair_ticker(p))
+        return pairs
+
+    #
     # GET PAIR TICKER
     #
 
@@ -397,11 +411,11 @@ class GeminiAPI(object):
     @staticmethod
     def normalize_ticker(tick, pair):
         return {
-            'bid': tick['bid'],
-            'ask': tick['ask'],
-            'last': tick['last'],
-            'vol_base': tick['volume'][pair['base_coin'].upper()],
-            'vol_mkt': tick['volume'][pair['mkt_coin'].upper()],
+            'bid': float(tick['bid']),
+            'ask': float(tick['ask']),
+            'last': float(tick['last']),
+            'vol_base': float(tick['volume'][pair['base_coin'].upper()]),
+            'vol_mkt': float(tick['volume'][pair['mkt_coin'].upper()]),
             'timestamp': tick['volume']['timestamp'],
             **pair
         }
@@ -429,16 +443,16 @@ class GeminiAPI(object):
         return {
             "order_id": order_resp['order_id'],
             "pair": order_resp['symbol'],
-            "price": order_resp['price'],
-            "avg_price": order_resp['avg_execution_price'],
+            "price": float(order_resp['price']),
+            "avg_price": float(order_resp['avg_execution_price']),
             "side": order_resp['side'],
             "type": order_resp['type'],
             "timestampms": order_resp['timestampms'],
             "is_live": order_resp['is_live'],
             "is_cancelled": order_resp['is_cancelled'],
-            'executed_amount': order_resp['executed_amount'],
-            'remaining_amount': order_resp['remaining_amount'],
-            'original_amount': order_resp['original_amount']
+            'executed_amount': float(order_resp['executed_amount']),
+            'remaining_amount': float(order_resp['remaining_amount']),
+            'original_amount': float(order_resp['original_amount'])
         }
 
     #
@@ -458,16 +472,16 @@ class GeminiAPI(object):
         return {
             "order_id": cancelled_order['order_id'],
             "pair": cancelled_order['symbol'],
-            "price": cancelled_order['price'],
-            "avg_price": cancelled_order['avg_execution_price'],
+            "price": float(cancelled_order['price']),
+            "avg_price": float(cancelled_order['avg_execution_price']),
             "side": cancelled_order['side'],
             "type": cancelled_order['type'],
             "timestampms": cancelled_order['timestampms'],
             "is_live": cancelled_order['is_live'],
             "is_cancelled": cancelled_order['is_cancelled'],
-            'executed_amount': cancelled_order['executed_amount'],
-            'remaining_amount': cancelled_order['remaining_amount'],
-            'original_amount': cancelled_order['original_amount']
+            'executed_amount': float(cancelled_order['executed_amount']),
+            'remaining_amount': float(cancelled_order['remaining_amount']),
+            'original_amount': float(cancelled_order['original_amount'])
         }
 
     #
@@ -485,13 +499,13 @@ class GeminiAPI(object):
     @staticmethod
     def normalize_order_status(order_status):
         return {
-            'price': order_status['price'],
+            'price': float(order_status['price']),
             'side': order_status['side'],
             'is_live': order_status['is_live'],
             'is_cancelled': order_status['is_cancelled'],
-            'executed_amount': order_status['executed_amount'],
-            'remaining_amount': order_status['remaining_amount'],
-            'original_amount': order_status['original_amount'],
+            'executed_amount': float(order_status['executed_amount']),
+            'remaining_amount': float(order_status['remaining_amount']),
+            'original_amount': float(order_status['original_amount']),
             'order_id': order_status['order_id']
         }
 
@@ -520,8 +534,8 @@ class GeminiAPI(object):
     @staticmethod
     def normalize_order(order):
         return {
-            'price': order['price'],
-            'amount': order['amount']
+            'price': float(order['price']),
+            'amount': float(order['amount'])
         }
 
     #

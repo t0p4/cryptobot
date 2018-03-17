@@ -27,6 +27,7 @@ BACKTESTING = os.getenv('BACKTESTING', 'FALSE') == 'TRUE'
 ORDER_BOOK_DEPTH = 20
 REQUIRE_STRAT_CONSENSUS = os.getenv('REQUIRE_STRAT_CONSENSUS', 'FALSE') == 'TRUE'
 SEND_REPORTS = os.getenv('SEND_REPORTS', 'FALSE') == 'TRUE'
+TARGET_PAIR_TICKERS = os.getenv('TARGET_PAIR_TICKERS', 'FALSE') == 'TRUE'
 
 
 class CryptoBot:
@@ -60,6 +61,7 @@ class CryptoBot:
         self.exchange_pairs = {}
         self.valid_mkt_coins = None
         self.valid_base_coins = None
+        self.init_pairs()
         log.info('...bot successfully initialized')
 
     # def init_tradeable_markets(self):
@@ -73,10 +75,10 @@ class CryptoBot:
         self.exchange_pairs[self.exchange] = self.get_exchange_pairs()
         self.init_valid_base_coins()
         self.init_valid_mkt_coins()
-        for pair in self.exchange_pairs[self.exchange]:
+        for p, pair in self.exchange_pairs[self.exchange].items():
             if self.is_valid_pair(pair):
-                self.compressed_tickers[pair['pair']] = pd.DataFrame()
-                self.tickers[pair['pair']] = pd.DataFrame()
+                self.compressed_tickers[p] = pd.DataFrame()
+                self.tickers[p] = pd.DataFrame()
         for strat in self.strats:
             strat.init_market_positions(self.exchange_pairs[self.exchange])
 
@@ -95,7 +97,8 @@ class CryptoBot:
         self.valid_mkt_coins = self.init_valid_coins('VALID_MKT_COINS')
 
     def is_valid_pair(self, pair):
-        return self.valid_base_coins[pair['base_coin']] and self.valid_mkt_coins[pair['mkt_coin']]
+        return (self.valid_base_coins == 'ALL' or self.valid_base_coins[pair['base_coin']]) and \
+               (self.valid_mkt_coins == 'ALL' or self.valid_mkt_coins[pair['mkt_coin']])
 
     # def init_markets(self):
     #     # if BACKTESTING:
@@ -124,7 +127,7 @@ class CryptoBot:
     def run_prod(self):
         log.info('* * * ! * * * BEGIN PRODUCTION RUN * * * ! * * *')
         while (True):
-            self.rate_limiter_limit()
+            # self.rate_limiter_limit()
             self.tick_step()
 
     def run_test(self):
@@ -158,10 +161,15 @@ class CryptoBot:
         # start = datetime.datetime.now()
 
         self.increment_minor_tick()
-        # get the ticker for all the markets
-        for p, pair in self.exchange_pairs[self.exchange].items():
-            ticker = self.get_current_pair_ticker(pair)
-            self.tickers[pair['pair']] = self.tickers[pair['pair']].append(ticker, ignore_index=True)
+        if TARGET_PAIR_TICKERS:
+            # get the ticker for all the markets
+            for p, pair in self.exchange_pairs[self.exchange].items():
+                ticker = self.get_current_pair_ticker(pair)
+                self.tickers[pair['pair']] = self.tickers[pair['pair']].append(ticker, ignore_index=True)
+        else:
+            tickers = self.get_current_tickers()
+            for ticker in tickers:
+                self.tickers[ticker['pair']] = self.tickers[ticker['pair']].append(ticker, ignore_index=True)
 
         # end = datetime.datetime.now()
         # log.info('MINOR TICK STEP ' + str(self.tick) + ' runtime :: ' + str(end - start))
@@ -184,7 +192,7 @@ class CryptoBot:
         # start = datetime.datetime.now()
 
         for mkt_name, mkt_data in self.tickers.items():
-            mkt_data = mkt_data.drop(mkt_data.index[-MAJOR_TICK_SIZE:])
+            # mkt_data = mkt_data.drop(mkt_data.index[-MAJOR_TICK_SIZE:])
             agg_funcs = {
                 'open': ['first'],
                 'high': ['max'],
@@ -283,6 +291,10 @@ class CryptoBot:
     def get_exchange_pairs(self):
         log.debug('{BOT} == GET exchange pairs ==')
         return self.ex.get_exchange_pairs(self.exchange)
+
+    def get_current_tickers(self):
+        log.debug('{BOT} == GET current pair ticker ==')
+        return self.ex.get_current_tickers(self.exchange)
 
     def get_current_pair_ticker(self, pair):
         log.debug('{BOT} == GET current pair ticker ==')
@@ -421,10 +433,10 @@ class CryptoBot:
             return False
 
     def execute_trades(self):
-        for p, pair in self.exchange_pairs.items():
-            if self.should_buy(p, REQUIRE_STRAT_CONSENSUS) and self.can_buy(pair):
+        for p, pair in self.exchange_pairs[self.exchange].items():
+            if self.should_buy(pair, REQUIRE_STRAT_CONSENSUS) and self.can_buy(pair):
                 self.buy_instant(p, MAX_CURRENCY_PER_BUY[pair['base_coin']])
-            elif self.should_sell(p, REQUIRE_STRAT_CONSENSUS) and self.can_sell(pair):
+            elif self.should_sell(pair, REQUIRE_STRAT_CONSENSUS) and self.can_sell(pair):
                 self.sell_instant(p, 1)
 
     def complete_sell(self, market):
