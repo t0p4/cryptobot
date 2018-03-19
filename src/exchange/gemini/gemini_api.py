@@ -294,7 +294,7 @@ class GeminiAPI(object):
 
     def get_nonce(self):
         """Return the current millisecond timestamp as the nonce."""
-        return 0
+        return int(round(time.time() * 1000))
 
     def prepare(self, params):
         """
@@ -329,7 +329,7 @@ class GeminiAPI(object):
     # GET ACCOUNT BALANCES
     #
 
-    def get_account_balances(self, coin=None):
+    def get_exchange_balances(self, coin=None):
         res = self.balances()
         res_json = res.json()
         if res.status_code != 200:
@@ -341,7 +341,7 @@ class GeminiAPI(object):
                 for bal in res:
                     if bal['currency'].lower() == coin.lower():
                         return self.normalize_balance(bal)
-                raise InvalidCoinError(coin + ' does not exist on Gemini')
+                raise InvalidCoinError(coin, 'gemini')
 
     @staticmethod
     def normalize_balance(balance):

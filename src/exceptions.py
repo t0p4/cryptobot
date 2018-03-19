@@ -70,10 +70,10 @@ class BadMathError(BotError):
 class InvalidCoinError(BotError):
     """Raise when something goes wrong because of a bad coin / coin that doesn't exist somewhere"""
 
-    def __init__(self, coin):
-        msg = 'BAD COIN! coin: ' + coin
-        super(InvalidCoinError, self).__init__(msg)
+    def __init__(self, coin, exchange):
+        super(InvalidCoinError, self).__init__("BAD COIN! * " + coin + " * does not exist on " + exchange)
         self.coin = coin
+        self.exchange = exchange
 
     pass
 

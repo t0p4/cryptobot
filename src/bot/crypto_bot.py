@@ -51,7 +51,6 @@ class CryptoBot:
         self.tickers = {}
         # self.init_markets()
         self.pairs_to_watch = []
-        self.balances = self.get_balances()
         self.accounts = []
         self.tick = 0
         self.major_tick = 0
@@ -59,6 +58,7 @@ class CryptoBot:
         self.plotter = Plotter()
         self.exchange = 'gemini'
         self.exchange_pairs = {}
+        self.balances = self.get_exchange_balances()
         self.valid_mkt_coins = None
         self.valid_base_coins = None
         self.init_pairs()
@@ -254,39 +254,7 @@ class CryptoBot:
     def check_major_tick(self):
         return (self.tick % MAJOR_TICK_SIZE) == 0
 
-    ## MARKET ##
-
-    # def get_market_summaries(self):
-    #     log.debug('{BOT} == GET market summaries ==')
-    #     try:
-    #         market_summaries = self.btrx.getmarketsummaries()
-    #         return market_summaries
-    #     except MissingTickError:
-    #         self.increment_minor_tick()
-    #         return self.get_market_summaries()
-    #
-    # def get_market_history(self, market):
-    #     log.debug('{BOT} == GET market history ==')
-    #     return self.btrx.getmarkethistory(market)
-
-    # def get_order_book(self, market, order_type, depth):
-    #     log.debug('{BOT} == GET order book ==')
-    #     return self.btrx.getorderbook(market, order_type, depth)
-
-    # def get_ticker(self, market):
-    #     log.debug('{BOT} == GET ticker ==')
-    #     return self.btrx.getticker(market)
-
-    # def get_pairs(self):
-    #     log.debug('{BOT} == GET markets ==')
-    #     # return self.btrx.getmarkets(self.base_coins)
-    #     return self.ex.get_exchange_pairs(self.exchange)
-
-    # def get_currencies(self):
-    #     log.debug('{BOT} == GET currencies ==')
-    #     return self.btrx.getcurrencies()
-
-    # NEW MARKET #
+    # # MARKET # #
 
     def get_exchange_pairs(self):
         log.debug('{BOT} == GET exchange pairs ==')
@@ -304,29 +272,45 @@ class CryptoBot:
         log.debug('{BOT} == GET order book ==')
         return self.ex.get_order_book(self.exchange, pair=pair, side=side)
 
-    ## ORDERS ##
+    def cancel_order(self, order_id, pair):
+        log.debug('{BOT} == CANCEL order ==')
+        return self.ex.cancel_order(self.exchange, order_id=order_id, pair=pair)
+
+    def get_current_timestamp(self):
+        log.debug('{BOT} == GET current timestamp ==')
+        if BACKTESTING:
+            return self.ex.get_current_timestamp(self.exchange)
+        else:
+            return datetime.datetime.now()
+
+    # # ORDERS # #
 
     def calculate_num_coins(self, pair, order_type, quantity):
         """Calculates the QUANTITY for a trade
             -   if the order_type is 'buy', input parameter quantity is an amount of the base_currency to spend
-            -   if the order_type is 'sell', inpute parameter quantity is a pct of the market_currency to sell
+            -   if the order_type is 'sell', input parameter quantity is a pct of the market_currency to sell
+            return: num_mkt_coin, num_base_coin
 
             an InsufficientFundsError will be raised in the event that there is not enough of the desired
             base currency for a 'buy' order
         """
+        idx = len(self.compressed_tickers[pair['pair']].index)
+        rate = self.compressed_tickers[pair['pair']].loc[idx, 'last']
         if order_type == 'buy':
             base_coin = pair['base_coin']
             balance = self.get_balance(base_coin)
-            rate = self.compressed_tickers[pair['pair']].loc[0, 'last']
             if balance['balance'] >= quantity:
-                return round(quantity / rate, 8)
+                num_mkt_coin = round(quantity / rate, 8)
+                return num_mkt_coin, quantity
             else:
                 msg = 'Not enough ' + base_coin + ' to complete this trade'
                 raise InsufficientFundsError(balance, pair['base_coin'], quantity, rate, msg)
         else:
             mkt_coin = pair['mkt_coin']
             balance = self.get_balance(mkt_coin)
-            return round(balance['balance'] * quantity, 8)
+            num_mkt_coin = round(balance['balance'] * quantity, 8)
+            num_base_coin = num_mkt_coin * rate
+            return num_mkt_coin, num_base_coin
 
     def calculate_order_rate(self, pair, order_type, quantity, order_book_depth=20):
         """Calculates the RATE for a trade
@@ -346,8 +330,8 @@ class CryptoBot:
         rate = 0
         # calculate an instant price
         for order in order_book[book_type]:
-            current_total += order['Quantity']
-            rate = order['Rate']
+            current_total += order['amount']
+            rate = order['price']
             if current_total >= quantity:
                 break
         return rate
@@ -358,45 +342,52 @@ class CryptoBot:
     def sell_limit(self, amount, price, pair):
         return self.ex.sell_limit(self.exchange, amount=amount, price=price, pair=pair)
 
-    def buy_instant(self, market, quantity):
+    def buy_instant(self, pair, amount):
         log.debug('{BOT} == BUY instant ==')
-        self.trade_instant('buy', market, quantity)
+        self.trade_instant('buy', pair, amount)
 
-    def sell_instant(self, market, quantity):
+    def sell_instant(self, pair, amount):
         log.debug('{BOT} == SELL instant ==')
-        self.trade_instant('sell', market, quantity)
-        self.complete_sell(market)
+        self.trade_instant('sell', pair, amount)
+        self.complete_sell(pair)
 
-    def trade_instant(self, order_type, market, quantity):
+    def trade_instant(self, order_type, pair, amount):
         try:
-            num_coins = self.calculate_num_coins(market, order_type, quantity)
-            rate = self.calculate_order_rate(market, order_type, num_coins, ORDER_BOOK_DEPTH)
-            trade_resp = self.trade_functions[order_type](num_coins, rate, market)
-            if trade_resp and not isinstance(trade_resp, str):
-                self.trade_success(order_type, market, num_coins, rate, trade_resp['uuid'])
-                return trade_resp
+            # first calculate the number of coins involved in the trade
+            num_mkt_coin, num_base_coin = self.calculate_num_coins(pair, order_type, amount)
+
+            # next calculate the real rate to be paid based on the number of coins
+            rate = self.calculate_order_rate(pair, order_type, num_mkt_coin, ORDER_BOOK_DEPTH)
+
+            if self.can_buy(pair, num_base_coin):
+                trade_resp = self.trade_functions[order_type](num_mkt_coin, rate, pair)
+                if trade_resp and not isinstance(trade_resp, str):
+                    self.trade_success(order_type, pair, num_mkt_coin, rate, trade_resp['order_id'])
+                    return trade_resp
+                else:
+                    log.info(trade_resp)
+                    return None
             else:
-                log.info(trade_resp)
-                return None
+                log.info('not enough ' + pair['base_coin'] + "")
         except TradeFailureError:
             return None
 
-    def trade_cancel(self, uuid):
+    def trade_cancel(self, order_id):
         log.debug('{BOT} == CANCEL bid ==')
         try:
-            trade_resp = self.btrx.cancel(uuid)
-            self.psql.save_trade('CANCEL', 'market', 0, 0, trade_resp['uuid'])
+            trade_resp = self.cancel_order(order_id)
+            self.psql.save_trade('CANCEL', 'market', 0, 0, trade_resp['order_id'])
             return trade_resp
         except Exception as e:
             log.error("*** !!! TRADE FAILED !!! ***")
             log.error(e)
             return None
 
-    def trade_success(self, order_type, market, quantity, rate, uuid):
+    def trade_success(self, order_type, market, quantity, rate, order_id):
         timestamp = datetime.datetime.now()
         if BACKTESTING:
-            timestamp = self.btrx.current_timestamp
-        trade_data = self.psql.save_trade(order_type, market, quantity, rate, uuid, timestamp)
+            timestamp = self.get_current_timestamp()
+        trade_data = self.psql.save_trade(order_type, market, quantity, rate, order_id, timestamp)
         if market in self.completed_trades:
             self.completed_trades[market] = self.completed_trades[market].append(pd.Series(trade_data), ignore_index=True)
         else:
@@ -406,7 +397,7 @@ class CryptoBot:
             market: """ + market + """
             quantity: """ + str(quantity) + """
             rate: """ + str(rate) + """
-            trade id: """ + str(uuid))
+            trade id: """ + str(order_id))
 
     def should_buy(self, mkt_name, require_strat_consensus):
         if require_strat_consensus:
@@ -434,10 +425,10 @@ class CryptoBot:
 
     def execute_trades(self):
         for p, pair in self.exchange_pairs[self.exchange].items():
-            if self.should_buy(pair, REQUIRE_STRAT_CONSENSUS) and self.can_buy(pair):
-                self.buy_instant(p, MAX_CURRENCY_PER_BUY[pair['base_coin']])
+            if self.should_buy(pair, REQUIRE_STRAT_CONSENSUS) and self.can_spend(pair):
+                self.buy_instant(pair, MAX_CURRENCY_PER_BUY[pair['base_coin']])
             elif self.should_sell(pair, REQUIRE_STRAT_CONSENSUS) and self.can_sell(pair):
-                self.sell_instant(p, 1)
+                self.sell_instant(pair, 1)
 
     def complete_sell(self, market):
         currencies = market.split('-')
@@ -485,24 +476,33 @@ class CryptoBot:
         print("CAN SELL current " + pair['pair'] + " balance : " + str(balance['balance']))
         return balance['balance'] > 0
 
-    def can_buy(self, pair):
+    def can_buy(self, pair, amt):
+        """
+            calculates if <base_coin> balance is high enough to spend <amt>
+        :param pair:
+        :param amt:
+        :return:
+        """
+        balance = self.get_balance(pair['base_coin'])
+        print("CAN BUY current " + pair['pair'] + " balance : " + str(balance['balance']))
+        return balance['balance'] >= amt
+
+    def can_spend(self, pair):
         balance = self.get_balance(pair['base_coin'])
         print("CAN BUY current " + pair['pair'] + " balance : " + str(balance['balance']))
         return balance['balance'] > 0
 
-    def get_balances(self):
-        log.debug('{BOT} == GET balances ==')
-        balances = self.btrx.getbalances()
-        return balances
+    def get_exchange_balances(self):
+        log.debug('{BOT} == GET exchange balances ==')
+        return self.ex.get_exchange_balances(exchange=self.exchange)
 
-    def get_balance(self, currency):
+    def get_balance(self, coin):
         log.debug('{BOT} == GET balance ==')
-        balance = self.btrx.getbalance(currency)
-        return balance
+        return self.ex.get_coin_balance(exchange=self.exchange, coin=coin)
 
-    def get_order_history(self, market, count):
+    def get_historical_trades(self, pair):
         log.debug('{BOT} == GET order history ==')
-        history = self.btrx.getorderhistory(market, count)
+        history = self.ex.get_historical_trades(self.exchange, pair=pair)
         return history
 
 

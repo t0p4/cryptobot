@@ -23,6 +23,7 @@ class HistoricalRates:
         #         ...
         #     }
         # }
+        self.exchange = "PASS THIS IN"
 
     def get_rate(self, timestamp, base_coin, market_coin=None):
         try:
@@ -36,7 +37,7 @@ class HistoricalRates:
             else:
                 return found, None
         except Exception:
-            raise InvalidCoinError(base_coin)
+            raise InvalidCoinError(base_coin, self.exchange)
 
     def add_rate(self, timestamp, base_coin, rate_data):
         try:
@@ -51,4 +52,4 @@ class HistoricalRates:
                 self.rates_by_timestamp_by_base_coin[timestamp] = {base_coin: rate_data}
                 return
         except Exception:
-            raise InvalidCoinError(base_coin)
+            raise InvalidCoinError(base_coin, self.exchange)

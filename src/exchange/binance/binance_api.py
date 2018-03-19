@@ -1694,7 +1694,7 @@ class BinanceAPI(object):
     # GET ACCOUNT BALANCES
     #
 
-    def get_account_balances(self, coin=None):
+    def get_exchange_balances(self, coin=None):
         try:
             if coin is None:
                 balances = self.get_account()
@@ -1703,7 +1703,7 @@ class BinanceAPI(object):
                 balances = self.get_asset_balance(asset=coin)
                 return self.normalize_balance(balances)
         except (BinanceAPIException, BinanceRequestException) as e:
-            self.throw_error('get_account_balances', e.__str__())
+            self.throw_error('get_exchange_balances', e.__str__())
 
     @staticmethod
     def normalize_balance(balance):
@@ -1722,7 +1722,7 @@ class BinanceAPI(object):
             trades = self.get_my_trades(symbol=pair['pair'])
             return [{**self.normalize_trade(trade), **pair} for trade in trades]
         except (BinanceAPIException, BinanceRequestException) as e:
-            self.throw_error('get_account_balances', e.__str__())
+            self.throw_error('get_historical_trades', e.__str__())
 
     @staticmethod
     def normalize_trade(trade):
@@ -1757,7 +1757,7 @@ class BinanceAPI(object):
         try:
             return self.normalize_ticker(self.get_ticker(symbol=pair['pair']), pair)
         except (BinanceAPIException, BinanceRequestException) as e:
-            self.throw_error('get_account_balances', e.__str__())
+            self.throw_error('get_current_pair_ticker', e.__str__())
 
     @staticmethod
     def normalize_ticker(tick, pair):
@@ -1779,13 +1779,13 @@ class BinanceAPI(object):
         try:
             return self.order_limit_buy(symbol=pair['pair'], quantity=amount, price=price)
         except (BinanceAPIException, BinanceRequestException) as e:
-            self.throw_error('get_account_balances', e.__str__())
+            self.throw_error('buy_limit', e.__str__())
 
     def sell_limit(self, amount, price, pair):
         try:
             return self.order_limit_sell(symbol=pair['pair'], quantity=amount, price=price)
         except (BinanceAPIException, BinanceRequestException) as e:
-            self.throw_error('get_account_balances', e.__str__())
+            self.throw_error('sell_limit', e.__str__())
 
     def normalize_order_resp(self, order_data):
         return {
@@ -1810,7 +1810,7 @@ class BinanceAPI(object):
         try:
             return self.normalize_cancel_order(self._cancel_order(symbol=order_id, orderId=pair['pair']))
         except (BinanceAPIException, BinanceRequestException) as e:
-            self.throw_error('get_account_balances', e.__str__())
+            self.throw_error('cancel_order', e.__str__())
 
     @staticmethod
     def normalize_cancel_order(cancelled_order):
@@ -1827,7 +1827,7 @@ class BinanceAPI(object):
         try:
             return self.normalize_order_status(self.get_order(symbol=pair['pair'], orderId=order_id))
         except (BinanceAPIException, BinanceRequestException) as e:
-            self.throw_error('get_account_balances', e.__str__())
+            self.throw_error('get_order_status', e.__str__())
 
     def normalize_order_status(self, order_status):
         return {
@@ -1849,7 +1849,7 @@ class BinanceAPI(object):
         try:
             return self._get_order_book(symbol=pair['pair'])
         except (BinanceAPIException, BinanceRequestException) as e:
-            self.throw_error('get_account_balances', e.__str__())
+            self.throw_error('get_order_book', e.__str__())
 
     def normalize_order_book(self, order_book):
         return {
@@ -1873,7 +1873,7 @@ class BinanceAPI(object):
             e_info = self.get_exchange_info()
             return [self.normalize_exchange_pair(pair) for pair in e_info['symbols']]
         except (BinanceAPIException, BinanceRequestException) as e:
-            self.throw_error('get_account_balances', e.__str__())
+            self.throw_error('get_exchange_pairs', e.__str__())
 
     @staticmethod
     def normalize_exchange_pair(pair):

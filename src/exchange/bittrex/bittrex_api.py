@@ -185,7 +185,7 @@ class BittrexAPI(object):
         #                                                   #
         #####################################################
 
-    def get_account_balances(self, coin=None):
+    def get_exchange_balances(self, coin=None):
         if coin is None:
             balances = self.getbalances()
             return [self.normalize_balance(balance) for balance in balances]

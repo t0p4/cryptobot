@@ -10,7 +10,7 @@ from src.exchange.gdax.gdax_api import PublicClient as GDaxPub
 from datetime import datetime
 from src.utils.logger import Logger
 from src.utils.rate_limiter import RateLimiter
-from src.exceptions import APIRequestError
+from src.exceptions import APIRequestError, InvalidCoinError
 from src.exchange.exchange_utils.binance_utils import create_normalized_trade_data_binance
 from src.data_structures.historical_prices import HistoricalRates
 
@@ -47,24 +47,15 @@ class ExchangeAdaptor:
             'gemini': {}
         }
         self.historical_rates = HistoricalRates()
+        self.balances = {
+            'binance': {},
+            'bittrex': {},
+            'gemini': {}
+        }
+
 
     def get_exchange_adaptor(self, exchange):
         return self.exchange_adaptors[exchange]()
-
-    def get_exchange_balances(self, exchange):
-        ex_adaptor = self.get_exchange_adaptor(exchange)
-        if exchange == 'binance':
-            account = ex_adaptor.get_account({'recvWindow': 10000})
-            result = []
-            for balance in account['balances']:
-                result.append({'currency': balance['asset'], 'balance': balance['free']})
-            return pd.DataFrame(result)
-        elif exchange == 'coinigy':
-            balances = ex_adaptor.balances()
-            coinigy_col_keys = ['balance_amount_avail', 'balance_amount_held', 'balance_amount_total', 'btc_balance', 'last_price']
-            return convert_str_columns_to_num(pd.DataFrame(balances), coinigy_col_keys)
-        else:
-            return {}
 
     def check_rate_cache(self, timestamp, base_coin, mkt_coin):
         return self.historical_rates.get_rate(timestamp, base_coin, mkt_coin)
@@ -153,7 +144,7 @@ class ExchangeAdaptor:
             log.error(e.error_msg)
             return None
 
-    def get_historical_trades(self, exchange, pair=None, start_time=None, end_time=None):
+    def get_historical_trades(self, exchange, pair=None):
         """
             gets all account trades on specified exchange pair between specified time period
         :param exchange:
@@ -164,13 +155,15 @@ class ExchangeAdaptor:
         :return:
         """
         try:
+            if pair is None:
+                raise APIRequestError(exchange, 'get_historical_trades', 'pair missing')
             ex = self.exchange_adaptors[exchange]()
             self.rate_limiters[exchange].limit()
             trade_data = ex.get_historical_trades(pair=pair)
             if isinstance(trade_data, list):
                 return trade_data
             else:
-                raise APIRequestError('no trade data')
+                raise APIRequestError(exchange, 'get_historical_trades', 'no trade data')
         except APIRequestError as e:
             log.error(e.error_msg)
             return []
@@ -183,22 +176,6 @@ class ExchangeAdaptor:
         :param end_time:
         :return:
         """
-
-    def get_account_balances(self, exchange, coin=None):
-        """
-            gets the current holdings on a given exchange, defaults to all coins, ability to specify a coin
-        :param exchange:
-        :param coin:
-        :return:
-        """
-        try:
-            ex = self.exchange_adaptors[exchange]()
-            self.rate_limiters[exchange].limit()
-            pair_rate = ex.get_account_balances(coin=coin)
-            return pair_rate
-        except APIRequestError as e:
-            log.error(e.error_msg)
-            return None
 
     def get_current_tickers(self, exchange):
         """
@@ -308,6 +285,10 @@ class ExchangeAdaptor:
         """
 
         try:
+            if pair is None:
+                raise APIRequestError(exchange, 'cancel_order', 'pair missing')
+            if order_id is None:
+                raise APIRequestError(exchange, 'cancel_order', 'order_id missing')
             ex = self.exchange_adaptors[exchange]()
             self.rate_limiters[exchange].limit()
             ticker = ex.cancel_order(order_id, pair)
@@ -368,7 +349,7 @@ class ExchangeAdaptor:
             side = 'both'
         try:
             if pair is None:
-                raise APIRequestError('please specify a pair')
+                raise APIRequestError(exchange, 'get_order_book', 'pair missing')
 
             ex = self.exchange_adaptors[exchange]()
             self.rate_limiters[exchange].limit()
@@ -405,6 +386,63 @@ class ExchangeAdaptor:
         for pair in pair_list:
             self.exchange_pairs[exchange][pair['pair']] = pair
         return self.exchange_pairs[exchange]
+
+    def get_current_timestamp(self, exchange):
+        """
+            need this to pull current timestamp when backtesting
+            TODO: maybe deprecate
+        :param exchange:
+        :return:
+        """
+        return datetime.now()
+
+    def get_coin_balance(self, exchange, coin):
+        """
+            returns the balance of the <coin> held on <exchange>
+        :param exchange:
+        :param coin:
+        :return:
+        """
+        try:
+            if coin is None:
+                raise APIRequestError(exchange, 'get_coin_balance', 'coin missing')
+            if self.balances[exchange] is None or self.balances[exchange][coin] is None:
+                self.get_exchange_balances(exchange)
+            if coin in self.balances[exchange]:
+                return self.balances[exchange][coin]
+            else:
+                raise InvalidCoinError(coin, exchange)
+        except APIRequestError as e:
+            log.error(e.error_msg)
+            return None
+
+    def get_exchange_balances(self, exchange):
+        """
+            returns and caches all non-zero balances held on <exchange>
+        :param exchange:
+        :return:
+        """
+        try:
+            ex = self.exchange_adaptors[exchange]()
+            self.rate_limiters[exchange].limit()
+            self.balances[exchange] = ex.get_exchange_balances()
+            return self.balances[exchange]
+        except APIRequestError as e:
+            log.error(e.error_msg)
+            return None
+        # ex_adaptor = self.get_exchange_adaptor(exchange)
+        # if exchange == 'binance':
+        #     account = ex_adaptor.get_account({'recvWindow': 10000})
+        #     result = []
+        #     for balance in account['balances']:
+        #         result.append({'currency': balance['asset'], 'balance': balance['free']})
+        #     return pd.DataFrame(result)
+        # elif exchange == 'coinigy':
+        #     balances = ex_adaptor.balances()
+        #     coinigy_col_keys = ['balance_amount_avail', 'balance_amount_held', 'balance_amount_total',
+        #                         'btc_balance', 'last_price']
+        #     return convert_str_columns_to_num(pd.DataFrame(balances), coinigy_col_keys)
+
 
     #####################################################
     #                                                   #
