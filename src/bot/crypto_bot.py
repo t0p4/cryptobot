@@ -123,7 +123,7 @@ class CryptoBot:
         if SEND_REPORTS:
             self.reporter.send_report(subj, body)
 
-    ## QUANT ##
+    # # QUANT # #
 
     def tick_step(self):
         self.minor_tick_step()
@@ -200,7 +200,7 @@ class CryptoBot:
         for mkt_name in self.active_currencies:
             log.info(mkt_name + "\n")
 
-    ## RATE LIMITER ##
+    # # RATE LIMITER # #
 
     def rate_limiter_reset(self):
         self.api_tick = datetime.datetime.now()
@@ -218,7 +218,7 @@ class CryptoBot:
                 sleep(sleep_for.seconds)
                 self.rate_limiter_reset()
 
-    ## TICKER ##
+    # # TICKER # #
 
     def increment_minor_tick(self):
         self.tick += 1
@@ -522,6 +522,7 @@ class CryptoBot:
         self.psql.save_currencies(results)
 
     # # BACKTESTING TOOLS # #
+
     # TODO refactor backtesting to work w/ generally
     #       save all normalized exchange data to database, use for backtesting
 
