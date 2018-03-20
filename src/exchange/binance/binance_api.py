@@ -1798,7 +1798,7 @@ class BinanceAPI(object):
             "remaining_amount": order_data['origQty'] - order_data['executedQty'],
             "is_live": order_data['status'] in (self.ORDER_STATUS_NEW, self.ORDER_STATUS_PARTIALLY_FILLED),
             "is_cancelled": order_data['status'] in (self.ORDER_STATUS_CANCELED, self.ORDER_STATUS_PENDING_CANCEL),
-            "type": order_data['type'],
+            "order_type": order_data['type'],
             "side": order_data['side'].lower()
         }
 

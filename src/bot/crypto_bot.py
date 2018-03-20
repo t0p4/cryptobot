@@ -64,13 +64,6 @@ class CryptoBot:
         self.init_pairs()
         log.info('...bot successfully initialized')
 
-    # def init_tradeable_markets(self):
-    #     env_tradeable_markets = os.getenv('TRADEABLE_MARKETS', 'ALL')
-    #     if env_tradeable_markets == 'ALL':
-    #         return env_tradeable_markets
-    #     else:
-    #         return dict((m, True) for m in env_tradeable_markets.split(','))
-
     def init_pairs(self):
         self.exchange_pairs[self.exchange] = self.get_exchange_pairs()
         self.init_valid_base_coins()
@@ -99,24 +92,6 @@ class CryptoBot:
     def is_valid_pair(self, pair):
         return (self.valid_base_coins == 'ALL' or self.valid_base_coins[pair['base_coin']]) and \
                (self.valid_mkt_coins == 'ALL' or self.valid_mkt_coins[pair['mkt_coin']])
-
-    # def init_markets(self):
-    #     # if BACKTESTING:
-    #     #     self.btrx.init_tradeable_markets(self.tradeable_markets)
-    #     if os.getenv('COLLECT_FIXTURES', 'FALSE') != 'TRUE':
-    #         self.currencies = self.get_currencies()
-    #         self.currencies['cb_active'] = True
-    #         self.refresh_active_currencies()
-    #         self.pairs = self.get_pairs()
-    #         for pair in self.pairs:
-    #             if self.is_valid_pair(pair):
-    #                 self.compressed_tickers[mkt_name] = pd.DataFrame()
-    #                 self.tickers[mkt_name] = pd.DataFrame()
-    #         for strat in self.strats:
-    #             strat.init_market_positions(self.pairs)
-
-    # def refresh_active_currencies(self):
-    #     self.active_currencies = dict((m, True) for m in self.currencies[self.currencies['cb_active']]['currency'].values)
 
     def run(self):
         if BACKTESTING:
@@ -506,16 +481,16 @@ class CryptoBot:
         return history
 
 
-    ## BITTREX MARKET DATA COLLECTOR ##
+    # # MARKET DATA COLLECTOR # #
 
     def collect_order_books(self):
         order_books = {}
-        for market in self.pairs:
-            order_books[market['MarketName']] = []
+        for ex, pair in self.exchange_pairs.items():
+            order_books[pair['pair']] = []
         self.rate_limiter_reset()
         while True:
-            for market in self.pairs:
-                market_name = market['MarketName']
+            for p, pair in self.exchange_pairs[self.exchange].items():
+                market_name = pair['mkt_coin']
                 log.info('Collecting order book for: ' + market_name)
                 order_book = self.get_order_book(market_name, 'both', 50)
                 order_books[market_name].append(order_book)
@@ -526,7 +501,7 @@ class CryptoBot:
         while True:
             try:
                 self.increment_minor_tick()
-                summaries = self.get_market_summaries()
+                summaries = self.get_current_tickers()
                 summaries = add_saved_timestamp(summaries, self.tick)
                 self.psql.save_summaries(summaries)
                 self.rate_limiter_limit()
@@ -535,71 +510,44 @@ class CryptoBot:
                 self.reporter.send_report('Collect OrderBooks Failure', type(e).__name__ + ' :: ' + e.message)
 
     def collect_markets(self):
-        markets = self.get_pairs()
+        markets = self.get_exchange_pairs()
         self.psql.save_markets(markets)
 
     def collect_currencies(self):
-        currencies = self.get_currencies()
+        currencies = self.get_exchange_pairs()
         results = []
-        for currency in currencies:
-            currency_data = normalize_index(pd.Series(currency))
+        for exchange, pair in currencies.items():
+            currency_data = normalize_index(pd.Series(pair))
             results.append(currency_data)
         self.psql.save_currencies(results)
 
-    ## HISTORICAL BTC DATA SCRAPER FOR bitcoincharts.com
+    # # BACKTESTING TOOLS # #
+    # TODO refactor backtesting to work w/ generally
+    #       save all normalized exchange data to database, use for backtesting
 
-    def get_historical_data(self):
-        endpoint = 'https://bitcoincharts.com/charts/chart.json?m=bitstampUSD&SubmitButton=Draw&r=2&i=1-min&c=1&s='
-        start_date = datetime.datetime(2017, 2, 8)
-        current_date = start_date
-        end_date = datetime.datetime(2017, 8, 24)
-
-        while current_date.date() < end_date.date():
-            sleep(3)
-            next_date = current_date + timedelta(days=1)
-            cd = current_date.strftime('%Y-%m-%d')
-            nd = next_date.strftime('%Y-%m-%d')
-            log.info('** getting BTC historical data ** ' + cd + ' :: ' + nd)
-            url = endpoint + cd + '&e=' + nd + '&Prev=&Next=&t=S&b=&a1=&m1=10&a2=&m2=25&x=0&i1=&i2=&i3=&i4=&v=1&cv=0&ps=0&l=0&p=0&'
-            resp = urllib.urlopen(url)
-            html = resp.read()
-            bs = BeautifulSoup(html, 'html.parser')
-            try:
-                data = json.loads(bs.contents[0])
-                data = normalize_inf_rows_dicts(data)
-                self.psql.save_historical_data(data)
-            except Exception as e:
-                log.error(e)
-            current_date = current_date + timedelta(days=1)
-
-
-    ## BACKTESTING TOOLS ##
-
-    def analyze_performance(self):
-        self.plot_market_data()
-        starting_balances = self.btrx.get_starting_balances()
-        current_balances = self.btrx.getbalances()
-        log.info('*** PERFORMANCE RESULTS ***')
-        for currency in starting_balances:
-            if currency not in self.tradeable_currencies and currency not in self.base_coins:
-                continue
-            start = starting_balances[currency]['balance']
-            end = current_balances[currency]['balance']
-            log_statement = currency + ' :: ' + 'Start = ' + str(start) + ' , End = ' + str(end)
-            if currency in self.base_coins:
-                log_statement += '% diff   :: ' + str((end - start) / start)
-            log.info(log_statement)
+    # def analyze_performance(self):
+    #     self.plot_market_data()
+    #     starting_balances = self.btrx.get_starting_balances()
+    #     current_balances = self.get_exchange_balances()
+    #     log.info('*** PERFORMANCE RESULTS ***')
+    #     for currency in starting_balances:
+    #         if currency not in self.tradeable_currencies and currency not in self.base_coins:
+    #             continue
+    #         start = starting_balances[currency]['balance']
+    #         end = current_balances[currency]['balance']
+    #         log_statement = currency + ' :: ' + 'Start = ' + str(start) + ' , End = ' + str(end)
+    #         if currency in self.base_coins:
+    #             log_statement += '% diff   :: ' + str((end - start) / start)
+    #         log.info(log_statement)
 
     def cash_out(self):
         log.info('*** CASHING OUT ***')
-        current_balances = self.btrx.getbalances()
-        for idx, market in self.pairs.iterrows():
-            mkt_name = market['marketname']
-            coins = mkt_name.split('-')
-            cur_balance = current_balances[coins[1]]['balance']
-            # add logic to optimize and get the best return (eth vs btc)
+        current_balances = self.get_exchange_balances()
+        for p, pair in self.exchange_pairs[self.exchange].items():
+            cur_balance = current_balances[pair['mkt_coin']]['balance']
+            # TODO add logic to optimize and get the best return (eth vs btc)
             if cur_balance > 0:
-                self.trade_instant('sell', mkt_name, 1)
+                self.trade_instant('sell', pair, 1)
 
     def plot_market_data(self):
         for market, trades in self.completed_trades.items():

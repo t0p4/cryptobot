@@ -37,4 +37,14 @@ TABLE_NAMES = {
         'PROD_TEST': 'prod_test_trades',
         'BACKTEST': 'backtest_trades',
     },
+    'save_tickers': {
+        'PROD': 'tickers',
+        'PROD_TEST': 'prod_test_tickers',
+        'BACKTEST': 'backtest_tickers'
+    },
+    'save_order': {
+        'PROD': 'orders',
+        'PROD_TEST': 'prod_test_orders',
+        'BACKTEST': 'backtest_orders'
+    }
 }

@@ -182,6 +182,23 @@ class ExchangeAdaptor:
             gets the current tickers for all pairs on a given exchange
         :param exchange:
         :return:
+            [
+                {   'pair': 'BTC-NEO',
+                    'base_coin': 'BTC',
+                    'mkt_coin': 'NEO',
+                    'open': 0.0094,
+                    'high': 0.0094,
+                    'low': 0.0094,
+                    'close': 0.0094,
+                    'bid': 0.0092,
+                    'ask': 0.0095,
+                    'last': 0.0094,
+                    'vol_base': 5,
+                    'vol_mkt': 500,
+                    'timestamp': 3847878274205,
+                    'exchange': 'gemini'
+                }
+            ]
         """
         try:
             ex = self.exchange_adaptors[exchange]()
@@ -194,7 +211,8 @@ class ExchangeAdaptor:
                     'open': float(ticker['last']),
                     'high': float(ticker['last']),
                     'low': float(ticker['last']),
-                    'close': float(ticker['last'])
+                    'close': float(ticker['last']),
+                    'exchange': exchange
                 })
             return result
         except APIRequestError as e:
@@ -207,6 +225,22 @@ class ExchangeAdaptor:
         :param exchange:
         :param pair:
         :return:
+            {
+                'pair': 'BTC-NEO',
+                'base_coin': 'BTC',
+                'mkt_coin': 'NEO',
+                'open': 0.0094,
+                'high': 0.0094,
+                'low': 0.0094,
+                'close': 0.0094,
+                'bid': 0.0092,
+                'ask': 0.0095,
+                'last': 0.0094,
+                'vol_base': 5,
+                'vol_mkt': 500,
+                'timestamp': 3847878274205,
+                'exchange': 'gemini'
+            }
         """
         try:
             if pair is None:
@@ -234,19 +268,33 @@ class ExchangeAdaptor:
         :param price:
         :param pair:
         :return:
+            {
+                "order_id": 382783,
+                "pair": btcusd,
+                "price": 0.425362,
+                "avg_price": 0.452783,
+                "side": <buy / sell>,
+                "type": BUY_LIMIT,
+                "timestampms": 12345678900909,
+                "is_live": <true / false>,
+                "is_cancelled": <true / false>,
+                'executed_amount': 50,
+                'remaining_amount': 20,
+                'original_amount': 70,
+                'exchange': 'gemini'
+            }
         """
 
         try:
             if pair is None:
-                raise APIRequestError(exchange, 'get_order_status', 'pair missing')
+                raise APIRequestError(exchange, 'buy_limit', 'pair missing')
             if amount is None:
-                raise APIRequestError(exchange, 'get_order_status', 'amount missing')
+                raise APIRequestError(exchange, 'buy_limit', 'amount missing')
             if price is None:
-                raise APIRequestError(exchange, 'get_order_status', 'price missing')
+                raise APIRequestError(exchange, 'buy_limit', 'price missing')
             ex = self.exchange_adaptors[exchange]()
             self.rate_limiters[exchange].limit()
-            ticker = ex.buy_limit(amount, price, pair)
-            return ticker
+            return ex.buy_limit(amount, price, pair)
         except APIRequestError as e:
             log.error(e.error_msg)
             return None
@@ -259,18 +307,32 @@ class ExchangeAdaptor:
         :param price:
         :param pair:
         :return:
+            {
+                "order_id": 382783,
+                "pair": btcusd,
+                "price": 0.425362,
+                "avg_price": 0.452783,
+                "side": <buy / sell>,
+                "type": BUY_LIMIT,
+                "timestampms": 12345678900909,
+                "is_live": <true / false>,
+                "is_cancelled": <true / false>,
+                'executed_amount': 50,
+                'remaining_amount': 20,
+                'original_amount': 70,
+                'exchange': 'gemini'
+            }
         """
         try:
             if pair is None:
-                raise APIRequestError(exchange, 'get_order_status', 'pair missing')
+                raise APIRequestError(exchange, 'sell_limit', 'pair missing')
             if amount is None:
-                raise APIRequestError(exchange, 'get_order_status', 'amount missing')
+                raise APIRequestError(exchange, 'sell_limit', 'amount missing')
             if price is None:
-                raise APIRequestError(exchange, 'get_order_status', 'price missing')
+                raise APIRequestError(exchange, 'sell_limit', 'price missing')
             ex = self.exchange_adaptors[exchange]()
             self.rate_limiters[exchange].limit()
-            ticker = ex.sell_limit(amount, price, pair)
-            return ticker
+            return ex.sell_limit(amount, price, pair)
         except APIRequestError as e:
             log.error(e.error_msg)
             return None
@@ -282,6 +344,21 @@ class ExchangeAdaptor:
         :param order_id:
         :param pair:
         :return:
+            {
+                "order_id": 382783,
+                "pair": btcusd,
+                "price": 0.425362,
+                "avg_price": 0.452783,
+                "side": <buy / sell>,
+                "type": BUY_LIMIT,
+                "timestampms": 12345678900909,
+                "is_live": <true / false>,
+                "is_cancelled": <true / false>,
+                'executed_amount': 50,
+                'remaining_amount': 20,
+                'original_amount': 70,
+                'exchange': 'gemini'
+            }
         """
 
         try:
@@ -291,8 +368,7 @@ class ExchangeAdaptor:
                 raise APIRequestError(exchange, 'cancel_order', 'order_id missing')
             ex = self.exchange_adaptors[exchange]()
             self.rate_limiters[exchange].limit()
-            ticker = ex.cancel_order(order_id, pair)
-            return ticker
+            return ex.cancel_order(order_id, pair)
         except APIRequestError as e:
             log.error(e.error_msg)
             return None
@@ -304,16 +380,24 @@ class ExchangeAdaptor:
         :param order_id:
         :param base_coin:
         :param mkt_coin:
-        :return:    {
-                        "price": <price>,
-                        "side": <"bid" / "ask">,
-                        "is_live": true/false,
-                        "is_cancelled": true/false,
-                        "executed_amount": <executed_amount>,
-                        "remaining_amount": <remaining_amount>,
-                        "original_amount": <original_amount>,
-                        "order_id": <order_id>
-                    }
+        :return:
+            {
+                "order_id": 382783,
+                "pair": "btcusd",
+                "base_coin": "usd",
+                "mkt_coin": "btc",
+                "price": 0.425362,
+                "avg_price": 0.452783,
+                "side": <buy / sell>,
+                "type": BUY_LIMIT,
+                "timestampms": 12345678900909,
+                "is_live": <true / false>,
+                "is_cancelled": <true / false>,
+                'executed_amount': 50,
+                'remaining_amount': 20,
+                'original_amount': 70,
+                'exchange': 'gemini'
+            }
         """
         try:
             if pair is None:
@@ -323,7 +407,7 @@ class ExchangeAdaptor:
 
             ex = self.exchange_adaptors[exchange]()
             self.rate_limiters[exchange].limit()
-            order_status = ex.get_order_status(order_id=order_id, pair=pair)
+            order_status = ex.get_order_status(order_id, pair)
             return order_status
         except APIRequestError as e:
             log.error(e.error_msg)
@@ -402,6 +486,11 @@ class ExchangeAdaptor:
         :param exchange:
         :param coin:
         :return:
+            {
+                'coin': btc,
+                'balance': 24.5,
+                'address': 0xjklsdh82389hf98hf23hsdiufh
+            }
         """
         try:
             if coin is None:
@@ -421,6 +510,18 @@ class ExchangeAdaptor:
             returns and caches all non-zero balances held on <exchange>
         :param exchange:
         :return:
+            [
+                {
+                    'coin': btc,
+                    'balance': 24.5,
+                    'address': 0xjklsdh82389hf98hf23hsdiufh
+                },
+                {
+                    'coin': eth,
+                    'balance': 68.3,
+                    'address': 0xaywu7yw7y7yw8isq1200029shd
+                }
+            ]
         """
         try:
             ex = self.exchange_adaptors[exchange]()

@@ -396,10 +396,6 @@ class GeminiAPI(object):
             pairs.append(self.get_current_pair_ticker(p))
         return pairs
 
-    #
-    # GET PAIR TICKER
-    #
-
     def get_current_pair_ticker(self, pair):
         res = self.pubticker(symbol=pair['pair'])
         res_json = res.json()
@@ -421,7 +417,7 @@ class GeminiAPI(object):
         }
 
     #
-    # PLACE ORDER
+    # PLACE / CANCEL / STATUS ORDER
     #
 
     def buy_limit(self, amount, price, pair):
@@ -436,77 +432,49 @@ class GeminiAPI(object):
         if res.status_code != 200:
             self.throw_error('order_limit_' + side, res_json)
         else:
-            return self.normalize_order(res_json)
+            return self.normalize_order_resp(res_json, pair)
 
-    @staticmethod
-    def normalize_order_resp(order_resp):
-        return {
-            "order_id": order_resp['order_id'],
-            "pair": order_resp['symbol'],
-            "price": float(order_resp['price']),
-            "avg_price": float(order_resp['avg_execution_price']),
-            "side": order_resp['side'],
-            "type": order_resp['type'],
-            "timestampms": order_resp['timestampms'],
-            "is_live": order_resp['is_live'],
-            "is_cancelled": order_resp['is_cancelled'],
-            'executed_amount': float(order_resp['executed_amount']),
-            'remaining_amount': float(order_resp['remaining_amount']),
-            'original_amount': float(order_resp['original_amount'])
-        }
-
-    #
-    # CANCEL ORDER
-    #
-
-    def cancel_order(self, order_id):
+    def cancel_order(self, order_id, pair):
         res = self._cancel_order(order_id)
         res_json = res.json()
         if res.status_code != 200:
             self.throw_error('cancel_order', res_json)
         else:
-            return self.normalize_cancel_order(res_json)
+            return self.normalize_order_resp(res_json, pair)
 
-    @staticmethod
-    def normalize_cancel_order(cancelled_order):
-        return {
-            "order_id": cancelled_order['order_id'],
-            "pair": cancelled_order['symbol'],
-            "price": float(cancelled_order['price']),
-            "avg_price": float(cancelled_order['avg_execution_price']),
-            "side": cancelled_order['side'],
-            "type": cancelled_order['type'],
-            "timestampms": cancelled_order['timestampms'],
-            "is_live": cancelled_order['is_live'],
-            "is_cancelled": cancelled_order['is_cancelled'],
-            'executed_amount': float(cancelled_order['executed_amount']),
-            'remaining_amount': float(cancelled_order['remaining_amount']),
-            'original_amount': float(cancelled_order['original_amount'])
-        }
-
-    #
-    # GET ORDER STATUS
-    #
-
-    def get_order_status(self, order_id=None):
+    def get_order_status(self, order_id, pair):
         res = self.order_status(order_id)
         res_json = res.json()
         if res.status_code != 200:
             self.throw_error('get_order_status', res_json)
         else:
-            return self.normalize_order_status(res_json)
+            return self.normalize_order_resp(res_json, pair)
 
     @staticmethod
-    def normalize_order_status(order_status):
+    def normalize_order_resp(order_resp, pair):
         return {
-            'price': float(order_status['price']),
-            'side': order_status['side'],
-            'is_live': order_status['is_live'],
-            'is_cancelled': order_status['is_cancelled'],
-            'executed_amount': float(order_status['executed_amount']),
-            'remaining_amount': float(order_status['remaining_amount']),
-            'original_amount': float(order_status['original_amount']),
-            'order_id': order_status['order_id']
+            'order_id': order_resp['order_id'],
+            'exchange': 'gemini',
+            'order_type': order_resp['type'],
+            'pair': order_resp['symbol'],
+            'base_coin': pair['base_coin'],
+            'mkt_coin': pair['mkt_coin'],
+            'side': order_resp['side'],
+            'is_live': order_resp['is_live'],
+            'is_cancelled': order_resp['is_cancelled'],
+            'original_amount': float(order_resp['original_amount']),
+            'executed_amount': float(order_resp['executed_amount']),
+            'remaining_amount': float(order_resp['remaining_amount']),
+            'price': float(order_resp['price']),
+            'avg_price': float(order_resp['avg_execution_price']),
+            'rate_btc': None,
+            'rate_eth': None,
+            'rate_usd': None,
+            'cost_avg_btc': 0,
+            'cost_avg_eth': 0,
+            'cost_avg_usd': 0,
+            'analyzed': False,
+            'timestamp': order_resp['timestampms']
         }
 
     #

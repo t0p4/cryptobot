@@ -128,6 +128,222 @@ class PostgresConnection:
         query = """ INSERT INTO btc_historical (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
+    def get_historical_data(self, start_date, end_date):
+        log.debug('{PSQL} == GET historical data ==')
+        params = {
+            "start_date": mktime(start_date.timetuple()),
+            "end_date": mktime(end_date.timetuple())
+        }
+        query = """
+            SELECT open, high, low, close, volume_btc, volume_usd, timestamp FROM btc_historical
+            WHERE timestamp >= %(start_date)s AND timestamp < %(end_date)s
+            ORDER BY timestamp ASC ;
+        """
+        return self._fetch_query(query, params)
+
+    def get_market_summaries_by_timestamp(self, target_timestamp):
+        log.debug('{PSQL} == GET market summaries ==')
+        params = {
+            'target_timestamp': target_timestamp
+        }
+        query = """
+            SELECT marketname, last, bid, ask, saved_timestamp FROM market_summaries
+            WHERE saved_timestamp = {target_timestamp} ;
+        """
+        return self._fetch_query(query, params)
+
+    def get_market_summaries_by_ticker(self, tick, market_names):
+        log.debug('{PSQL} == GET market summaries by ticker ==')
+        params = {
+            'ticker_nonce': tick,
+            'market_names': market_names
+        }
+        query = """
+            SELECT marketname, last, bid, ask, saved_timestamp, volume FROM fixture_market_summaries
+            WHERE ticker_nonce = %(ticker_nonce)s AND marketname IN %(market_names)s
+            ;
+        """
+        return self._fetch_query(query, params)
+
+    def get_fixture_markets(self, base_currencies):
+        log.debug('{PSQL} == GET fixture markets ==')
+        fmt_str = "(%(currencies)s)"
+        columns = "currencies"
+        values = AsIs(','.join(fmt_str.format(currency) for currency in base_currencies))
+        params = {
+            'base_currencies': tuple(base_currencies)
+        }
+        query = """
+            SELECT * FROM fixture_markets
+            WHERE basecurrency IN ('ETH', 'BTC');
+        """
+        return self._fetch_query(query, params)
+
+    def get_fixture_currencies(self):
+        log.debug('{PSQL} == GET fixture markets ==')
+        params = {}
+        query = """ SELECT * FROM fixture_currencies ; """
+        return self._fetch_query(query, params)
+
+    def get_all_trade_data(self):
+        log.debug('{PSQL} == GET trade data ==')
+        params = {}
+        query = """ SELECT * FROM """ + self.table_name('trade_data')
+        return self._fetch_query(query, params)
+
+    def get_most_recent_trades(self):
+        log.debug('{PSQL} == GET most recent trade data ==')
+        params = {}
+        query = """
+            SELECT * FROM """ + self.table_name('trade_data') + """
+            WHERE trade_time == MAX(trade_time) GROUP BY market_currency
+            ;
+        """
+        return self._fetch_query(query, params)
+
+    def get_full_report(self, report_date):
+        report_overview = self.get_report_overview(report_date)
+        if report_overview.empty:
+            return None, None
+        else:
+            report_assets = self.get_report_assets(report_overview.loc[0, 'report_id'])
+            return report_overview, report_assets
+
+    def get_report_overview(self, report_date):
+        log.debug('{PSQL} == GET most recent portfolio report data ==')
+        params = {
+            'report_date': report_date
+        }
+        query = """
+            SELECT * FROM """ + self.table_name('portfolio_reports') + """
+            WHERE report_date = %(report_date)s
+            ;
+        """
+        return self._fetch_query(query, params)
+
+    def get_report_assets(self, report_id):
+        log.debug('{PSQL} == GET most recent portfolio report asset data ==')
+        params = {
+            'report_id': report_id
+        }
+        query = """
+            SELECT * FROM """ + self.table_name('portfolio_assets') + """
+            WHERE report_id = %(report_id)s
+            ;
+        """
+        return self._fetch_query(query, params)
+
+    # REFACTORING TABLES #
+
+    def save_tickers(self, tickers):
+        log.debug('{PSQL} == SAVE tickers ==')
+        fmt_str = """
+        (
+            '{pair}',
+            '{base_coin}',
+            '{mkt_coin}',
+            {open},
+            {high},
+            {low},
+            {close},
+            {bid},
+            {ask},
+            {last},
+            {vol_base},
+            {vol_mkt},
+            {timestamp},
+            '{exchange}',
+            {ticker_nonce}
+        )
+        """
+        columns = """
+            pair,
+            base_coin,
+            mkt_coin,
+            open,
+            high,
+            low,
+            close,
+            bid,
+            ask,
+            last,
+            vol_base,
+            vol_mkt,
+            timestamp,
+            exchange,
+            ticker_nonce
+        """
+        values = AsIs(','.join(fmt_str.format(**ticker) for ticker in tickers))
+        params = {
+            "columns": AsIs(columns),
+            "values": values
+        }
+        query = """ INSERT INTO """ + self.table_name('save_tickers') + """ (%(columns)s) VALUES %(values)s ; """
+        self._exec_query(query, params)
+
+    def save_trade_data(self, trade_data):
+        log.debug('{PSQL} == SAVE historical_trade_data ==')
+        fmt_str = """
+        (
+            '{order_id}',
+            '{exchange}',
+            '{order_type}',
+            '{pair}',
+            '{base_coin}',
+            '{mkt_coin}',
+            '{trade_direction}',
+            '{is_live}',
+            '{is_cancelled}',
+            {original_amount},
+            {executed_amount},
+            {remaining_amount},
+            {price},
+            {avg_price},
+            {rate_btc},
+            {rate_eth},
+            {rate_usd},
+            {cost_avg_btc},
+            {cost_avg_eth},
+            {cost_avg_usd},
+            {analyzed},
+            {timestamp},
+            {save_time}
+        )
+        """
+
+        columns = """
+            order_id,
+            exchange,
+            order_type,
+            pair,
+            base_coin,
+            mkt_coin,
+            side,
+            is_live,
+            is_cancelled,
+            original_amount,
+            executed_amount,
+            remaining_amount,
+            price,
+            avg_price,
+            rate_btc,
+            rate_eth,
+            rate_usd,
+            cost_avg_btc,
+            cost_avg_eth,
+            cost_avg_usd,
+            analyzed,
+            timestamp,
+            save_time
+        """
+        values = AsIs(','.join(fmt_str.format(**trade) for trade in trade_data))
+        params = {
+            "columns": AsIs(columns),
+            "values": values
+        }
+        query = """ INSERT INTO """ + self.table_name('save_order') + """ (%(columns)s) VALUES %(values)s ; """
+        self._exec_query(query, params)
+
     def save_portfolio_report(self, portfolio_report):
         fmt_str = """(
                     {total_coins},
@@ -255,157 +471,4 @@ class PostgresConnection:
             "values": values
         }
         query = """ INSERT INTO """ + self.table_name('portfolio_assets') + """ (%(columns)s) VALUES %(values)s ; """
-        self._exec_query(query, params)
-
-    def get_historical_data(self, start_date, end_date):
-        log.debug('{PSQL} == GET historical data ==')
-        params = {
-            "start_date": mktime(start_date.timetuple()),
-            "end_date": mktime(end_date.timetuple())
-        }
-        query = """
-            SELECT open, high, low, close, volume_btc, volume_usd, timestamp FROM btc_historical
-            WHERE timestamp >= %(start_date)s AND timestamp < %(end_date)s
-            ORDER BY timestamp ASC ;
-        """
-        return self._fetch_query(query, params)
-
-    def get_market_summaries_by_timestamp(self, target_timestamp):
-        log.debug('{PSQL} == GET market summaries ==')
-        params = {
-            'target_timestamp': target_timestamp
-        }
-        query = """
-            SELECT marketname, last, bid, ask, saved_timestamp FROM market_summaries
-            WHERE saved_timestamp = {target_timestamp} ;
-        """
-        return self._fetch_query(query, params)
-
-    def get_market_summaries_by_ticker(self, tick, market_names):
-        log.debug('{PSQL} == GET market summaries by ticker ==')
-        params = {
-            'ticker_nonce': tick,
-            'market_names': market_names
-        }
-        query = """
-            SELECT marketname, last, bid, ask, saved_timestamp, volume FROM fixture_market_summaries
-            WHERE ticker_nonce = %(ticker_nonce)s AND marketname IN %(market_names)s
-            ;
-        """
-        return self._fetch_query(query, params)
-
-    def get_fixture_markets(self, base_currencies):
-        log.debug('{PSQL} == GET fixture markets ==')
-        fmt_str = "(%(currencies)s)"
-        columns = "currencies"
-        values = AsIs(','.join(fmt_str.format(currency) for currency in base_currencies))
-        params = {
-            'base_currencies': tuple(base_currencies)
-        }
-        query = """
-            SELECT * FROM fixture_markets
-            WHERE basecurrency IN ('ETH', 'BTC');
-        """
-        return self._fetch_query(query, params)
-
-    def get_fixture_currencies(self):
-        log.debug('{PSQL} == GET fixture markets ==')
-        params = {}
-        query = """ SELECT * FROM fixture_currencies ; """
-        return self._fetch_query(query, params)
-
-    def get_all_trade_data(self):
-        log.debug('{PSQL} == GET trade data ==')
-        params = {}
-        query = """ SELECT * FROM """ + self.table_name('trade_data')
-        return self._fetch_query(query, params)
-
-    def get_most_recent_trades(self):
-        log.debug('{PSQL} == GET most recent trade data ==')
-        params = {}
-        query = """
-            SELECT * FROM """ + self.table_name('trade_data') + """
-            WHERE trade_time == MAX(trade_time) GROUP BY market_currency
-            ;
-        """
-        return self._fetch_query(query, params)
-
-    def get_full_report(self, report_date):
-        report_overview = self.get_report_overview(report_date)
-        if report_overview.empty:
-            return None, None
-        else:
-            report_assets = self.get_report_assets(report_overview.loc[0, 'report_id'])
-            return report_overview, report_assets
-
-    def get_report_overview(self, report_date):
-        log.debug('{PSQL} == GET most recent portfolio report data ==')
-        params = {
-            'report_date': report_date
-        }
-        query = """
-            SELECT * FROM """ + self.table_name('portfolio_reports') + """
-            WHERE report_date = %(report_date)s
-            ;
-        """
-        return self._fetch_query(query, params)
-
-    def get_report_assets(self, report_id):
-        log.debug('{PSQL} == GET most recent portfolio report asset data ==')
-        params = {
-            'report_id': report_id
-        }
-        query = """
-            SELECT * FROM """ + self.table_name('portfolio_assets') + """
-            WHERE report_id = %(report_id)s
-            ;
-        """
-        return self._fetch_query(query, params)
-
-    def save_historical_trade_data(self, trade_data):
-        log.debug('{PSQL} == SAVE historical_trade_data ==')
-        fmt_str = """(
-                    '{order_type}',
-                    '{base_currency}',
-                    '{market_currency}',
-                    {quantity},
-                    {rate},
-                    '{trade_id}',
-                    '{exchange_id}',
-                    {trade_time},
-                    {save_time},
-                    {rate_btc},
-                    {rate_eth},
-                    {rate_usd},
-                    '{trade_direction}',
-                    {cost_avg_btc},
-                    {cost_avg_eth},
-                    {cost_avg_usd},
-                    {analyzed}
-                )"""
-        columns = """
-                    order_type,
-                    base_currency,
-                    market_currency,
-                    quantity,
-                    rate,
-                    trade_id,
-                    exchange_id,
-                    trade_time,
-                    save_time,
-                    rate_btc,
-                    rate_eth,
-                    rate_usd,
-                    trade_direction,
-                    cost_avg_btc,
-                    cost_avg_eth,
-                    cost_avg_usd,
-                    analyzed
-                """
-        values = AsIs(','.join(fmt_str.format(**trade) for trade in trade_data))
-        params = {
-            "columns": AsIs(columns),
-            "values": values
-        }
-        query = """ INSERT INTO """ + self.table_name('save_currencies') + """ (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
