@@ -235,6 +235,55 @@ class PostgresConnection:
 
     # REFACTORING TABLES #
 
+    def save_cmc_tickers(self, tickers, extra_columns):
+        log.debug('{PSQL} == SAVE tickers ==')
+        add_fmt_str = ''
+        add_columns = ''
+        for col in extra_columns:
+            add_fmt_str += ',{' + col + '}'
+            add_columns += ',' + col
+        fmt_str = """
+                (
+                    '{id}',
+                    '{name}',
+                    '{symbol}',
+                    '{rank}',
+                    {price_btc},
+                    {price_usd},
+                    {24h_volume_usd},
+                    {market_cap_usd},
+                    {available_supply},
+                    {total_supply},
+                    {percent_change_1h},
+                    {percent_change_24h},
+                    {percent_change_7d},
+                    {last_updated}""" + add_fmt_str + """
+                )
+                """
+        columns = """
+                    id,
+                    name,
+                    symbol,
+                    rank,
+                    price_btc,
+                    price_usd,
+                    24h_volume_usd,
+                    market_cap_usd,
+                    available_supply,
+                    total_supply,
+                    percent_change_1h,
+                    percent_change_24h,
+                    percent_change_7d,
+                    last_updated""" + add_columns + """
+                """
+        values = AsIs(','.join(fmt_str.format(**ticker) for ticker in tickers))
+        params = {
+            "columns": AsIs(columns),
+            "values": values
+        }
+        query = """ INSERT INTO """ + self.table_name('save_cmc_tickers') + """ (%(columns)s) VALUES %(values)s ; """
+        self._exec_query(query, params)
+
     def save_tickers(self, tickers):
         log.debug('{PSQL} == SAVE tickers ==')
         fmt_str = """

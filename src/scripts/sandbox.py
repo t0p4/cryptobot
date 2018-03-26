@@ -3,6 +3,7 @@ from src.strats.bollinger_bands_strat import BollingerBandsStrat
 from src.strats.stochastic_rsi_strat import StochasticRSIStrat
 from src.strats.williams_pct_strat import WilliamsPctStrat
 from src.strats.volume_strat import VolumeStrat
+from src.strats.index_strat import IndexStrat2
 from src.strats.macd_strat import MACDStrat
 from src.exchange.exchange_factory import ExchangeFactory
 from src.bot.portfolio_reporter import PortfolioReporter
@@ -60,8 +61,18 @@ else:
 #     'long_vol_ema_window': 26,
 #     'vol_roc_window': 3,
 # }
-macd_options = {
-    'name': 'MACD',
+# macd_options = {
+#     'name': 'MACD',
+#     'active': True,
+#     'plot_overlay': False,
+#     'stat_key': 'last',
+#     'window': 26,
+#     'slow_ema_window': 26,
+#     'fast_ema_window': 12,
+#     'sma_window': 9
+# }
+index_options = {
+    'name': 'EmaMktCapIndex',
     'active': True,
     'plot_overlay': False,
     'stat_key': 'last',
@@ -75,9 +86,10 @@ macd_options = {
 # stoch_rsi_strat = StochasticRSIStrat(stoch_rsi_options)
 # w_pct_strat = WilliamsPctStrat(w_pct_options)
 # vol_strat = VolumeStrat(vol_options)
-macd_strat = MACDStrat(macd_options)
+# macd_strat = MACDStrat(macd_options)
+index_strat = IndexStrat2(index_options)
 
-bot = CryptoBot([macd_strat], btrx)
+bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]}, btrx)
 
 # bot.get_balance('ETH')
 # bot.get_balances()

@@ -13,6 +13,7 @@ from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsE
 from src.utils.reporter import Reporter
 from src.utils.plotter import Plotter
 from src.exchange.exchange_adaptor import ExchangeAdaptor
+from src.exchange.coinmarketcap.core import Market
 
 MAX_CURRENCY_PER_BUY = {
     'BTC': .2,
@@ -35,7 +36,8 @@ class CryptoBot:
         log.info('Initializing bot...')
         self.psql = PostgresConnection()
         self.ex = ExchangeAdaptor()
-        self.strats = strats
+        self.strats = strats['v1_strats']
+        self.index_strats = strats['index_strats']
         self.btrx = exchange
         self.trade_functions = {'buy': self.buy_limit, 'sell': self.sell_limit}
         self.base_coins = ['btc']
@@ -62,6 +64,10 @@ class CryptoBot:
         self.valid_mkt_coins = None
         self.valid_base_coins = None
         self.init_pairs()
+        self.cmc = Market()
+        self.cmc_data = pd.DataFrame()
+        self.cmc_api_tick = datetime.datetime.now()
+        self.cmc_rate_limit = datetime.timedelta(hours=6)
         log.info('...bot successfully initialized')
 
     def init_pairs(self):
@@ -101,6 +107,7 @@ class CryptoBot:
 
     def run_prod(self):
         log.info('* * * ! * * * BEGIN PRODUCTION RUN * * * ! * * *')
+        self.cmc_timer_reset()
         while (True):
             # self.rate_limiter_limit()
             self.tick_step()
@@ -152,6 +159,12 @@ class CryptoBot:
     def major_tick_step(self):
         # start = datetime.datetime.now()
 
+        # pickup cmc tickers
+        if self.cmc_timer_check():
+            self.get_cmc_tickers()
+            self.generate_cmc_index()
+            self.save_cmc_data()
+
         self.increment_major_tick()
         self.compress_tickers()
         for strat in self.strats:
@@ -162,6 +175,15 @@ class CryptoBot:
 
         # end = datetime.datetime.now()
         # log.info('MAJOR TICK STEP runtime :: ' + str(end - start))
+
+    def generate_cmc_index(self):
+        self.index_strats[0].handle_data(self.cmc_data)
+
+    def save_cmc_data(self):
+        add_columns = []
+        for strat in self.index_strats:
+            add_columns += strat.add_columns
+        self.psql.save_cmc_tickers(self.cmc_data, add_columns)
 
     def compress_tickers(self):
         # start = datetime.datetime.now()
@@ -218,6 +240,13 @@ class CryptoBot:
                 sleep(sleep_for.seconds)
                 self.rate_limiter_reset()
 
+    def cmc_timer_reset(self):
+        self.cmc_api_tick = datetime.datetime.now()
+
+    def cmc_timer_check(self):
+        current_tick = datetime.datetime.now()
+        return (current_tick - self.cmc_api_tick) < self.cmc_rate_limit
+
     # # TICKER # #
 
     def increment_minor_tick(self):
@@ -257,6 +286,14 @@ class CryptoBot:
             return self.ex.get_current_timestamp(self.exchange)
         else:
             return datetime.datetime.now()
+
+    def get_cmc_tickers(self):
+        log.debug('{BOT} == GET cmc tickers ==')
+        try:
+            self.cmc_data = self.cmc_data.append(pd.DataFrame(self.cmc.ticker(limit=250, convert='USD')))
+            self.cmc_timer_reset()
+        except Exception as e:
+            log.error(str(e))
 
     # # ORDERS # #
 

@@ -10,8 +10,11 @@ class BaseStrategy:
         self.active = options['active']
         self.stat_key = options['stat_key']
         self.window = options['window']
+        self.ema_window = options['ema_window']
         self.buy_positions = {}
         self.sell_positions = {}
+        self.ema_suffix = '-EMA'
+        self.pct_weight_suffix = '-PCT_WEIGHT'
 
     def init_market_positions(self, pairs):
         self.buy_positions = {pair: False for pair, p in pairs.items()}
@@ -47,3 +50,6 @@ class BaseStrategy:
             log.info(' * * * SELL :: ' + pair)
         else:
             log.debug(' * * * HOLD :: ' + pair)
+
+    def apply_ema(self, mkt_data, key):
+        mkt_data[key + self.ema_suffix] = mkt_data.groupby('pair').ewm(span=self.ema_window, adjust=False).mean()
