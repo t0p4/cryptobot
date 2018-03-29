@@ -14,6 +14,7 @@ from src.utils.reporter import Reporter
 from src.utils.plotter import Plotter
 from src.exchange.exchange_adaptor import ExchangeAdaptor
 from src.exchange.coinmarketcap.core import Market
+from src.exchange.coinmarketcap import coinmarketcap_usd_history
 
 MAX_CURRENCY_PER_BUY = {
     'BTC': .2,
@@ -69,6 +70,7 @@ class CryptoBot:
         self.cmc_data = pd.DataFrame()
         self.cmc_api_tick = datetime.datetime.now()
         self.cmc_rate_limit = datetime.timedelta(minutes=5)
+        self.hist_cmc_data = {}
         self.nonce = 0
         log.info('...bot successfully initialized')
 
@@ -584,6 +586,14 @@ class CryptoBot:
         self.get_cmc_tickers()
         self.save_cmc_data()
         self.cmc_data = pd.DataFrame()
+
+    def collect_historical_cmc_data(self):
+        BACKTESTING = False
+        self.get_cmc_tickers()
+        coins = self.cmc_data['id'].values
+        for coin in coins:
+            self.hist_cmc_data[coin] = coinmarketcap_usd_history.main([coin, '2017-01-01', '2018-03-20', '--dataframe'])
+        return self.hist_cmc_data
 
     # # BACKTESTING TOOLS # #
 

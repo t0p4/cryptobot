@@ -110,7 +110,7 @@ bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]}, btrx)
 # bot.calculate_num_coins('buy', 'BTC-ETH', 1)
 # bot.send_report('This is a test', 'TEST REPORT')
 # bot.run_collect_cmc()
-bot.run_test_cmc()
+bot.collect_historical_cmc_data()
 
 
 
