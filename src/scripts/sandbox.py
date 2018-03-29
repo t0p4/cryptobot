@@ -77,9 +77,9 @@ index_options = {
     'plot_overlay': False,
     'stat_key': 'last',
     'window': 26,
-    'slow_ema_window': 26,
-    'fast_ema_window': 12,
-    'sma_window': 9
+    'ema_window': 90,
+    'sma_window': 9,
+    'index_depth': 25
 }
 #
 # bb_strat = BollingerBandsStrat(bb_options)
@@ -106,10 +106,11 @@ bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]}, btrx)
 # bot.collect_summaries()
 
 # bot.get_historical_data()
-bot.run()
+# bot.run()
 # bot.calculate_num_coins('buy', 'BTC-ETH', 1)
 # bot.send_report('This is a test', 'TEST REPORT')
-
+# bot.run_collect_cmc()
+bot.run_test_cmc()
 
 
 

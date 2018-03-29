@@ -46,7 +46,8 @@ class CryptoBot:
         self.tradeable_currencies = dict((m[4:], True) for m in os.getenv('TRADEABLE_MARKETS', 'BTC-LTC').split(','))
         self.volume_thresholds = {'BTC': 5000, 'ETH': 50000}
         self.completed_trades = {}
-        self.rate_limit = datetime.timedelta(0, 60, 0)
+        # self.rate_limit = datetime.timedelta(0, 60, 0)
+        self.rate_limit = datetime.timedelta(minutes=5)
         self.api_tick = datetime.datetime.now()
         self.currencies = []
         self.compressed_tickers = {}
@@ -67,7 +68,8 @@ class CryptoBot:
         self.cmc = Market()
         self.cmc_data = pd.DataFrame()
         self.cmc_api_tick = datetime.datetime.now()
-        self.cmc_rate_limit = datetime.timedelta(hours=6)
+        self.cmc_rate_limit = datetime.timedelta(minutes=5)
+        self.nonce = 0
         log.info('...bot successfully initialized')
 
     def init_pairs(self):
@@ -107,7 +109,7 @@ class CryptoBot:
 
     def run_prod(self):
         log.info('* * * ! * * * BEGIN PRODUCTION RUN * * * ! * * *')
-        self.cmc_timer_reset()
+        self.timer_reset()
         while (True):
             # self.rate_limiter_limit()
             self.tick_step()
@@ -121,6 +123,19 @@ class CryptoBot:
 
         self.cash_out()
         self.analyze_performance()
+
+    def run_collect_cmc(self):
+        self.rate_limiter_reset()
+        while True:
+            if self.rate_limiter_limit():
+                self.collect_cmc_data()
+                self.rate_limiter_reset()
+
+    def run_test_cmc(self):
+        BACKTESTING = True
+        while True:
+            self.get_cmc_tickers()
+            self.generate_cmc_index()
 
     def kill(self):
         log.warning('* * * ! * * * SHUTTING DOWN BOT * * * ! * * *')
@@ -183,7 +198,8 @@ class CryptoBot:
         add_columns = []
         for strat in self.index_strats:
             add_columns += strat.add_columns
-        self.psql.save_cmc_tickers(self.cmc_data, add_columns)
+        self.psql.save_cmc_tickers(self.cmc_data, [])
+        self.nonce += 1
 
     def compress_tickers(self):
         # start = datetime.datetime.now()
@@ -244,6 +260,7 @@ class CryptoBot:
         self.cmc_api_tick = datetime.datetime.now()
 
     def cmc_timer_check(self):
+        log.info('CHECKING TIMER')
         current_tick = datetime.datetime.now()
         return (current_tick - self.cmc_api_tick) < self.cmc_rate_limit
 
@@ -290,8 +307,12 @@ class CryptoBot:
     def get_cmc_tickers(self):
         log.debug('{BOT} == GET cmc tickers ==')
         try:
-            self.cmc_data = self.cmc_data.append(pd.DataFrame(self.cmc.ticker(limit=250, convert='USD')))
-            self.cmc_timer_reset()
+            if BACKTESTING:
+                self.cmc_data = self.psql.pull_cmc_tickers(self.nonce)
+            else:
+                self.cmc_data = self.cmc_data.append(pd.DataFrame(self.cmc.ticker(limit=250, convert='USD')))
+                self.cmc_data.set_value('nonce', self.nonce)
+                self.cmc_timer_reset()
         except Exception as e:
             log.error(str(e))
 
@@ -557,6 +578,12 @@ class CryptoBot:
             currency_data = normalize_index(pd.Series(pair))
             results.append(currency_data)
         self.psql.save_currencies(results)
+
+    def collect_cmc_data(self):
+        log.info("GATHERING CMC DATA")
+        self.get_cmc_tickers()
+        self.save_cmc_data()
+        self.cmc_data = pd.DataFrame()
 
     # # BACKTESTING TOOLS # #
 

@@ -250,14 +250,15 @@ class PostgresConnection:
                     '{rank}',
                     {price_btc},
                     {price_usd},
-                    {24h_volume_usd},
+                    {daily_volume_usd},
                     {market_cap_usd},
                     {available_supply},
                     {total_supply},
                     {percent_change_1h},
                     {percent_change_24h},
                     {percent_change_7d},
-                    {last_updated}""" + add_fmt_str + """
+                    {last_updated},
+                    {nonce}""" + add_fmt_str + """
                 )
                 """
         columns = """
@@ -267,22 +268,35 @@ class PostgresConnection:
                     rank,
                     price_btc,
                     price_usd,
-                    24h_volume_usd,
+                    daily_volume_usd,
                     market_cap_usd,
                     available_supply,
                     total_supply,
                     percent_change_1h,
                     percent_change_24h,
                     percent_change_7d,
-                    last_updated""" + add_columns + """
+                    last_updated,
+                    nonce""" + add_columns + """
                 """
-        values = AsIs(','.join(fmt_str.format(**ticker) for ticker in tickers))
+        tickers = tickers.where(pd.notna(tickers), tickers.mean(), axis='columns')
+        values = AsIs(','.join(fmt_str.format(**ticker) for idx, ticker in tickers.iterrows()))
         params = {
             "columns": AsIs(columns),
             "values": values
         }
         query = """ INSERT INTO """ + self.table_name('save_cmc_tickers') + """ (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
+
+    def pull_cmc_tickers(self, nonce):
+        log.debug('{PSQL} == GET BACKTEST cmc tickers ==')
+        params = {
+            'nonce': nonce
+        }
+        query = """
+            SELECT * FROM """ + self.table_name('save_cmc_tickers') + """
+            WHERE nonce = %(nonce)s;
+        """
+        return self._fetch_query(query, params)
 
     def save_tickers(self, tickers):
         log.debug('{PSQL} == SAVE tickers ==')
