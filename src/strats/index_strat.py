@@ -40,17 +40,25 @@ class IndexStrat2(BaseStrategy):
         """
         full_mkt_data = self.apply_ema(full_mkt_data)
         full_mkt_data.sort_values(by=self.ema_stat_key, ascending=False, inplace=True, na_position='last')
-        index_data = full_mkt_data.head(self.index_depth)
-        total = index_data[self.ema_stat_key].sum()
-        index_data[self.pct_weight_key] = index_data[self.ema_stat_key] / total
+        full_mkt_data = full_mkt_data.groupby(['id']).agg(['last'])
+        full_mkt_data.columns = full_mkt_data.columns.droplevel(1)
 
+        index_data = full_mkt_data.sort_values(self.stat_key, ascending=False).head(self.index_depth)
+        total = index_data[self.stat_key].sum()
+        index_data[self.pct_weight_key] = index_data[self.stat_key] / total
+
+        ema_index_data = full_mkt_data.sort_values(self.ema_stat_key, ascending=False).head(self.index_depth)
+        total = ema_index_data[self.ema_stat_key].sum()
+        ema_index_data[self.pct_weight_key] = ema_index_data[self.ema_stat_key] / total
+
+        return index_data
         # exp_12 = df.ewm(span=20, min_period=12, adjust=False).mean()
 
     def apply_ema(self, mkt_data):
         mkt_data = mkt_data.sort_values('id').reset_index().drop(columns=['index'])
-        ema_series = mkt_data.groupby(['id']).apply(self.app).reset_index().rename(columns={'market_cap_usd': 'market_cap_usd_EMA'})
+        ema_series = mkt_data.groupby(['id']).apply(self.app).reset_index().rename(columns={self.stat_key: self.ema_stat_key}).drop(columns=['id'])
         mkt_data = pd.concat([mkt_data, ema_series], axis=1, join_axes=[mkt_data.index])
         return mkt_data
 
     def app(self, x):
-        return x['market_cap_usd'].ewm(span=self.ema_window).mean()
+        return x[self.stat_key].ewm(span=self.ema_window).mean()

@@ -75,7 +75,7 @@ index_options = {
     'name': 'EmaMktCapIndex',
     'active': True,
     'plot_overlay': False,
-    'stat_key': 'last',
+    'stat_key': 'market_cap_usd',
     'window': 26,
     'ema_window': 90,
     'sma_window': 9,
