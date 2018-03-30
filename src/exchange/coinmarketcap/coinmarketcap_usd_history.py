@@ -12,6 +12,7 @@ from urllib.request import urlopen
 import argparse
 import datetime
 import string
+import numpy
 
 parser = argparse.ArgumentParser()
 
@@ -138,20 +139,21 @@ def render_csv_data(header, rows):
     print(','.join(row))
 
 # --------------------------------------------- Util Methods -----------------------------------------------------------
-
 def processDataFrame(df):
-  import pandas as pd
-  assert isinstance(df, pd.DataFrame), "df is not a pandas DataFrame."
+    import pandas as pd
+    assert isinstance(df, pd.DataFrame), "df is not a pandas DataFrame."
 
-  cols = list(df.columns.values)
-  cols.remove('Date')
-  df.loc[:,'Date'] = pd.to_datetime(df.Date)
-  for col in cols:
-    try:
-      df.loc[:,col] = df[col].apply(lambda x: float(x))
-    except ValueError as e:
-      print(col)
-  return df.sort_values(by='Date').reset_index(drop=True)
+    cols = list(df.columns.values)
+    cols.remove('Date')
+    df.loc[:,'Date'] = pd.to_datetime(df.Date)
+    for col in cols:
+        try:
+            df.loc[:, col] = df[col].apply(lambda x: '0' if x == '' else x)
+            df.loc[:, col] = df[col].apply(lambda x: float(x))
+        except ValueError as e:
+            print(col)
+    df.Date = df.Date.apply(lambda x: x._date_repr)
+    return df.sort_values(by='Date').reset_index(drop=True)
 
 def rowsFromFile(filename):
     import csv
@@ -163,24 +165,38 @@ def rowsFromFile(filename):
 # ----------------------------------------------------------------------------------------------------------------------
 
 def main(args=None):
-  # assert that args is a list
-  if(args is not None):
-    args = parser.parse_args(args)
-  else:
-    args = parser.parse_args()
-  
-  currency, start_date, end_date = parse_options(args)
-  
-  html = download_data(currency, start_date, end_date)
-  
-  header, rows = extract_data(html) 
-  
-  if(args.dataframe):
-    import pandas as pd
-    return processDataFrame(pd.DataFrame(data=rows,columns=header))
-  else:  
-    render_csv_data(header, rows)
+    # assert that args is a list
+    if(args is not None):
+        args = parser.parse_args(args)
+    else:
+        args = parser.parse_args()
+
+    currency, start_date, end_date = parse_options(args)
+
+    html = download_data(currency, start_date, end_date)
+
+    header, rows = extract_data(html)
+
+    if(args.dataframe):
+        import pandas as pd
+        df = processDataFrame(pd.DataFrame(data=rows,columns=header))
+        return normalize_data(df, currency)
+    else:
+        render_csv_data(header, rows)
+
+def normalize_data(df, coin):
+    df['coin'] = coin
+    return df.rename(columns={
+        'Date': 'date',
+        'Open': 'open',
+        'High': 'high',
+        'Low': 'low',
+        'Close': 'close',
+        'Volume': 'volume',
+        'Market Cap': 'market_cap',
+        'Average (High + Low / 2)': 'average'
+    })
 
 
 if __name__ == '__main__':
-  df = main()
+    df = main()

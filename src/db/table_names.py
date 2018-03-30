@@ -51,5 +51,10 @@ TABLE_NAMES = {
         'PROD': 'cmc_tickers',
         'PROD_TEST': 'prod_test_cmc_tickers',
         'BACKTEST': 'backtest_cmc_tickers'
+    },
+    'cmc_historical_data': {
+        'PROD': 'cmc_historical_data',
+        'PROD_TEST': 'cmc_historical_data',
+        'BACKTEST': 'cmc_historical_data'
     }
 }

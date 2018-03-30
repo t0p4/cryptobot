@@ -5,6 +5,7 @@ import pandas as pd
 import psycopg2
 from psycopg2.extensions import AsIs
 import os
+import numpy
 
 from src.utils.logger import Logger
 from src.db.table_names import TABLE_NAMES
@@ -297,6 +298,41 @@ class PostgresConnection:
             WHERE nonce = %(nonce)s;
         """
         return self._fetch_query(query, params)
+
+    def save_cmc_historical_data(self, tickers):
+        log.debug('{PSQL} == SAVE historical cmc data ==')
+        fmt_str = """
+                (
+                    '{coin}',
+                    '{date}',
+                    {open},
+                    {high},
+                    {low},
+                    {close},
+                    {market_cap},
+                    {volume},
+                    {average}
+                )
+                """
+        columns = """
+                    coin,
+                    date,
+                    open,
+                    high,
+                    low,
+                    close,
+                    market_cap,
+                    volume,
+                    average
+                """
+        tickers = tickers.where(pd.notna(tickers), tickers.mean(), axis='columns')
+        values = AsIs(','.join(fmt_str.format(**ticker) for idx, ticker in tickers.iterrows()))
+        params = {
+            "columns": AsIs(columns),
+            "values": values
+        }
+        query = """ INSERT INTO """ + self.table_name('cmc_historical_data') + """ (%(columns)s) VALUES %(values)s ; """
+        self._exec_query(query, params)
 
     def save_tickers(self, tickers):
         log.debug('{PSQL} == SAVE tickers ==')

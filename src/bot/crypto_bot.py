@@ -588,12 +588,11 @@ class CryptoBot:
         self.cmc_data = pd.DataFrame()
 
     def collect_historical_cmc_data(self):
-        BACKTESTING = False
         self.get_cmc_tickers()
         coins = self.cmc_data['id'].values
         for coin in coins:
-            self.hist_cmc_data[coin] = coinmarketcap_usd_history.main([coin, '2017-01-01', '2018-03-20', '--dataframe'])
-        return self.hist_cmc_data
+            hist_data = coinmarketcap_usd_history.main([coin, '2017-01-01', '2018-03-30', '--dataframe'])
+            self.psql.save_cmc_historical_data(hist_data)
 
     # # BACKTESTING TOOLS # #
 
