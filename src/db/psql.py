@@ -304,6 +304,7 @@ class PostgresConnection:
         fmt_str = """
                 (
                     '{coin}',
+                    '{id}',
                     '{date}',
                     {open},
                     {high},
@@ -316,6 +317,7 @@ class PostgresConnection:
                 """
         columns = """
                     coin,
+                    id,
                     date,
                     open,
                     high,
@@ -333,6 +335,11 @@ class PostgresConnection:
         }
         query = """ INSERT INTO """ + self.table_name('cmc_historical_data') + """ (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
+
+    def get_cmc_historical_data(self, date):
+        log.debug('{PSQL} == GET BACKTEST cmc historical data ==')
+        query = """SELECT * FROM """ + self.table_name('cmc_historical_data') + """ WHERE date = '""" + date + """';"""
+        return self._fetch_query(query, {})
 
     def save_tickers(self, tickers):
         log.debug('{PSQL} == SAVE tickers ==')

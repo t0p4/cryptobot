@@ -186,6 +186,7 @@ def main(args=None):
 
 def normalize_data(df, coin):
     df['coin'] = coin
+    df['id'] = coin
     return df.rename(columns={
         'Date': 'date',
         'Open': 'open',

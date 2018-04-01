@@ -70,7 +70,9 @@ class CryptoBot:
         self.cmc_data = pd.DataFrame()
         self.cmc_api_tick = datetime.datetime.now()
         self.cmc_rate_limit = datetime.timedelta(minutes=5)
-        self.hist_cmc_data = {}
+        self.cmc_historical_data = None
+        self.test_date = datetime.date(2017, 1, 1)
+        self.one_day = datetime.timedelta(days=1)
         self.nonce = 0
         log.info('...bot successfully initialized')
 
@@ -126,6 +128,12 @@ class CryptoBot:
         self.cash_out()
         self.analyze_performance()
 
+    def run_cmc_index_test(self):
+        log.info('* * * ! * * * BEGIN INDEX TEST RUN * * * ! * * *')
+        while self.test_date < datetime.date.today():
+            self.tick_step_index()
+            self.test_date += self.one_day
+
     def run_collect_cmc(self):
         self.rate_limiter_reset()
         while True:
@@ -148,6 +156,10 @@ class CryptoBot:
             self.reporter.send_report(subj, body)
 
     # # QUANT # #
+
+    def tick_step_index(self):
+        self.cmc_historical_data = self.psql.get_cmc_historical_data(self.test_date.__str__())
+        self.index_strats[0].handle_data(self.cmc_historical_data, self.balances)
 
     def tick_step(self):
         self.minor_tick_step()

@@ -75,11 +75,12 @@ index_options = {
     'name': 'EmaMktCapIndex',
     'active': True,
     'plot_overlay': False,
-    'stat_key': 'market_cap_usd',
+    'stat_key': 'market_cap',
     'window': 26,
     'ema_window': 90,
     'sma_window': 9,
-    'index_depth': 25
+    'index_depth': 25,
+    'trade_threshold_pct': .01
 }
 #
 # bb_strat = BollingerBandsStrat(bb_options)
@@ -106,12 +107,12 @@ bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]}, btrx)
 # bot.collect_summaries()
 
 # bot.get_historical_data()
-bot.run()
+# bot.run()
 # bot.calculate_num_coins('buy', 'BTC-ETH', 1)
 # bot.send_report('This is a test', 'TEST REPORT')
 # bot.run_collect_cmc()
 # bot.collect_historical_cmc_data()
-
+bot.run_cmc_index_test()
 
 
 
