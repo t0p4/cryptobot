@@ -60,24 +60,24 @@ else:
 #     'long_vol_ema_window': 26,
 #     'vol_roc_window': 3,
 # }
-macd_options = {
-    'name': 'MACD',
-    'active': True,
-    'plot_overlay': False,
-    'stat_key': 'last',
-    'window': 26,
-    'slow_ema_window': 26,
-    'fast_ema_window': 12,
-    'sma_window': 9
-}
+# macd_options = {
+#     'name': 'MACD',
+#     'active': True,
+#     'plot_overlay': False,
+#     'stat_key': 'last',
+#     'window': 26,
+#     'slow_ema_window': 26,
+#     'fast_ema_window': 12,
+#     'sma_window': 9
+# }
 #
 # bb_strat = BollingerBandsStrat(bb_options)
 # stoch_rsi_strat = StochasticRSIStrat(stoch_rsi_options)
 # w_pct_strat = WilliamsPctStrat(w_pct_options)
 # vol_strat = VolumeStrat(vol_options)
-macd_strat = MACDStrat(macd_options)
-
-bot = CryptoBot([macd_strat], btrx)
+# macd_strat = MACDStrat(macd_options)
+#
+# bot = CryptoBot([macd_strat], btrx)
 
 # bot.get_balance('ETH')
 # bot.get_balances()
@@ -94,7 +94,7 @@ bot = CryptoBot([macd_strat], btrx)
 # bot.collect_summaries()
 
 # bot.get_historical_data()
-bot.run()
+# bot.run()
 # bot.calculate_num_coins('buy', 'BTC-ETH', 1)
 # bot.send_report('This is a test', 'TEST REPORT')
 
@@ -104,10 +104,9 @@ bot.run()
 
 
 
-# pg = PostgresConnection()
-# historical_rates = HistoricalRates()
-# rep = PortfolioReporter(pg, ['coinigy'], historical_rates)
-# # rep.update_and_aggregate_exchange_portfolios()
+rep = PortfolioReporter(['binance', 'gemini', 'bittrex'])
+rep.generate_p_report()
+# rep.update_and_aggregate_exchange_portfolios()
 # rep.pull_all_trade_data_from_exchanges()
 
 

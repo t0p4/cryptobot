@@ -46,12 +46,12 @@ class ExchangeAdaptor:
             'bittrex': {},
             'gemini': {}
         }
-        self.historical_rates = HistoricalRates()
         self.balances = {
             'binance': {},
             'bittrex': {},
             'gemini': {}
         }
+        self.historical_rates = HistoricalRates()
 
 
     def get_exchange_adaptor(self, exchange):
@@ -101,14 +101,14 @@ class ExchangeAdaptor:
     #####################################################
 
     def get_btc_usd_rate(self):
-        ex = self.exchange_adaptors['gemini']()
-        ticker = ex.pubticker('btcusd')
-        return float(ticker['last'])
+        pair = {'pair': 'btcusd', 'base_coin': 'usd', 'mkt_coin': 'btc'}
+        btc_usd_rate = self.get_current_pair_ticker(exchange='gemini', pair=pair)
+        return float(btc_usd_rate['last'])
 
     def get_eth_usd_rate(self):
-        ex = self.exchange_adaptors['gemini']()
-        ticker = ex.pubticker('ethusd')
-        return float(ticker['last'])
+        pair = {'pair': 'btcusd', 'base_coin': 'usd', 'mkt_coin': 'btc'}
+        eth_usd_rate = self.get_current_pair_ticker(exchange='gemini', pair=pair)
+        return float(eth_usd_rate['last'])
 
     #####################################################
     #                                                   #

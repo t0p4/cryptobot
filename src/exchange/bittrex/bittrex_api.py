@@ -197,7 +197,7 @@ class BittrexAPI(object):
     def normalize_balance(balance):
         return {
             'coin': balance['Currency'],
-            'balance': balance['Balance'],
+            'balance': float(balance['Balance']),
             'address': balance['CryptoAddress']
         }
 
@@ -225,8 +225,8 @@ class BittrexAPI(object):
 
         return {
             'order_type': 'limit',
-            'quantity': trade['Quantity'],
-            'rate': trade['Price'],
+            'quantity': float(trade['Quantity']),
+            'rate': float(trade['Price']),
             'trade_id': trade['OrderUuid'],
             'exchange_id': 'bittrex',
             'trade_time': trade['TimeStamp'],
@@ -254,9 +254,9 @@ class BittrexAPI(object):
     @staticmethod
     def normalize_ticker(tick, pair):
         return {
-            'bid': tick['Bid'],
-            'ask': tick['Ask'],
-            'last': tick['Last'],
+            'bid': float(tick['Bid']),
+            'ask': float(tick['Ask']),
+            'last': float(tick['Last']),
             'vol_base': None,           ## TODO :: GET CURRENT VOLUME
             'vol_mkt': None,
             'timestamp': time.time(),
@@ -282,13 +282,13 @@ class BittrexAPI(object):
     @staticmethod
     def normalize_order_status(order_status):
         return {
-            'price': order_status['Price'],
+            'price': float(order_status['Price']),
             'side': order_status['Type'].split('_')[1],
             'is_live': order_status['IsOpen'],
             'is_cancelled': order_status['CancelInitiated'],
-            'executed_amount': order_status['Quantity'] - order_status['QuantityRemaining'],
-            'remaining_amount': order_status['QuantityRemaining'],
-            'original_amount': order_status['Quantity'],
+            'executed_amount': float(order_status['Quantity']) - float(order_status['QuantityRemaining']),
+            'remaining_amount': float(order_status['QuantityRemaining']),
+            'original_amount': float(order_status['Quantity']),
             'order_id': order_status['OrderUuid']
         }
 
@@ -304,8 +304,8 @@ class BittrexAPI(object):
     @staticmethod
     def normalize_order(order):
         return {
-            'price': order['Rate'],
-            'amount': order['Quantity']
+            'price': float(order['Rate']),
+            'amount': float(order['Quantity'])
         }
 
     def get_account_info(self):

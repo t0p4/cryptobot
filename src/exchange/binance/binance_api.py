@@ -1709,7 +1709,7 @@ class BinanceAPI(object):
     def normalize_balance(balance):
         return {
             'coin': balance['asset'],
-            'balance': balance['free'],
+            'balance': float(balance['free']),
             'address': None
         }
 
@@ -1732,8 +1732,8 @@ class BinanceAPI(object):
 
         return {
             'order_type': 'limit',
-            'quantity': trade['qty'],
-            'rate': trade['price'],
+            'quantity': float(trade['qty']),
+            'rate': float(trade['price']),
             'trade_id': trade['orderId'],
             'exchange_id': 'binance',
             'trade_time': trade['time'],
@@ -1745,7 +1745,7 @@ class BinanceAPI(object):
             'rate_btc': None,
             'rate_eth': None,
             'rate_usd': None,
-            'commish': trade['commission'],
+            'commish': float(trade['commission']),
             'commish_asset': trade['commissionAsset']
         }
 
@@ -1762,12 +1762,12 @@ class BinanceAPI(object):
     @staticmethod
     def normalize_ticker(tick, pair):
         return {
-            'bid': tick['bidPrice'],
-            'ask': tick['askPrice'],
-            'last': tick['lastPrice'],
-            'vol_base': tick['quoteVolume'],
-            'vol_mkt': tick['volume'],
-            'timestamp': tick['volume'],
+            'bid': float(tick['bidPrice']),
+            'ask': float(tick['askPrice']),
+            'last': float(tick['lastPrice']),
+            'vol_base': float(tick['quoteVolume']),
+            'vol_mkt': float(tick['volume']),
+            'timestamp': float(tick['volume']),
             **pair
         }
 
@@ -1791,11 +1791,11 @@ class BinanceAPI(object):
         return {
             "order_id": order_data['orderId'],
             "pair": order_data['symbol'],
-            "price": order_data['price'],
+            "price": float(order_data['price']),
             "timestampms": order_data['transactTime'],
-            "original_amount": order_data['origQty'],
-            "executed_amount": order_data['executedQty'],
-            "remaining_amount": order_data['origQty'] - order_data['executedQty'],
+            "original_amount": float(order_data['origQty']),
+            "executed_amount": float(order_data['executedQty']),
+            "remaining_amount": float(order_data['origQty']) - float(order_data['executedQty']),
             "is_live": order_data['status'] in (self.ORDER_STATUS_NEW, self.ORDER_STATUS_PARTIALLY_FILLED),
             "is_cancelled": order_data['status'] in (self.ORDER_STATUS_CANCELED, self.ORDER_STATUS_PENDING_CANCEL),
             "order_type": order_data['type'],
@@ -1860,8 +1860,8 @@ class BinanceAPI(object):
     @staticmethod
     def normalize_order(order):
         return {
-            'price': order[0],
-            'amount': order[1]
+            'price': float(order[0]),
+            'amount': float(order[1])
         }
 
     #

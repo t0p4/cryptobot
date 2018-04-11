@@ -4,12 +4,17 @@ from src.exceptions import BotError, BadMathError
 from src.exchange.exchange_adaptor import ExchangeAdaptor
 from src.utils.conversion_utils import calculate_cost_average, get_usd_rate
 from src.utils.utils import calculate_base_value, get_past_date
+from src.data_structures.historical_prices import HistoricalRates
+from src.db.psql import PostgresConnection
+from src.exchange.exchange_adaptor import ExchangeAdaptor
+from src.utils.logger import Logger
+log = Logger(__name__)
 
 
 class PortfolioReporter(ExchangeAdaptor):
-    def __init__(self, pg, exchanges, historical_rates):
+    def __init__(self, exchanges):
         ExchangeAdaptor.__init__(self)
-        self.pg = pg
+        self.pg = PostgresConnection()
         self.p_report = {}
         self.prev_daily_report, self.prev_daily_assets = self.get_prev_daily()
         self.prev_weekly_report, self.prev_weekly_assets = self.get_prev_weekly()
@@ -22,13 +27,18 @@ class PortfolioReporter(ExchangeAdaptor):
             {'LTCBTC': 0.023, 'XLMETH': 0.0093, ...}
         """
         self.current_exchange_rates = pd.DataFrame
-        self.historical_rates = historical_rates
+        self.historical_rates = HistoricalRates()
+        self.ex = ExchangeAdaptor()
+        self.exchanges = exchanges
+        self.coin_rates = pd.DataFrame()
 
     def get_initial_investments(self):
         return self.pg.get_initial_investments()
 
     def generate_p_report(self):
-        self.update_and_aggregate_exchange_portfolios()
+        self.get_aggregate_exchange_balances()
+        self.get_coin_rates()
+        self.calculate_portfolio_totals()
         self.calculate_percentage_holdings()
         self.save_p_report()
 
@@ -38,15 +48,25 @@ class PortfolioReporter(ExchangeAdaptor):
     def get_prev_weekly(self):
         return self.pg.get_full_report(get_past_date(7))
 
-    def update_and_aggregate_exchange_portfolios(self):
-        self.aggregate_portfolio = self.get_exchange_balances('coinigy')
-        self.p_report['total_coins'] = len(self.aggregate_portfolio)
+    def get_coin_rates(self):
+        for ex in self.exchanges:
+            self.coin_rates = self.coin_rates.append(pd.DataFrame(self.ex.get_current_tickers(exchange=ex)))
 
-        self.calculate_portfolio_totals()
+    def get_aggregate_exchange_balances(self):
+        log.debug('{PORTFOLIO REPORTER} == agg exchange balances ==')
+        self.aggregate_portfolio = pd.DataFrame()
+        for ex in self.exchanges:
+            self.aggregate_portfolio = self.aggregate_portfolio.append(pd.DataFrame(self.ex.get_exchange_balances(exchange=ex)))
+        self.p_report['total_coins'] = len(self.aggregate_portfolio)
+        self.aggregate_portfolio.drop(columns='address', inplace=True)
 
     def calculate_portfolio_totals(self):
         btc_usd_rate = self.get_btc_usd_rate()
         # eth_usd_rate = self.get_eth_usd_rate()
+
+        agg_funcs = {'balance': ['sum']}
+        self.aggregate_portfolio = self.aggregate_portfolio.groupby('coin').agg(agg_funcs)
+        self.aggregate_portfolio.columns = self.aggregate_portfolio.columns.droplevel(1)
 
         est_btc = self.aggregate_portfolio['btc_balance'].sum()
         # est_eth = self.aggregate_portfolio['est_eth'].sum()
@@ -69,7 +89,7 @@ class PortfolioReporter(ExchangeAdaptor):
             gets all historical trade data from exchanges and saves them to local db
         :return: None
         """
-        trade_data = self.get_exchange_trade_data('binance')
+        trade_data = self.get_all_historical_trade_data('binance')
         self.pg.save_historical_trade_data(trade_data)
 
     def run_full_trade_analysis(self):
