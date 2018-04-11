@@ -177,7 +177,7 @@ class ExchangeAdaptor:
         :return:
         """
 
-    def get_current_tickers(self, exchange):
+    def get_current_tickers(self, exchange, ohlc):
         """
             gets the current tickers for all pairs on a given exchange
         :param exchange:
@@ -205,15 +205,22 @@ class ExchangeAdaptor:
             self.rate_limiters[exchange].limit()
             tickers = ex.get_current_tickers()
             result = []
-            for ticker in tickers:
-                result.append({
-                    **ticker,
-                    'open': float(ticker['last']),
-                    'high': float(ticker['last']),
-                    'low': float(ticker['last']),
-                    'close': float(ticker['last']),
-                    'exchange': exchange
-                })
+            if ohlc:
+                for ticker in tickers:
+                    result.append({
+                        **ticker,
+                        'open': float(ticker['last']),
+                        'high': float(ticker['last']),
+                        'low': float(ticker['last']),
+                        'close': float(ticker['last']),
+                        'exchange': exchange
+                    })
+            else:
+                for ticker in tickers:
+                    result.append({
+                        **ticker,
+                        'exchange': exchange
+                    })
             return result
         except APIRequestError as e:
             log.error(e.error_msg)

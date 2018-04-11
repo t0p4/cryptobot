@@ -50,7 +50,7 @@ class PortfolioReporter(ExchangeAdaptor):
 
     def get_coin_rates(self):
         for ex in self.exchanges:
-            self.coin_rates = self.coin_rates.append(pd.DataFrame(self.ex.get_current_tickers(exchange=ex)))
+            self.coin_rates = self.coin_rates.append(pd.DataFrame(self.ex.get_current_tickers(ex, False)))
 
     def get_aggregate_exchange_balances(self):
         log.debug('{PORTFOLIO REPORTER} == agg exchange balances ==')

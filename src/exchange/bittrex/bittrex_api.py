@@ -105,6 +105,9 @@ class BittrexAPI(object):
             summary_data.drop(['timestamp', 'prevday', 'created', 'high', 'low'], inplace=True)
             results.append(summary_data)
         return results
+
+    def get_market_summaries(self):
+        return self.query('getmarketsummaries')
     
     def getmarketsummary(self, market):
         return self.query('getmarketsummary', {'market': market})
@@ -246,22 +249,36 @@ class BittrexAPI(object):
         raise APIDoesNotExistError('bittrex', 'get_historical_tickers')
 
     def get_current_tickers(self):
-        raise APIDoesNotExistError('bittrex', 'get_current_tickers')
+        tickers = self.get_market_summaries()
+        return [self.normalize_ticker(tick, None) for tick in tickers]
 
     def get_current_pair_ticker(self, pair=None):
         return self.normalize_ticker(self.getticker(pair['pair']), pair)
 
     @staticmethod
     def normalize_ticker(tick, pair):
-        return {
-            'bid': float(tick['Bid']),
-            'ask': float(tick['Ask']),
-            'last': float(tick['Last']),
-            'vol_base': None,           ## TODO :: GET CURRENT VOLUME
-            'vol_mkt': None,
-            'timestamp': time.time(),
-            **pair
-        }
+        if pair is not None:
+            return {
+                'bid': float(tick['Bid']),
+                'ask': float(tick['Ask']),
+                'last': float(tick['Last']),
+                'vol_base': None,           ## TODO :: GET CURRENT VOLUME
+                'vol_mkt': None,
+                'timestamp': time.time(),
+                **pair
+            }
+        else:
+            return {
+                'bid': float(tick['Bid']),
+                'ask': float(tick['Ask']),
+                'last': float(tick['Last']),
+                'vol_base': None,           ## TODO :: GET CURRENT VOLUME
+                'vol_mkt': None,
+                'timestamp': time.time(),
+                'pair': tick['MarketName'],
+                'base_coin': tick['MarketName'].split('-')[0],
+                'mkt_coin': tick['MarketName'].split('-')[1]
+            }
 
     def buy_limit(self, amount, price, pair):
         return self.buylimit(pair['pair'], amount, price)
