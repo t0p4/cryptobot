@@ -341,6 +341,33 @@ class PostgresConnection:
         query = """SELECT * FROM """ + self.table_name('cmc_historical_data') + """ WHERE date = '""" + date + """';"""
         return self._fetch_query(query, {})
 
+    def save_cmc_coin_metadata(self, metadata):
+        log.debug('{PSQL} == SAVE cmc coin meta data ==')
+        fmt_str = """
+                (
+                    '{coin}',
+                    '{id}',
+                    '{name}'
+                )
+                """
+        columns = """
+                    coin,
+                    id,
+                    name
+                """
+        values = AsIs(','.join(fmt_str.format(**data) for data in metadata))
+        params = {
+            "columns": AsIs(columns),
+            "values": values
+        }
+        query = """ INSERT INTO """ + self.table_name('cmc_coin_metadata') + """ (%(columns)s) VALUES %(values)s ; """
+        self._exec_query(query, params)
+
+    def get_cmc_coin_metadata(self):
+        log.debug('{PSQL} == GET BACKTEST cmc historical data ==')
+        query = """SELECT * FROM """ + self.table_name('cmc_coin_metadata')
+        return self._fetch_query(query, {})
+
     def save_tickers(self, tickers):
         log.debug('{PSQL} == SAVE tickers ==')
         fmt_str = """

@@ -185,7 +185,6 @@ def main(args=None):
         render_csv_data(header, rows)
 
 def normalize_data(df, coin):
-    df['coin'] = coin
     df['id'] = coin
     return df.rename(columns={
         'Date': 'date',

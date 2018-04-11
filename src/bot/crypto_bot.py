@@ -1,6 +1,7 @@
 import os
 import datetime
 import json
+import math
 import urllib
 from datetime import timedelta
 from time import sleep
@@ -61,6 +62,7 @@ class CryptoBot:
         self.reporter = Reporter()
         self.plotter = Plotter()
         self.exchange = 'gemini'
+        self.exchanges = ['gemini', 'binance']
         self.exchange_pairs = {}
         self.balances = self.get_exchange_balances()
         self.valid_mkt_coins = None
@@ -159,7 +161,10 @@ class CryptoBot:
 
     def tick_step_index(self):
         self.cmc_historical_data = self.psql.get_cmc_historical_data(self.test_date.__str__())
-        self.index_strats[0].handle_data(self.cmc_historical_data, self.balances)
+        historical_data = self.cmc_historical_data.drop(columns=['coin'])
+        self.cmc_coin_metadata = self.psql.get_cmc_coin_metadata()
+        balances = pd.merge(self.balances, self.cmc_coin_metadata, on='coin')
+        self.index_strats[0].handle_data(historical_data, balances)
 
     def tick_step(self):
         self.minor_tick_step()
@@ -541,7 +546,10 @@ class CryptoBot:
 
     def get_exchange_balances(self):
         log.debug('{BOT} == GET exchange balances ==')
-        return self.ex.get_exchange_balances(exchange=self.exchange)
+        balances = pd.DataFrame()
+        for ex in self.exchanges:
+            balances = balances.append(pd.DataFrame(self.ex.get_exchange_balances(exchange=ex)))
+        return balances
 
     def get_balance(self, coin):
         log.debug('{BOT} == GET balance ==')
@@ -605,6 +613,17 @@ class CryptoBot:
         for coin in coins:
             hist_data = coinmarketcap_usd_history.main([coin, '2017-01-01', '2018-03-30', '--dataframe'])
             self.psql.save_cmc_historical_data(hist_data)
+
+    def collect_cmc_coin_metadata(self):
+        tickers = self.cmc.ticker(limit=250, convert='USD')
+        metadata = []
+        for tick in tickers:
+            metadata.append({
+                'id': tick['id'],
+                'coin': tick['symbol'],
+                'name': tick['name']
+            })
+        self.psql.save_cmc_coin_metadata(metadata)
 
     # # BACKTESTING TOOLS # #
 

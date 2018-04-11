@@ -46,7 +46,7 @@ class IndexStrat2(BaseStrategy):
         total = index_data[self.stat_key].sum()
         index_data['index_pct'] = index_data[self.stat_key] / total
 
-        return index_data[['id', 'coin', 'index_pct']]
+        return index_data[['id', 'index_pct']]
         # exp_12 = df.ewm(span=20, min_period=12, adjust=False).mean()
 
     def calc_deltas(self, index_data, holdings_data):
@@ -55,7 +55,7 @@ class IndexStrat2(BaseStrategy):
         :param holdings_data: <Dataframe> columns = ['id', 'balance', 'balance_btc']
         :return: <Dataframe> columns = ['id', 'balance', 'index_pct', 'balance_btc', 'index_btc', 'delta_btc', 'delta_pct', 'should_trade']
         """
-        dataset = index_data.set_index('id').join(holdings_data.set_index('id'))
+        dataset = pd.merge(index_data, holdings_data, on='id', how='outer')
         total_btc = dataset['balance_btc'].sum()
         dataset['index_btc'] = dataset['index_pct'] * total_btc
         dataset['delta_btc'] = dataset['index_btc'] - dataset['balance_btc']

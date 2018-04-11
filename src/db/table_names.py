@@ -56,5 +56,10 @@ TABLE_NAMES = {
         'PROD': 'cmc_historical_data',
         'PROD_TEST': 'cmc_historical_data',
         'BACKTEST': 'cmc_historical_data'
+    },
+    'cmc_coin_metadata': {
+        'PROD': 'cmc_coin_metadata',
+        'PROD_TEST': 'cmc_coin_metadata',
+        'BACKTEST': 'cmc_coin_metadata'
     }
 }

@@ -196,6 +196,7 @@ class BittrexAPI(object):
     @staticmethod
     def normalize_balance(balance):
         return {
+            'exchange': 'bittrex',
             'coin': balance['Currency'],
             'balance': balance['Balance'],
             'address': balance['CryptoAddress']

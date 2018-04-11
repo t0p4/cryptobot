@@ -1708,6 +1708,7 @@ class BinanceAPI(object):
     @staticmethod
     def normalize_balance(balance):
         return {
+            'exchange': 'binance',
             'coin': balance['asset'],
             'balance': balance['free'],
             'address': None

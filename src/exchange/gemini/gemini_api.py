@@ -346,6 +346,7 @@ class GeminiAPI(object):
     @staticmethod
     def normalize_balance(balance):
         return {
+            'exchange': 'gemini',
             'coin': balance['currency'],
             'balance': float(balance['amount']),
             'address': None
