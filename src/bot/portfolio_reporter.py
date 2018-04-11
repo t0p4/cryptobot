@@ -51,6 +51,16 @@ class PortfolioReporter(ExchangeAdaptor):
     def get_coin_rates(self):
         for ex in self.exchanges:
             self.coin_rates = self.coin_rates.append(pd.DataFrame(self.ex.get_current_tickers(ex, False)))
+        # add row for 1:1 bitcoin
+        self.coin_rates = self.coin_rates.append(pd.DataFrame([{'base_coin': 'BTC', 'mkt_coin': 'BTC', 'last': 1.0}]))
+
+        self.coin_rates['base_coin'] = self.coin_rates['base_coin'].str.upper()
+        self.coin_rates['mkt_coin'] = self.coin_rates['mkt_coin'].str.upper()
+        self.coin_rates = self.coin_rates[['base_coin', 'mkt_coin', 'last']]
+        self.coin_rates = self.coin_rates[self.coin_rates['base_coin'] == 'BTC']
+        agg_funcs = {'last': ['mean'], 'base_coin': ['last']}
+        self.coin_rates = self.coin_rates.groupby('mkt_coin').agg(agg_funcs)
+        self.coin_rates.columns = self.coin_rates.columns.droplevel(1)
 
     def get_aggregate_exchange_balances(self):
         log.debug('{PORTFOLIO REPORTER} == agg exchange balances ==')
@@ -68,6 +78,9 @@ class PortfolioReporter(ExchangeAdaptor):
         self.aggregate_portfolio = self.aggregate_portfolio.groupby('coin').agg(agg_funcs)
         self.aggregate_portfolio.columns = self.aggregate_portfolio.columns.droplevel(1)
 
+        self.aggregate_portfolio = pd.merge(self.coin_rates, self.aggregate_portfolio, how='outer', left_index=True, right_index=True)
+        self.aggregate_portfolio['btc_balance'] = self.aggregate_portfolio['last'] * self.aggregate_portfolio['balance']
+        self.aggregate_portfolio['usd_balance'] = self.aggregate_portfolio['btc_balance'] * btc_usd_rate
         est_btc = self.aggregate_portfolio['btc_balance'].sum()
         # est_eth = self.aggregate_portfolio['est_eth'].sum()
 
