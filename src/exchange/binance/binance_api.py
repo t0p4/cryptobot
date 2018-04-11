@@ -1753,6 +1753,24 @@ class BinanceAPI(object):
     # GET PAIR TICKER
     #
 
+    def get_current_tickers(self):
+        try:
+            tickers = self.get_all_tickers()
+            pairs = self.get_exchange_pairs()
+            res = []
+            for tick in tickers:
+                # find the matching pair
+                pair = None
+                i = 0
+                while pair is None:
+                    if pairs[i]['pair'] == tick['symbol']:
+                        pair = pairs[i]
+                    i += 1
+                res.append(self.normalize_ticker(tick, pair))
+            return res
+        except (BinanceAPIException, BinanceRequestException) as e:
+            self.throw_error('get_current_pair_ticker', e.__str__())
+
     def get_current_pair_ticker(self, pair):
         try:
             return self.normalize_ticker(self.get_ticker(symbol=pair['pair']), pair)
@@ -1762,12 +1780,8 @@ class BinanceAPI(object):
     @staticmethod
     def normalize_ticker(tick, pair):
         return {
-            'bid': float(tick['bidPrice']),
-            'ask': float(tick['askPrice']),
-            'last': float(tick['lastPrice']),
-            'vol_base': float(tick['quoteVolume']),
-            'vol_mkt': float(tick['volume']),
-            'timestamp': float(tick['volume']),
+            'pair': tick['symbol'],
+            'last': float(tick['price']),
             **pair
         }
 
