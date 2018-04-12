@@ -51,13 +51,24 @@ class PortfolioReporter(ExchangeAdaptor):
     def get_coin_rates(self):
         for ex in self.exchanges:
             self.coin_rates = self.coin_rates.append(pd.DataFrame(self.ex.get_current_tickers(ex, False)))
-        # add row for 1:1 bitcoin
-        self.coin_rates = self.coin_rates.append(pd.DataFrame([{'base_coin': 'BTC', 'mkt_coin': 'BTC', 'last': 1.0}]))
 
+        btc_usd_rate = self.get_btc_usd_rate()
+
+        # add rows for 1:1 bitcoin and USD:BTC
+        extra_data = pd.DataFrame([
+            {'base_coin': 'BTC', 'mkt_coin': 'BTC', 'last': 1.0},
+            {'base_coin': 'BTC', 'mkt_coin': 'USD', 'last': 1/btc_usd_rate}
+        ])
+        self.coin_rates = self.coin_rates.append(extra_data)
+
+        # normalize coins to uppercase
         self.coin_rates['base_coin'] = self.coin_rates['base_coin'].str.upper()
         self.coin_rates['mkt_coin'] = self.coin_rates['mkt_coin'].str.upper()
+
+        # prune non-critical columns & rows
         self.coin_rates = self.coin_rates[['base_coin', 'mkt_coin', 'last']]
         self.coin_rates = self.coin_rates[self.coin_rates['base_coin'] == 'BTC']
+
         agg_funcs = {'last': ['mean'], 'base_coin': ['last']}
         self.coin_rates = self.coin_rates.groupby('mkt_coin').agg(agg_funcs)
         self.coin_rates.columns = self.coin_rates.columns.droplevel(1)
