@@ -413,6 +413,7 @@ class GeminiAPI(object):
             'vol_base': float(tick['volume'][pair['base_coin'].upper()]),
             'vol_mkt': float(tick['volume'][pair['mkt_coin'].upper()]),
             'timestamp': tick['volume']['timestamp'],
+            'exchange': 'gemini',
             **pair
         }
 

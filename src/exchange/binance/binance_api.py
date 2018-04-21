@@ -1782,6 +1782,7 @@ class BinanceAPI(object):
         return {
             'pair': tick['symbol'],
             'last': float(tick['price']),
+            'exchange': 'binance',
             **pair
         }
 

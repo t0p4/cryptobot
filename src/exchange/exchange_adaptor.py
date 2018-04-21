@@ -39,7 +39,7 @@ class ExchangeAdaptor:
         self.rate_limiters = {
             'binance': RateLimiter('binance'),
             'bittrex': RateLimiter('bittrex'),
-            'gdax': RateLimiter('gdax_public'),
+            'gdax': RateLimiter('gdax'),
             'gemini': RateLimiter('gemini')
         }
         self.exchange_pairs = {
@@ -221,11 +221,7 @@ class ExchangeAdaptor:
                         'exchange': exchange
                     })
             else:
-                for ticker in tickers:
-                    result.append({
-                        **ticker,
-                        'exchange': exchange
-                    })
+                result = tickers
             return result
         except APIRequestError as e:
             log.error(e.error_msg)

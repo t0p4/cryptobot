@@ -15,6 +15,10 @@ from src.exchange.gdax.gdax_public import PublicClient
 from src.exchange.gdax.gdax_auth import GdaxAuth
 from src.exceptions import APIRequestError, APIDoesNotExistError, InvalidCoinError, InsufficientFundsError
 import os
+import datetime
+import dateutil.parser as dp
+from src.utils.rate_limiter import RateLimiter
+
 
 GDAX_API_KEY = os.getenv('GDAX_API_KEY', '')
 GDAX_API_SECRET = os.getenv('GDAX_API_SECRET', '')
@@ -26,6 +30,8 @@ class GDAXAPI(PublicClient):
         super(GDAXAPI, self).__init__(api_url)
         self.auth = GdaxAuth(GDAX_API_KEY, GDAX_API_SECRET, GDAX_API_PASS)
         self.timeout = timeout
+        self.pairs = None
+        self.rate_limiter = RateLimiter('gdax')
 
     def get_account(self, account_id):
         r = requests.get(self.url + '/accounts/' + account_id, auth=self.auth, timeout=self.timeout)
@@ -376,33 +382,34 @@ class GDAXAPI(PublicClient):
     # GET TICKERS
     #
     # TODO
-    # def get_current_tickers(self):
-    #     if self.pairs is None:
-    #         self.pairs = self.get_exchange_pairs()
-    #     pairs = []
-    #     for p in self.pairs:
-    #         pairs.append(self.get_current_pair_ticker(p))
-    #     return pairs
-    #
-    # def get_current_pair_ticker(self, pair):
-    #     res = self.pubticker(symbol=pair['pair'])
-    #     res_json = res.json()
-    #     if res.status_code != 200:
-    #         self.throw_error('get_current_pair_ticker', res_json)
-    #     else:
-    #         return self.normalize_ticker(res_json, pair)
-    #
-    # @staticmethod
-    # def normalize_ticker(tick, pair):
-    #     return {
-    #         'bid': float(tick['bid']),
-    #         'ask': float(tick['ask']),
-    #         'last': float(tick['last']),
-    #         'vol_base': float(tick['volume'][pair['base_coin'].upper()]),
-    #         'vol_mkt': float(tick['volume'][pair['mkt_coin'].upper()]),
-    #         'timestamp': tick['volume']['timestamp'],
-    #         **pair
-    #     }
+    def get_current_tickers(self):
+        if self.pairs is None:
+            self.pairs = self.get_exchange_pairs()
+        pairs = []
+        for p in self.pairs:
+            self.rate_limiter.limit()
+            pairs.append(self.get_current_pair_ticker(p))
+        return pairs
+
+    def get_current_pair_ticker(self, pair):
+        try:
+            res = self.get_product_ticker(pair['pair'])
+            return self.normalize_ticker(res, pair)
+        except Exception as e:
+            print('ok')
+
+    @staticmethod
+    def normalize_ticker(tick, pair):
+        return {
+            'bid': float(tick['bid']),
+            'ask': float(tick['ask']),
+            'last': float(tick['price']),
+            'vol_base': float(tick['volume']),
+            'vol_mkt': float(tick['volume']) * float(tick['price']),
+            'timestamp': dp.parse(tick['time']).strftime('%s'),
+            'exchange': 'gdax',
+            **pair
+        }
 
     #
     # PLACE / CANCEL / STATUS ORDER

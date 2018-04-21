@@ -132,6 +132,6 @@ else:
 #         ticker = ex_ad.get_current_pair_ticker(ex, pair)
 #     print(ex)
 
-balances = ExchangeAdaptor().get_exchange_balances('gemini')
-balances2 = ExchangeAdaptor().get_exchange_balances('gdax')
+balances = ExchangeAdaptor().get_current_tickers('gemini', False)
+balances2 = ExchangeAdaptor().get_current_tickers('gdax', False)
 print('ok')

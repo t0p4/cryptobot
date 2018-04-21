@@ -265,6 +265,7 @@ class BittrexAPI(object):
                 'vol_base': None,           ## TODO :: GET CURRENT VOLUME
                 'vol_mkt': None,
                 'timestamp': time.time(),
+                'exchange': 'bittrex',
                 **pair
             }
         else:
@@ -275,6 +276,7 @@ class BittrexAPI(object):
                 'vol_base': None,           ## TODO :: GET CURRENT VOLUME
                 'vol_mkt': None,
                 'timestamp': time.time(),
+                'exchange': 'bittrex',
                 'pair': tick['MarketName'],
                 'base_coin': tick['MarketName'].split('-')[0],
                 'mkt_coin': tick['MarketName'].split('-')[1]
