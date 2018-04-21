@@ -3,7 +3,7 @@ from src.utils.utils_algos import binary_search, binary_insert
 
 
 class HistoricalRates:
-    def __init__(self):
+    def __init__(self, exchange):
         self.sorted_timestamps_by_base_coin = {}
         # {
         #     "BTC": [122394859589, 12245554658978, ...],   // sorted
@@ -14,29 +14,29 @@ class HistoricalRates:
         # {
         #     "BTC": {
         #         122394859589: {"ETH": .13, "USD": .0003},
-        #         12245554658978: {"ETH": .14, "USD": .0005}
+        #         122455546588: {"ETH": .14, "USD": .0005}
         #         ...
         #     },
-        #     "BTC": {
+        #     "ETH": {
         #         122394859589: {"BTC": 10.23, "USD": .0029},
-        #         12245554658978: {"BTC": 10.4, "USD": .0032}
+        #         122455546588: {"BTC": 10.41, "USD": .0032}
         #         ...
         #     }
         # }
-        self.exchange = "PASS THIS IN"
+        self.exchange = exchange
 
     def get_rate(self, timestamp, base_coin, market_coin=None):
         try:
-            found, held_timestamp = binary_search(timestamp, self.sorted_timestamps_by_base_coin[base_coin])
-            if found:
-                rate = self.rates_by_timestamp_by_base_coin[base_coin][held_timestamp]
-                if market_coin is not None and market_coin in rate:
-                    return found, rate[market_coin]
-                else:
-                    return found, rate
-            else:
-                return found, None
-        except Exception:
+            if base_coin in self.sorted_timestamps_by_base_coin:
+                found, held_timestamp = binary_search(timestamp, self.sorted_timestamps_by_base_coin[base_coin])
+                if found:
+                    rate = self.rates_by_timestamp_by_base_coin[base_coin][held_timestamp]
+                    if market_coin is not None and market_coin in rate:
+                        return found, rate[market_coin]
+                    else:
+                        return found, rate
+            return False, None
+        except Exception as e:
             raise InvalidCoinError(base_coin, self.exchange)
 
     def add_rate(self, timestamp, base_coin, rate_data):

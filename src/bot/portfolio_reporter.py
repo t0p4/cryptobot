@@ -26,7 +26,6 @@ class PortfolioReporter():
             {'LTCBTC': 0.023, 'XLMETH': 0.0093, ...}
         """
         self.current_exchange_rates = pd.DataFrame
-        self.historical_rates = HistoricalRates()
         self.ex = ExchangeAdaptor()
         self.exchanges = exchanges
         self.coin_rates = pd.DataFrame()
@@ -36,7 +35,8 @@ class PortfolioReporter():
         return self.pg.get_initial_investments()
 
     def generate_p_report(self):
-        self.load_trade_data(True)
+        self.load_trade_data(False)
+        self.analyze_trades()
         self.get_aggregate_exchange_balances()
         self.get_coin_rates()
         self.calculate_portfolio_totals()
@@ -133,7 +133,7 @@ class PortfolioReporter():
         # TODO: group dataframe by market_currency, loop thru groups and analyze_trades(currency_group)
         # TODO: update trade data in database
 
-    def analyze_trades(self, trade_data):
+    def analyze_trades(self):
         """
             run through trade data to calculate cost_averages
         :param asset_data: dict
@@ -147,7 +147,7 @@ class PortfolioReporter():
         rate_btc = 0
         rate_eth = 0
 
-        for idx, trade_row in trade_data.iterrows():
+        for idx, trade_row in self.trade_data.iterrows():
             if trade_row['analyzed']:
                 cost_avg_btc = trade_row['cost_avg_btc']
                 cost_avg_eth = trade_row['cost_avg_eth']
@@ -175,26 +175,26 @@ class PortfolioReporter():
 
                 # calculate rates, needs to pull data from exchanges
                 # TODO: refactor to pull all data before this function?
-                base_currency_usd_rates = self.get_historical_usd_vs_btc_eth_rates(trade_row['trade_time'])
-                coin_exchange_rates = self.get_historical_coin_vs_btc_eth_rates(trade_row['trade_time'], trade_row['exchange_id'], trade_row['market_currency'])
-                if trade_row['base_currency'] == 'btc':
+                base_currency_usd_rates = self.ex.get_historical_usd_vs_btc_eth_rates(trade_row['trade_time'])
+                coin_exchange_rates = self.ex.get_historical_coin_vs_btc_eth_rates(trade_row['trade_time'], trade_row['exchange_id'], trade_row['mkt_coin'])
+                if trade_row['base_coin'] == 'btc':
                     rate_btc = trade_row['rate']
                     rate_eth = coin_exchange_rates['eth']
-                if trade_row['base_currency'] == 'eth':
+                if trade_row['base_coin'] == 'eth':
                     rate_btc = coin_exchange_rates['btc']
                     rate_eth = trade_row['rate']
                 rate_usd, rate_base_currency = get_usd_rate({'eth': rate_eth, 'btc': rate_btc}, base_currency_usd_rates)
 
                 # set all calculated values
-                trade_data.set_value(idx, 'cost_avg_btc', cost_avg_btc)
-                trade_data.set_value(idx, 'cost_avg_eth', cost_avg_eth)
-                trade_data.set_value(idx, 'cost_avg_usd', cost_avg_usd)
-                trade_data.set_value(idx, 'rate_btc', rate_btc)
-                trade_data.set_value(idx, 'rate_eth', rate_eth)
-                trade_data.set_value(idx, 'rate_usd', rate_usd)
-                trade_data.set_value(idx, 'analyzed', True)
+                self.trade_data.set_value(idx, 'cost_avg_btc', cost_avg_btc)
+                self.trade_data.set_value(idx, 'cost_avg_eth', cost_avg_eth)
+                self.trade_data.set_value(idx, 'cost_avg_usd', cost_avg_usd)
+                self.trade_data.set_value(idx, 'rate_btc', rate_btc)
+                self.trade_data.set_value(idx, 'rate_eth', rate_eth)
+                self.trade_data.set_value(idx, 'rate_usd', rate_usd)
+                self.trade_data.set_value(idx, 'analyzed', True)
 
-        return trade_data
+        return self.trade_data
 
     def calculate_daily_changes(self, asset_data, asset_data_t_minus_1):
         return self.calculate_time_changes(asset_data, asset_data_t_minus_1)

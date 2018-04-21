@@ -3,10 +3,11 @@ from src.exchange.bittrex.bittrex_api import BittrexAPI
 from src.exchange.backtest_exchange import BacktestExchange
 from src.exchange.coinigy.coinigy_api import CoinigyAPI
 from src.exchange.gemini.gemini_api import GeminiAPI
+from src.exchange.gdax.gdax import GDAXAPI
 import pandas as pd
 from src.utils.conversion_utils import convert_str_columns_to_num, get_usd_rate
 from src.utils.utils import is_eth, is_btc
-from src.exchange.gdax.gdax_api import PublicClient as GDaxPub
+from src.exchange.gdax.gdax_public import PublicClient as GDaxPub
 from datetime import datetime
 from src.utils.logger import Logger
 from src.utils.rate_limiter import RateLimiter
@@ -33,12 +34,12 @@ class ExchangeAdaptor:
             'coinigy': CoinigyAPI,
             'backtest': BacktestExchange,
             'gemini': GeminiAPI,
-            'gdax_public': GDaxPub
+            'gdax': GDAXAPI
         }
         self.rate_limiters = {
             'binance': RateLimiter('binance'),
             'bittrex': RateLimiter('bittrex'),
-            'gdax_public': RateLimiter('gdax_public'),
+            'gdax': RateLimiter('gdax_public'),
             'gemini': RateLimiter('gemini')
         }
         self.exchange_pairs = {
@@ -51,7 +52,13 @@ class ExchangeAdaptor:
             'bittrex': {},
             'gemini': {}
         }
-        self.historical_rates = HistoricalRates()
+        self.exchange_divisors = {
+            'binance': 1,
+            'bittrex': 1,
+            'gemini': 1000,
+            'gdax': 1000
+        }
+        self.historical_rates = HistoricalRates('gemini')
 
 
     def get_exchange_adaptor(self, exchange):
@@ -73,13 +80,8 @@ class ExchangeAdaptor:
         elif exchange == 'gdax_public':
             return mkt_coin.upper() + '-' + base_coin.upper()
 
-    @staticmethod
-    def format_exchange_start_and_end_times(exchange, timestamp, minutes):
-        divisor = 1
-        if exchange == 'binance':
-            divisor = 1
-        elif exchange == 'gdax_public':
-            divisor = 1000
+    def format_exchange_start_and_end_times(self, exchange, timestamp, minutes):
+        divisor = self.exchange_divisors[exchange]
 
         start = datetime.fromtimestamp(timestamp / divisor).isoformat()
         end = datetime.fromtimestamp(timestamp / divisor + (minutes * 60000 / divisor)).isoformat()
@@ -89,7 +91,7 @@ class ExchangeAdaptor:
     def format_exchange_interval(exchange, interval):
         if exchange == 'binance':
             return interval
-        elif exchange == 'gdax_public':
+        elif exchange == 'gdax':
             return interval[0] * INTERVAL_RATES[interval[1]]
         elif exchange == 'gemini':
             return interval[0] * INTERVAL_RATES[interval[1]]
@@ -129,6 +131,9 @@ class ExchangeAdaptor:
         try:
             if timestamp is None:
                 timestamp = datetime.now()
+            # gemini has no historical rate endpoint
+            if exchange == 'gemini':
+                exchange = 'gdax'
             exists_in_cache, usd_rate = self.check_rate_cache(timestamp, base_coin, mkt_coin)
             if exists_in_cache:
                 return usd_rate
@@ -136,7 +141,7 @@ class ExchangeAdaptor:
                 start, end = self.format_exchange_start_and_end_times(exchange, timestamp, 1)
                 interval = self.format_exchange_interval(exchange, interval)
                 pair = self.format_exchange_pair(exchange, mkt_coin, base_coin)
-                ex = self.exchange_adaptors['binance']()
+                ex = self.exchange_adaptors[exchange]()
                 self.rate_limiters[exchange].limit()
                 pair_rate = ex.get_historical_rate(pair=pair, start=start, end=end, interval=interval)
                 return pair_rate
@@ -588,8 +593,8 @@ class ExchangeAdaptor:
         """
         # need to index into each of these variables, lists of lists
         # [0] gives the list of data requested, [4] is the 'close' price
-        btc_usd = self.get_historical_rate(base_coin='USD', mkt_coin='BTC', timestamp=timestamp)
-        eth_usd = self.get_historical_rate(base_coin='USD', mkt_coin='ETH', timestamp=timestamp)
+        btc_usd = self.get_historical_rate('gemini', base_coin='USD', mkt_coin='BTC', timestamp=timestamp)
+        eth_usd = self.get_historical_rate('gemini', base_coin='USD', mkt_coin='ETH', timestamp=timestamp)
         usd_market_rates = {'BTC': btc_usd, 'ETH': eth_usd}
 
         log.info("get_historical_usd_vs_btc_eth_rates :: " + repr(usd_market_rates))

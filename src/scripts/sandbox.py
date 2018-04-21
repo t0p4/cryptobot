@@ -104,8 +104,7 @@ else:
 
 
 
-rep = PortfolioReporter(['bittrex'])
-rep.generate_p_report()
+# rep = PortfolioReporter
 # rep.update_and_aggregate_exchange_portfolios()
 # rep.pull_all_trade_data_from_exchanges()
 
@@ -132,3 +131,7 @@ rep.generate_p_report()
 #         # trades = ex_ad.get_historical_trades(ex, pair=pair)
 #         ticker = ex_ad.get_current_pair_ticker(ex, pair)
 #     print(ex)
+
+balances = ExchangeAdaptor().get_exchange_balances('gemini')
+balances2 = ExchangeAdaptor().get_exchange_balances('gdax')
+print('ok')
