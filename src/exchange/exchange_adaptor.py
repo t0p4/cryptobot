@@ -567,10 +567,10 @@ class ExchangeAdaptor:
         try:
             pairs = self.get_exchange_pairs(exchange)
             all_trades = []
-            i = 0
+            ex = self.get_exchange_adaptor(exchange)
             for sym, pair in pairs.items():
                 log.info('getting historical trade data for {0} on {1}'.format(pair, exchange))
-                ex = self.get_exchange_adaptor(exchange)
+                self.rate_limiters[exchange].limit()
                 trade_data = ex.get_historical_trades(pair)
                 if trade_data is not None:
                     all_trades = all_trades + trade_data

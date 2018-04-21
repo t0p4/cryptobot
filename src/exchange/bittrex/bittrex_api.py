@@ -173,8 +173,8 @@ class BittrexAPI(object):
     def getorderhistory(self, market, count):
         return self.query('getorderhistory', {'market': market, 'count': count})
 
-    def getallorderhistory(self, count):
-        return self.query('getorderhistory', {'count': count})
+    def getallorderhistory(self):
+        return self.query('getorderhistory', {})
     
     def getwithdrawalhistory(self, currency, count):
         return self.query('getwithdrawalhistory', {'currency': currency, 'count': count})
@@ -209,13 +209,13 @@ class BittrexAPI(object):
 
     def get_historical_trades(self, pair=None):
         # if pair is None:
-        trades = self.getallorderhistory(500)
+        trades = self.getallorderhistory()
         # else:
         #     trades = self.getorderhistory(None, 500)
 
         if trades == '':
             return None
-        elif pair is None:
+        elif pair is not None:
             return [{**self.normalize_trade(trade), **pair} for trade in trades]
         else:
             return self.normalize_trade(trades)
