@@ -11,9 +11,8 @@ from src.utils.logger import Logger
 log = Logger(__name__)
 
 
-class PortfolioReporter(ExchangeAdaptor):
+class PortfolioReporter():
     def __init__(self, exchanges):
-        ExchangeAdaptor.__init__(self)
         self.pg = PostgresConnection()
         self.p_report = {}
         self.prev_daily_report, self.prev_daily_assets = self.get_prev_daily()
@@ -31,15 +30,17 @@ class PortfolioReporter(ExchangeAdaptor):
         self.ex = ExchangeAdaptor()
         self.exchanges = exchanges
         self.coin_rates = pd.DataFrame()
+        self.trade_data = None
 
     def get_initial_investments(self):
         return self.pg.get_initial_investments()
 
     def generate_p_report(self):
+        self.load_trade_data(True)
         self.get_aggregate_exchange_balances()
         self.get_coin_rates()
         self.calculate_portfolio_totals()
-        self.calculate_percentage_holdings()
+        self.calculate_cost_avgs()
         self.save_p_report()
 
     def get_prev_daily(self):
@@ -52,7 +53,7 @@ class PortfolioReporter(ExchangeAdaptor):
         for ex in self.exchanges:
             self.coin_rates = self.coin_rates.append(pd.DataFrame(self.ex.get_current_tickers(ex, False)))
 
-        btc_usd_rate = self.get_btc_usd_rate()
+        btc_usd_rate = self.ex.get_btc_usd_rate()
 
         # add rows for 1:1 bitcoin and USD:BTC
         extra_data = pd.DataFrame([
@@ -82,7 +83,7 @@ class PortfolioReporter(ExchangeAdaptor):
         self.aggregate_portfolio.drop(columns='address', inplace=True)
 
     def calculate_portfolio_totals(self):
-        btc_usd_rate = self.get_btc_usd_rate()
+        btc_usd_rate = self.ex.get_btc_usd_rate()
         # eth_usd_rate = self.get_eth_usd_rate()
 
         agg_funcs = {'balance': ['sum']}
@@ -108,13 +109,24 @@ class PortfolioReporter(ExchangeAdaptor):
             self.p_report = self.calculate_weekly_changes(self.p_report, self.prev_weekly_report)
         self.calculate_rois()
 
-    def pull_all_trade_data_from_exchanges(self):
-        """
-            gets all historical trade data from exchanges and saves them to local db
-        :return: None
-        """
-        trade_data = self.get_all_historical_trade_data('binance')
-        self.pg.save_historical_trade_data(trade_data)
+    def load_trade_data(self, full_refresh):
+        if full_refresh:
+            self.pull_trade_data_from_exchanges()
+            self.save_trade_data()
+        else:
+            self.pull_trade_data_from_db()
+
+    def save_trade_data(self):
+        self.pg.save_trade_data(self.trade_data)
+
+    def pull_trade_data_from_db(self):
+        self.trade_data = self.pg.get_all_trade_data()
+
+    def pull_trade_data_from_exchanges(self):
+        self.trade_data = []
+        for ex in self.exchanges:
+            hist_trade_data = self.ex.get_all_historical_trade_data(ex)
+            self.trade_data = self.trade_data + hist_trade_data
 
     def run_full_trade_analysis(self):
         all_trade_data = self.pg.get_all_trade_data()

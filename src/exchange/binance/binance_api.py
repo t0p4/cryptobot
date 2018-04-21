@@ -1742,9 +1742,9 @@ class BinanceAPI(object):
             'cost_avg_eth': 0,
             'cost_avg_usd': 0,
             'analyzed': False,
-            'rate_btc': None,
-            'rate_eth': None,
-            'rate_usd': None,
+            'rate_btc': 0,
+            'rate_eth': 0,
+            'rate_usd': 0,
             'commish': float(trade['commission']),
             'commish_asset': trade['commissionAsset']
         }

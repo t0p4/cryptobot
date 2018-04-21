@@ -285,6 +285,57 @@ class PostgresConnection:
         log.debug('{PSQL} == SAVE historical_trade_data ==')
         fmt_str = """
         (
+            '{order_type}',
+            '{trade_id}',
+            '{exchange_id}',
+            '{quantity}',
+            '{pair}',
+            '{base_coin}',
+            '{mkt_coin}',
+            '{trade_direction}',
+            {rate},
+            {rate_btc},
+            {rate_eth},
+            {rate_usd},
+            {cost_avg_btc},
+            {cost_avg_eth},
+            {cost_avg_usd},
+            {analyzed},
+            {trade_time}
+        )
+        """
+
+        columns = """
+            order_type,
+            trade_id,
+            exchange_id,
+            quantity,
+            pair,
+            base_coin,
+            mkt_coin,
+            trade_direction,
+            rate,
+            rate_btc,
+            rate_eth,
+            rate_usd,
+            cost_avg_btc,
+            cost_avg_eth,
+            cost_avg_usd,
+            analyzed,
+            trade_time
+        """
+        values = AsIs(','.join(fmt_str.format(**trade) for trade in trade_data))
+        params = {
+            "columns": AsIs(columns),
+            "values": values
+        }
+        query = """ INSERT INTO """ + self.table_name('trade_data') + """ (%(columns)s) VALUES %(values)s ; """
+        self._exec_query(query, params)
+
+    def save_order_data(self, trade_data):
+        log.debug('{PSQL} == SAVE historical_trade_data ==')
+        fmt_str = """
+        (
             '{order_id}',
             '{exchange}',
             '{order_type}',

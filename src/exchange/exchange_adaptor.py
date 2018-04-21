@@ -136,7 +136,7 @@ class ExchangeAdaptor:
                 start, end = self.format_exchange_start_and_end_times(exchange, timestamp, 1)
                 interval = self.format_exchange_interval(exchange, interval)
                 pair = self.format_exchange_pair(exchange, mkt_coin, base_coin)
-                ex = self.exchange_adaptors[exchange]()
+                ex = self.exchange_adaptors['binance']()
                 self.rate_limiters[exchange].limit()
                 pair_rate = ex.get_historical_rate(pair=pair, start=start, end=end, interval=interval)
                 return pair_rate
@@ -566,13 +566,15 @@ class ExchangeAdaptor:
         """
         try:
             pairs = self.get_exchange_pairs(exchange)
-            trades_by_pair = {}
-            for pair in pairs:
+            all_trades = []
+            i = 0
+            for sym, pair in pairs.items():
                 log.info('getting historical trade data for {0} on {1}'.format(pair, exchange))
                 ex = self.get_exchange_adaptor(exchange)
-                trade_data = ex.get_historical_trades({'symbol': pair['pair']})
-                trades_by_pair[pair['pair']] = self.normalize_trade_data(trade_data, pair, exchange=exchange)
-            return trades_by_pair
+                trade_data = ex.get_historical_trades(pair)
+                if trade_data is not None:
+                    all_trades = all_trades + trade_data
+            return all_trades
         except APIRequestError as e:
             log.error(e.error_msg)
             return None
