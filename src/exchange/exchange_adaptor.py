@@ -77,24 +77,36 @@ class ExchangeAdaptor:
     def format_exchange_pair(exchange, mkt_coin, base_coin):
         if exchange == 'binance':
             return mkt_coin.upper() + base_coin.upper()
-        elif exchange == 'gdax_public':
+        elif exchange == 'bittrex':
+            return base_coin.upper() + '-' + mkt_coin.upper()
+        elif exchange == 'gemini':
+            return mkt_coin.lower() + base_coin.lower()
+        elif exchange == 'gdax':
             return mkt_coin.upper() + '-' + base_coin.upper()
 
     def format_exchange_start_and_end_times(self, exchange, timestamp, minutes):
         divisor = self.exchange_divisors[exchange]
-
-        start = datetime.fromtimestamp(timestamp / divisor).isoformat()
-        end = datetime.fromtimestamp(timestamp / divisor + (minutes * 60000 / divisor)).isoformat()
-        return start, end
+        start = timestamp / divisor
+        end = timestamp / divisor + (minutes * 60000 / divisor)
+        if exchange == 'binance':
+            return int(start), int(end)
+        elif exchange == 'bittrex':
+            return start, end
+        elif exchange == 'gemini':
+            return start, end
+        elif exchange == 'gdax':
+            return datetime.fromtimestamp(start).isoformat(), datetime.fromtimestamp(end).isoformat()
 
     @staticmethod
     def format_exchange_interval(exchange, interval):
         if exchange == 'binance':
             return interval
-        elif exchange == 'gdax':
-            return interval[0] * INTERVAL_RATES[interval[1]]
+        elif exchange == 'bittrex':
+            return interval
         elif exchange == 'gemini':
-            return interval[0] * INTERVAL_RATES[interval[1]]
+            return int(interval[0]) * INTERVAL_RATES[interval[1]]
+        elif exchange == 'gdax':
+            return int(int(interval[0]) * INTERVAL_RATES[interval[1]] / INTERVAL_RATES['s'])
 
     #####################################################
     #                                                   #

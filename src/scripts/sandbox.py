@@ -104,8 +104,8 @@ else:
 
 
 
-# rep = PortfolioReporter
-# rep.update_and_aggregate_exchange_portfolios()
+rep = PortfolioReporter(['binance', 'bittrex'])
+rep.generate_p_report()
 # rep.pull_all_trade_data_from_exchanges()
 
 
@@ -132,6 +132,6 @@ else:
 #         ticker = ex_ad.get_current_pair_ticker(ex, pair)
 #     print(ex)
 
-balances = ExchangeAdaptor().get_current_tickers('gemini', False)
-balances2 = ExchangeAdaptor().get_current_tickers('gdax', False)
-print('ok')
+# balances = ExchangeAdaptor().get_current_tickers('gemini', False)
+# balances2 = ExchangeAdaptor().get_current_tickers('gdax', False)
+# print('ok')

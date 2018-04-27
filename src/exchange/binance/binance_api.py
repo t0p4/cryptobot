@@ -1900,8 +1900,11 @@ class BinanceAPI(object):
 
     # TODO, get_historical_rate, get_account_info, initiate_withdrawal, get_historical_tickers, get_current_tickers
 
-    # def get_historical_rate(self, pair, timestamp=None, interval='1m'):
-    #     raise APIDoesNotExistError('binance', 'get_historical_rate')
+    def get_historical_rate(self, pair=None, start=None, end=None, interval='1m'):
+        # OpenTime, Open, High, Low, Close, Volume, CloseTime, QuoteAssVol, NumTrades, TakeBuyBaseAssVol, TakeBuyQuoteAssVol, Ignore
+        klines = self.get_klines(symbol=pair, limit=1, startTime=start, interval=interval)
+        return klines[0][4]
+
     #
     # def get_account_info(self):
     #     raise APIDoesNotExistError('binance', 'get_account_info')
