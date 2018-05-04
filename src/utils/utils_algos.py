@@ -23,4 +23,4 @@ def binary_insert(needle, haystack):
 
 
 def close_enough(time_1, time_2):
-    return abs(time_1 - time_2) <= 1000
+    return abs(time_1 - time_2) <= 60000

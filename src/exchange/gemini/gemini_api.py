@@ -372,7 +372,7 @@ class GeminiAPI(object):
             'trade_id': trade['tid'],
             'exchange_id': 'gemini',
             'trade_time': trade['timestampms'],
-            'trade_direction': trade['type'],
+            'trade_direction': trade['type'].lower(),
             'cost_avg_btc': 0,
             'cost_avg_eth': 0,
             'cost_avg_usd': 0,

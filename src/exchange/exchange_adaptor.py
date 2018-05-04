@@ -108,6 +108,10 @@ class ExchangeAdaptor:
         elif exchange == 'gdax':
             return int(int(interval[0]) * INTERVAL_RATES[interval[1]] / INTERVAL_RATES['s'])
 
+    @staticmethod
+    def get_timestamp_delta(interval):
+        return int(interval[0]) * INTERVAL_RATES[interval[1]]
+
     #####################################################
     #                                                   #
     #   Instant USD Rates ::: TO DEPRECATE              #
@@ -130,7 +134,7 @@ class ExchangeAdaptor:
     #                                                   #
     #####################################################
 
-    def get_historical_rate(self, exchange, timestamp=None, base_coin='btc', mkt_coin='eth', interval='1m'):
+    def get_historical_rate(self, exchange, timestamp=None, base_coin='BTC', mkt_coin='ETH', interval='1m'):
         """
             gets the desired pair rate from the specified time period
         :param exchange: 'binance'
@@ -151,12 +155,16 @@ class ExchangeAdaptor:
                 return usd_rate
             else:
                 start, end = self.format_exchange_start_and_end_times(exchange, timestamp, 1)
-                interval = self.format_exchange_interval(exchange, interval)
+                exchange_interval = self.format_exchange_interval(exchange, interval)
                 pair = self.format_exchange_pair(exchange, mkt_coin, base_coin)
                 ex = self.exchange_adaptors[exchange]()
                 self.rate_limiters[exchange].limit()
-                pair_rate = ex.get_historical_rate(pair=pair, start=start, end=end, interval=interval)
+                pair_rate = ex.get_historical_rate(pair=pair, start=start, end=end, interval=exchange_interval)
                 return pair_rate
+        except IndexError as e:
+            log.error(e)
+            new_timestamp = timestamp + self.get_timestamp_delta(interval)
+            return self.get_historical_rate(exchange, timestamp=new_timestamp, base_coin=base_coin, mkt_coin=mkt_coin, interval=interval)
         except APIRequestError as e:
             log.error(e.error_msg)
             return None
@@ -615,12 +623,20 @@ class ExchangeAdaptor:
         :param coin: LTC
         :return: {"ETH": 0.048, "BTC": 0.0094}
         """
-        # TODO, handle pair not found error
-        coin_btc_rate = self.get_historical_rate(base_coin='BTC', mkt_coin=coin, timestamp=timestamp, exchange=exchange)
-        coin_eth_rate = self.get_historical_rate(base_coin='ETH', mkt_coin=coin, timestamp=timestamp, exchange=exchange)
+
+        coin_btc_rate = self.get_historical_rate_for_coin(base_coin='BTC', mkt_coin=coin, timestamp=timestamp, exchange=exchange)
+        coin_eth_rate = self.get_historical_rate_for_coin(base_coin='ETH', mkt_coin=coin, timestamp=timestamp, exchange=exchange)
         coin_mkt_rates = {'BTC': coin_btc_rate, 'ETH': coin_eth_rate}
         log.info("get_historical_coin_vs_btc_eth_rates :: " + repr(coin_mkt_rates))
         return coin_mkt_rates
+
+    def get_historical_rate_for_coin(self, base_coin='', mkt_coin='', timestamp=0, exchange=''):
+        # TODO, handle pair not found error
+        coin_rate = 1
+        if base_coin != mkt_coin:
+            coin_rate = self.get_historical_rate(base_coin=base_coin, mkt_coin=mkt_coin, timestamp=timestamp, exchange=exchange)
+            log.info("get_historical rate_for _coin :: " + repr(coin_rate))
+        return coin_rate
 
     def normalize_trade_data(self, trade_data, pair_meta_data, exchange):
         if exchange == 'binance':

@@ -522,6 +522,7 @@ class GDAXAPI(PublicClient):
         if pair is None or start is None or end is None:
             raise APIRequestError('gdax', 'get_historical_rate', "PAIR, START, and END required. pair: {0} start: {1}, end: {2}".format(pair, start, end))
         else:
+            # TODO deal w/ empty response
             return self.get_product_historic_rates(product_id=pair, start=start, end=end, granularity=interval)[0][4]
 
     # TODO, get_historical_tickers, get_account_info, initiate_withdrawal

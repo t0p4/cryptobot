@@ -39,6 +39,7 @@ class PublicClient(object):
 
         r = requests.get(self.url + path, params=params, timeout=self.timeout)
         # r.raise_for_status()
+        # TODO deal w/ empty response
         return r.json()
 
     def get_products(self):

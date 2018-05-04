@@ -146,7 +146,9 @@ class PortfolioReporter():
         cost_avg_usd = 0
         rate_btc = 0
         rate_eth = 0
+        rate_usd = 0
 
+        self.trade_data.sort_values(by=['trade_time'], inplace=True)
         for idx, trade_row in self.trade_data.iterrows():
             if trade_row['analyzed']:
                 cost_avg_btc = trade_row['cost_avg_btc']
@@ -162,37 +164,46 @@ class PortfolioReporter():
 
             else:
                 num_new_coins = trade_row['quantity']
+
+                # calculate rates, needs to pull data from exchanges
+                # TODO: refactor to pull all data before this function?
+                base_currency_usd_rates = self.ex.get_historical_usd_vs_btc_eth_rates(trade_row['trade_time'])
+                # can use upper() here for mkt_coin because gemini does not have historical endpoint (using gdax)
+                coin_exchange_rates = self.ex.get_historical_coin_vs_btc_eth_rates(trade_row['trade_time'], trade_row['exchange_id'], trade_row['mkt_coin'].upper())
+                if trade_row['base_coin'].upper() == 'BTC':
+                    rate_btc = trade_row['rate']
+                    rate_eth = coin_exchange_rates['ETH']
+                    rate_usd, rate_base_currency = get_usd_rate({'ETH': rate_eth, 'BTC': rate_btc},
+                                                                base_currency_usd_rates)
+                if trade_row['base_coin'].upper() == 'ETH':
+                    rate_btc = coin_exchange_rates['BTC']
+                    rate_eth = trade_row['rate']
+                    rate_usd, rate_base_currency = get_usd_rate({'ETH': rate_eth, 'BTC': rate_btc},
+                                                                base_currency_usd_rates)
+                if trade_row['base_coin'].upper() == 'USD':
+                    rate_btc = coin_exchange_rates['BTC']
+                    rate_eth = coin_exchange_rates['ETH']
+                    rate_usd = trade_row['rate']
+
                 # calculate cost averages
                 if trade_row['trade_direction'] == 'buy':
-                    cost_avg_btc = calculate_cost_average(total_coins, cost_avg_btc, num_new_coins, trade_row['rate_btc'])
-                    cost_avg_eth = calculate_cost_average(total_coins, cost_avg_eth, num_new_coins, trade_row['rate_eth'])
-                    cost_avg_usd = calculate_cost_average(total_coins, cost_avg_usd, num_new_coins, trade_row['rate_usd'])
+                    cost_avg_btc = calculate_cost_average(total_coins, cost_avg_btc, num_new_coins, rate_btc)
+                    cost_avg_eth = calculate_cost_average(total_coins, cost_avg_eth, num_new_coins, rate_eth)
+                    cost_avg_usd = calculate_cost_average(total_coins, cost_avg_usd, num_new_coins, rate_usd)
                     total_coins += num_new_coins
                 elif trade_row['trade_direction'] == 'sell':
                     total_coins -= num_new_coins
                 else:
                     raise BotError('trade_direction should be either "buy" or "sell"')
 
-                # calculate rates, needs to pull data from exchanges
-                # TODO: refactor to pull all data before this function?
-                base_currency_usd_rates = self.ex.get_historical_usd_vs_btc_eth_rates(trade_row['trade_time'])
-                coin_exchange_rates = self.ex.get_historical_coin_vs_btc_eth_rates(trade_row['trade_time'], trade_row['exchange_id'], trade_row['mkt_coin'])
-                if trade_row['base_coin'] == 'btc':
-                    rate_btc = trade_row['rate']
-                    rate_eth = coin_exchange_rates['eth']
-                if trade_row['base_coin'] == 'eth':
-                    rate_btc = coin_exchange_rates['btc']
-                    rate_eth = trade_row['rate']
-                rate_usd, rate_base_currency = get_usd_rate({'eth': rate_eth, 'btc': rate_btc}, base_currency_usd_rates)
-
                 # set all calculated values
-                self.trade_data.set_value(idx, 'cost_avg_btc', cost_avg_btc)
-                self.trade_data.set_value(idx, 'cost_avg_eth', cost_avg_eth)
-                self.trade_data.set_value(idx, 'cost_avg_usd', cost_avg_usd)
-                self.trade_data.set_value(idx, 'rate_btc', rate_btc)
-                self.trade_data.set_value(idx, 'rate_eth', rate_eth)
-                self.trade_data.set_value(idx, 'rate_usd', rate_usd)
-                self.trade_data.set_value(idx, 'analyzed', True)
+                self.trade_data.at[idx, 'cost_avg_btc'] = cost_avg_btc
+                self.trade_data.at[idx, 'cost_avg_eth'] = cost_avg_eth
+                self.trade_data.at[idx, 'cost_avg_usd'] = cost_avg_usd
+                self.trade_data.at[idx, 'rate_btc'] = rate_btc
+                self.trade_data.at[idx, 'rate_eth'] = rate_eth
+                self.trade_data.at[idx, 'rate_usd'] = rate_usd
+                self.trade_data.at[idx, 'analyzed'] = True
 
         return self.trade_data
 
