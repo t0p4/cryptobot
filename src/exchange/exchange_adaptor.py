@@ -18,11 +18,11 @@ from src.data_structures.historical_prices import HistoricalRates
 log = Logger(__name__)
 
 INTERVAL_RATES = {
-    's': 1000,                      # second
-    'm': 1000 * 60,                 # minute
-    'h': 1000 * 60 * 60,            # hour
-    'd': 1000 * 60 * 60 * 24,       # day
-    'w': 1000 * 60 * 60 * 24 * 7    # week
+    's': 1000,  # second
+    'm': 1000 * 60,  # minute
+    'h': 1000 * 60 * 60,  # hour
+    'd': 1000 * 60 * 60 * 24,  # day
+    'w': 1000 * 60 * 60 * 24 * 7  # week
 }
 
 
@@ -59,7 +59,6 @@ class ExchangeAdaptor:
             'gdax': 1000
         }
         self.historical_rates = HistoricalRates('gemini')
-
 
     def get_exchange_adaptor(self, exchange):
         return self.exchange_adaptors[exchange]()
@@ -134,6 +133,9 @@ class ExchangeAdaptor:
     #                                                   #
     #####################################################
 
+    def add_pair_rate(self, timestamp, base_coin, rate_data):
+        self.historical_rates.add_rate(timestamp, base_coin, rate_data)
+
     def get_historical_rate(self, exchange, timestamp=None, base_coin='BTC', mkt_coin='ETH', interval='1m'):
         """
             gets the desired pair rate from the specified time period
@@ -150,21 +152,27 @@ class ExchangeAdaptor:
             # gemini has no historical rate endpoint
             if exchange == 'gemini':
                 exchange = 'gdax'
-            exists_in_cache, usd_rate = self.check_rate_cache(timestamp, base_coin, mkt_coin)
+            exists_in_cache, cache_rate = self.check_rate_cache(timestamp, base_coin, mkt_coin)
             if exists_in_cache:
-                return usd_rate
+                return cache_rate
             else:
                 start, end = self.format_exchange_start_and_end_times(exchange, timestamp, 1)
                 exchange_interval = self.format_exchange_interval(exchange, interval)
                 pair = self.format_exchange_pair(exchange, mkt_coin, base_coin)
                 ex = self.exchange_adaptors[exchange]()
                 self.rate_limiters[exchange].limit()
-                pair_rate = ex.get_historical_rate(pair=pair, start=start, end=end, interval=exchange_interval)
+                pair_rate = float(ex.get_historical_rate(pair=pair, start=start, end=end, interval=exchange_interval))
                 return pair_rate
+        except KeyError as e:
+            log.error(e)
+            new_timestamp = timestamp + self.get_timestamp_delta(interval)
+            return self.get_historical_rate(exchange, timestamp=new_timestamp, base_coin=base_coin, mkt_coin=mkt_coin,
+                                            interval=interval)
         except IndexError as e:
             log.error(e)
             new_timestamp = timestamp + self.get_timestamp_delta(interval)
-            return self.get_historical_rate(exchange, timestamp=new_timestamp, base_coin=base_coin, mkt_coin=mkt_coin, interval=interval)
+            return self.get_historical_rate(exchange, timestamp=new_timestamp, base_coin=base_coin, mkt_coin=mkt_coin,
+                                            interval=interval)
         except APIRequestError as e:
             log.error(e.error_msg)
             return None
@@ -559,19 +567,18 @@ class ExchangeAdaptor:
         except APIRequestError as e:
             log.error(e.error_msg)
             return None
-        # ex_adaptor = self.get_exchange_adaptor(exchange)
-        # if exchange == 'binance':
-        #     account = ex_adaptor.get_account({'recvWindow': 10000})
-        #     result = []
-        #     for balance in account['balances']:
-        #         result.append({'currency': balance['asset'], 'balance': balance['free']})
-        #     return pd.DataFrame(result)
-        # elif exchange == 'coinigy':
-        #     balances = ex_adaptor.balances()
-        #     coinigy_col_keys = ['balance_amount_avail', 'balance_amount_held', 'balance_amount_total',
-        #                         'btc_balance', 'last_price']
-        #     return convert_str_columns_to_num(pd.DataFrame(balances), coinigy_col_keys)
-
+            # ex_adaptor = self.get_exchange_adaptor(exchange)
+            # if exchange == 'binance':
+            #     account = ex_adaptor.get_account({'recvWindow': 10000})
+            #     result = []
+            #     for balance in account['balances']:
+            #         result.append({'currency': balance['asset'], 'balance': balance['free']})
+            #     return pd.DataFrame(result)
+            # elif exchange == 'coinigy':
+            #     balances = ex_adaptor.balances()
+            #     coinigy_col_keys = ['balance_amount_avail', 'balance_amount_held', 'balance_amount_total',
+            #                         'btc_balance', 'last_price']
+            #     return convert_str_columns_to_num(pd.DataFrame(balances), coinigy_col_keys)
 
     #####################################################
     #                                                   #
@@ -624,8 +631,15 @@ class ExchangeAdaptor:
         :return: {"ETH": 0.048, "BTC": 0.0094}
         """
 
-        coin_btc_rate = self.get_historical_rate_for_coin(base_coin='BTC', mkt_coin=coin, timestamp=timestamp, exchange=exchange)
-        coin_eth_rate = self.get_historical_rate_for_coin(base_coin='ETH', mkt_coin=coin, timestamp=timestamp, exchange=exchange)
+        coin_btc_rate = self.get_historical_rate_for_coin(base_coin='BTC', mkt_coin=coin, timestamp=timestamp,
+                                                          exchange=exchange)
+        if coin == 'BTC':
+            coin_eth_rate = self.get_historical_rate_for_coin(base_coin=coin, mkt_coin='ETH', timestamp=timestamp,
+                                                              exchange=exchange)
+            coin_eth_rate = 1 / coin_eth_rate
+        else:
+            coin_eth_rate = self.get_historical_rate_for_coin(base_coin='ETH', mkt_coin=coin, timestamp=timestamp,
+                                                            exchange=exchange)
         coin_mkt_rates = {'BTC': coin_btc_rate, 'ETH': coin_eth_rate}
         log.info("get_historical_coin_vs_btc_eth_rates :: " + repr(coin_mkt_rates))
         return coin_mkt_rates
@@ -634,7 +648,8 @@ class ExchangeAdaptor:
         # TODO, handle pair not found error
         coin_rate = 1
         if base_coin != mkt_coin:
-            coin_rate = self.get_historical_rate(base_coin=base_coin, mkt_coin=mkt_coin, timestamp=timestamp, exchange=exchange)
+            coin_rate = self.get_historical_rate(base_coin=base_coin, mkt_coin=mkt_coin, timestamp=timestamp,
+                                                 exchange=exchange)
             log.info("get_historical rate_for _coin :: " + repr(coin_rate))
         return coin_rate
 
@@ -661,15 +676,17 @@ class ExchangeAdaptor:
             rates = {'btc': None, 'eth': None, 'usd': None}
             if is_btc(pair_meta_data['mkt_coin']):
                 rates['btc'] = float(trade['price'])
-                rates['usd'] = get_usd_rate({'BTC': rates['btc']}, self.get_historical_usd_vs_btc_eth_rates(trade['time']))
+                rates['usd'] = get_usd_rate({'BTC': rates['btc']},
+                                            self.get_historical_usd_vs_btc_eth_rates(trade['time']))
             elif is_eth(pair_meta_data['mkd_coin']):
                 rates['eth'] = float(trade['price'])
-                rates['usd'] = get_usd_rate({'ETH': rates['eth']}, self.get_historical_usd_vs_btc_eth_rates(trade['time']))
+                rates['usd'] = get_usd_rate({'ETH': rates['eth']},
+                                            self.get_historical_usd_vs_btc_eth_rates(trade['time']))
 
             normalized_trade_data.append(create_normalized_trade_data_binance(trade, pair_meta_data, trade_dir, rates))
         return normalized_trade_data
 
-    # def add_rates_to_trades(self, trade_data):
+        # def add_rates_to_trades(self, trade_data):
         # 'base_currency': pair_meta_data['base_coin'],
         # 'market_currency': pair_meta_data['mkt_coin'],
         # 'rate_btc': rates['btc'],

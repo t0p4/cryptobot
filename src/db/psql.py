@@ -185,10 +185,10 @@ class PostgresConnection:
         query = """ SELECT * FROM fixture_currencies ; """
         return self._fetch_query(query, params)
 
-    def get_all_trade_data(self):
+    def get_all_trade_data(self, table_name):
         log.debug('{PSQL} == GET trade data ==')
         params = {}
-        query = """ SELECT * FROM """ + self.table_name('trade_data')
+        query = """ SELECT * FROM """ + table_name
         return self._fetch_query(query, params)
 
     def get_most_recent_trades(self):
@@ -281,7 +281,7 @@ class PostgresConnection:
         query = """ INSERT INTO """ + self.table_name('save_tickers') + """ (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
-    def save_trade_data(self, trade_data):
+    def save_trade_data(self, trade_data, table_name):
         log.debug('{PSQL} == SAVE historical_trade_data ==')
         fmt_str = """
         (
@@ -329,7 +329,7 @@ class PostgresConnection:
             "columns": AsIs(columns),
             "values": values
         }
-        query = """ INSERT INTO """ + self.table_name('trade_data') + """ (%(columns)s) VALUES %(values)s ; """
+        query = """ INSERT INTO """ + table_name + """ (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
     def save_order_data(self, trade_data):

@@ -34,14 +34,17 @@ def get_usd_rate(coin_rates, usd_rates):
 
     current_max = 0
     current_max_coin = ''
+    try:
+        for coin, rate in coin_rates.items():
+            current_val = rate * usd_rates[coin.upper()]
+            if current_val > current_max:
+                current_max = current_val
+                current_max_coin = coin
 
-    for coin, rate in coin_rates.items():
-        current_val = rate * usd_rates[coin.upper()]
-        if current_val > current_max:
-            current_max = current_val
-            current_max_coin = coin
-
-    return current_max, current_max_coin
+        return current_max, current_max_coin
+    except Exception as e:
+        print(e)
+        return
 
 
 def calculate_cost_average(prev_num_coins, prev_coin_price, num_new_coins, new_coin_price):

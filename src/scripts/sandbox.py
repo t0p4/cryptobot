@@ -104,7 +104,7 @@ else:
 
 
 
-rep = PortfolioReporter(['binance', 'bittrex'])
+rep = PortfolioReporter(['binance', 'bittrex', 'gemini'])
 rep.generate_p_report()
 # rep.pull_all_trade_data_from_exchanges()
 

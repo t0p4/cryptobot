@@ -37,11 +37,12 @@ class PortfolioReporter():
     def generate_p_report(self):
         self.load_trade_data(False)
         self.analyze_trades()
-        self.get_aggregate_exchange_balances()
-        self.get_coin_rates()
-        self.calculate_portfolio_totals()
-        self.calculate_cost_avgs()
-        self.save_p_report()
+        self.save_trade_data()
+        # self.get_aggregate_exchange_balances()
+        # self.get_coin_rates()
+        # self.calculate_portfolio_totals()
+        # self.calculate_cost_avgs()
+        # self.save_p_report()
 
     def get_prev_daily(self):
         return self.pg.get_full_report(get_past_date(1))
@@ -117,10 +118,10 @@ class PortfolioReporter():
             self.pull_trade_data_from_db()
 
     def save_trade_data(self):
-        self.pg.save_trade_data(self.trade_data)
+        self.pg.save_trade_data(self.trade_data.T.to_dict().values(), 'cc_trades_analyzed')
 
     def pull_trade_data_from_db(self):
-        self.trade_data = self.pg.get_all_trade_data()
+        self.trade_data = self.pg.get_all_trade_data('cc_trades')
 
     def pull_trade_data_from_exchanges(self):
         self.trade_data = []
@@ -168,8 +169,10 @@ class PortfolioReporter():
                 # calculate rates, needs to pull data from exchanges
                 # TODO: refactor to pull all data before this function?
                 base_currency_usd_rates = self.ex.get_historical_usd_vs_btc_eth_rates(trade_row['trade_time'])
+                self.ex.add_pair_rate(trade_row['trade_time'], 'USD', base_currency_usd_rates)
                 # can use upper() here for mkt_coin because gemini does not have historical endpoint (using gdax)
                 coin_exchange_rates = self.ex.get_historical_coin_vs_btc_eth_rates(trade_row['trade_time'], trade_row['exchange_id'], trade_row['mkt_coin'].upper())
+                self.ex.add_pair_rate(trade_row['trade_time'], trade_row['mkt_coin'], coin_exchange_rates)
                 if trade_row['base_coin'].upper() == 'BTC':
                     rate_btc = trade_row['rate']
                     rate_eth = coin_exchange_rates['ETH']
