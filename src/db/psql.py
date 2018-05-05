@@ -8,6 +8,11 @@ import os
 
 from src.utils.logger import Logger
 from src.db.table_names import TABLE_NAMES
+from src.db.queries.save_portfolio_assets import save_portfolio_assets
+from src.db.queries.save_portfolio_report import save_portfolio_report
+from src.db.queries.save_order_data import save_order_data
+from src.db.queries.save_trade_data import save_trade_data
+from src.db.queries.save_tickers import  save_tickers
 
 log = Logger(__name__)
 
@@ -237,289 +242,30 @@ class PostgresConnection:
 
     def save_tickers(self, tickers):
         log.debug('{PSQL} == SAVE tickers ==')
-        fmt_str = """
-        (
-            '{pair}',
-            '{base_coin}',
-            '{mkt_coin}',
-            {open},
-            {high},
-            {low},
-            {close},
-            {bid},
-            {ask},
-            {last},
-            {vol_base},
-            {vol_mkt},
-            {timestamp},
-            '{exchange}',
-            {ticker_nonce}
-        )
-        """
-        columns = """
-            pair,
-            base_coin,
-            mkt_coin,
-            open,
-            high,
-            low,
-            close,
-            bid,
-            ask,
-            last,
-            vol_base,
-            vol_mkt,
-            timestamp,
-            exchange,
-            ticker_nonce
-        """
-        values = AsIs(','.join(fmt_str.format(**ticker) for ticker in tickers))
-        params = {
-            "columns": AsIs(columns),
-            "values": values
-        }
-        query = """ INSERT INTO """ + self.table_name('save_tickers') + """ (%(columns)s) VALUES %(values)s ; """
+        query, columns, values = save_tickers(tickers, self.table_name('save_tickers'))
+        params = {"columns": AsIs(columns), "values": AsIs(values)}
         self._exec_query(query, params)
 
     def save_trade_data(self, trade_data, table_name):
         log.debug('{PSQL} == SAVE historical_trade_data ==')
-        fmt_str = """
-        (
-            '{order_type}',
-            '{trade_id}',
-            '{exchange_id}',
-            '{quantity}',
-            '{pair}',
-            '{base_coin}',
-            '{mkt_coin}',
-            '{trade_direction}',
-            {rate},
-            {rate_btc},
-            {rate_eth},
-            {rate_usd},
-            {cost_avg_btc},
-            {cost_avg_eth},
-            {cost_avg_usd},
-            {analyzed},
-            {trade_time}
-        )
-        """
-
-        columns = """
-            order_type,
-            trade_id,
-            exchange_id,
-            quantity,
-            pair,
-            base_coin,
-            mkt_coin,
-            trade_direction,
-            rate,
-            rate_btc,
-            rate_eth,
-            rate_usd,
-            cost_avg_btc,
-            cost_avg_eth,
-            cost_avg_usd,
-            analyzed,
-            trade_time
-        """
-        values = AsIs(','.join(fmt_str.format(**trade) for trade in trade_data))
-        params = {
-            "columns": AsIs(columns),
-            "values": values
-        }
-        query = """ INSERT INTO """ + table_name + """ (%(columns)s) VALUES %(values)s ; """
+        query, columns, values = save_trade_data(trade_data, table_name)
+        params = {"columns": AsIs(columns), "values": AsIs(values)}
         self._exec_query(query, params)
 
     def save_order_data(self, trade_data):
         log.debug('{PSQL} == SAVE historical_trade_data ==')
-        fmt_str = """
-        (
-            '{order_id}',
-            '{exchange}',
-            '{order_type}',
-            '{pair}',
-            '{base_coin}',
-            '{mkt_coin}',
-            '{trade_direction}',
-            '{is_live}',
-            '{is_cancelled}',
-            {original_amount},
-            {executed_amount},
-            {remaining_amount},
-            {price},
-            {avg_price},
-            {rate_btc},
-            {rate_eth},
-            {rate_usd},
-            {cost_avg_btc},
-            {cost_avg_eth},
-            {cost_avg_usd},
-            {analyzed},
-            {timestamp},
-            {save_time}
-        )
-        """
-
-        columns = """
-            order_id,
-            exchange,
-            order_type,
-            pair,
-            base_coin,
-            mkt_coin,
-            side,
-            is_live,
-            is_cancelled,
-            original_amount,
-            executed_amount,
-            remaining_amount,
-            price,
-            avg_price,
-            rate_btc,
-            rate_eth,
-            rate_usd,
-            cost_avg_btc,
-            cost_avg_eth,
-            cost_avg_usd,
-            analyzed,
-            timestamp,
-            save_time
-        """
-        values = AsIs(','.join(fmt_str.format(**trade) for trade in trade_data))
-        params = {
-            "columns": AsIs(columns),
-            "values": values
-        }
-        query = """ INSERT INTO """ + self.table_name('save_order') + """ (%(columns)s) VALUES %(values)s ; """
+        query, columns, values = save_order_data(trade_data, self.table_name('save_order'))
+        params = {"columns": AsIs(columns), "values": AsIs(values)}
         self._exec_query(query, params)
 
     def save_portfolio_report(self, portfolio_report):
-        fmt_str = """(
-                    {total_coins},
-                    {total_coins_change},
-                    {current_roi_btc},
-                    {current_roi_pct_btc},
-                    {current_roi_eth},
-                    {current_roi_pct_eth},
-                    {current_roi_usd},
-                    {current_roi_pct_usd},
-                    {est_btc},
-                    {est_btc_change_daily},
-                    {est_btc_pct_change_daily},
-                    {est_btc_change_weekly},
-                    {est_btc_pct_change_weekly},
-                    {est_eth},
-                    {est_eth_change_daily},
-                    {est_eth_pct_change_daily},
-                    {est_eth_change_weekly},
-                    {est_eth_pct_change_weekly},
-                    {est_usd},
-                    {est_usd_change_daily},
-                    {est_usd_pct_change_daily},
-                    {est_usd_change_weekly},
-                    {est_usd_pct_change_weekly},
-                )"""
-        columns = """
-                    total_coins,
-                    total_coins_change,
-                    current_roi_btc,
-                    current_roi_pct_btc,
-                    current_roi_eth,
-                    current_roi_pct_eth,
-                    current_roi_usd,
-                    current_roi_pct_usd,
-                    est_btc,
-                    est_btc_change_daily,
-                    est_btc_pct_change_daily,
-                    est_btc_change_weekly,
-                    est_btc_pct_change_weekly,
-                    est_eth,
-                    est_eth_change_daily,
-                    est_eth_pct_change_daily,
-                    est_eth_change_weekly,
-                    est_eth_pct_change_weekly,
-                    est_usd,
-                    est_usd_change_daily,
-                    est_usd_pct_change_daily,
-                    est_usd_change_weekly,
-                    est_usd_pct_change_weekly
-                """
-        values = fmt_str.format(**portfolio_report)
-        params = {
-            "columns": AsIs(columns),
-            "values": values
-        }
-        query = """ INSERT INTO """ + self.table_name('portfolio_reports') + """ (%(columns)s) VALUES %(values)s ; """
+        log.debug('{PSQL} == SAVE portfolio report ==')
+        query, columns, values = save_portfolio_report(portfolio_report, self.table_name('portfolio_reports'))
+        params = {"columns": AsIs(columns), "values": values}
         self._exec_query(query, params)
 
     def save_portfolio_assets(self, portfolio_assets):
-        log.debug('{PSQL} == SAVE portfolio report ==')
-        fmt_str = """(
-            {report_id},
-            '{currency}',
-            {total},
-            {total_holdings_change},
-            {pct_holdings_change},
-            {portfolio_pct},
-            {cost_avg},
-            {current_roi_btc},
-            {current_roi_pct_btc},
-            {current_roi_eth},
-            {current_roi_pct_eth},
-            {current_roi_usd},
-            {current_roi_pct_usd},
-            {est_btc},
-            {est_btc_change_daily},
-            {est_btc_pct_change_daily},
-            {est_btc_change_weekly},
-            {est_btc_pct_change_weekly},
-            {est_eth},
-            {est_eth_change_daily},
-            {est_eth_pct_change_daily},
-            {est_eth_change_weekly},
-            {est_eth_pct_change_weekly},
-            {est_usd},
-            {est_usd_change_daily},
-            {est_usd_pct_change_daily},
-            {est_usd_change_weekly},
-            {est_usd_pct_change_weekly},
-        )"""
-        columns = """
-            report_id,
-            currency,
-            total,
-            total_holdings_change,
-            pct_holdings_change,
-            portfolio_pct,
-            cost_avg,
-            current_roi_btc,
-            current_roi_pct_btc,
-            current_roi_eth,
-            current_roi_pct_eth,
-            current_roi_usd,
-            current_roi_pct_usd,
-            est_btc,
-            est_btc_change_daily,
-            est_btc_pct_change_daily,
-            est_btc_change_weekly,
-            est_btc_pct_change_weekly,
-            est_eth,
-            est_eth_change_daily,
-            est_eth_pct_change_daily,
-            est_eth_change_weekly,
-            est_eth_pct_change_weekly,
-            est_usd,
-            est_usd_change_daily,
-            est_usd_pct_change_daily,
-            est_usd_change_weekly,
-            est_usd_pct_change_weekly
-        """
-        values = AsIs(','.join(fmt_str.format(**asset) for asset in portfolio_assets))
-        params = {
-            "columns": AsIs(columns),
-            "values": values
-        }
-        query = """ INSERT INTO """ + self.table_name('portfolio_assets') + """ (%(columns)s) VALUES %(values)s ; """
+        log.debug('{PSQL} == SAVE portfolio assets ==')
+        query, columns, values = save_portfolio_assets(portfolio_assets, self.table_name('portfolio_assets'))
+        params = {"columns": AsIs(columns), "values": AsIs(values)}
         self._exec_query(query, params)
