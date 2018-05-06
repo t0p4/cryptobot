@@ -401,18 +401,18 @@ class CryptopiaAPI(object):
 
     def get_exchange_pairs(self):
         try:
-            e_info = self.get_exchange_info()
-            return [self.normalize_exchange_pair(pair) for pair in e_info['symbols']]
-        except (BinanceAPIException, BinanceRequestException) as e:
+            ex_pairs = self.get_tradepairs()
+            return [self.normalize_exchange_pair(pair) for pair in ex_pairs[0]]
+        except Exception as e:
             self.throw_error('get_exchange_pairs', e.__str__())
 
 
     @staticmethod
     def normalize_exchange_pair(pair):
         return {
-            'pair': pair['symbol'],
-            'base_coin': pair['quoteAsset'],
-            'mkt_coin': pair['baseAsset']
+            'pair': pair['Label'],
+            'base_coin': pair['BaseSymbol'],
+            'mkt_coin': pair['Symbol']
         }
 
 

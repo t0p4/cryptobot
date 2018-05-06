@@ -132,7 +132,8 @@ else:
 #         ticker = ex_ad.get_current_pair_ticker(ex, pair)
 #     print(ex)
 
-balances = ExchangeAdaptor().get_historical_trades('cryptopia', {'pair': 'DOT/BTC', 'base_coin': 'BTC', 'mkt_coin': 'DOT'})
+balances = ExchangeAdaptor().get_exchange_pairs('binance')
+balances2 = ExchangeAdaptor().get_exchange_pairs('cryptopia')
 print('ok')
 # balances2 = ExchangeAdaptor().get_current_tickers('gdax', False)
 # print('ok')
