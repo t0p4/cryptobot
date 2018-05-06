@@ -190,10 +190,10 @@ class PostgresConnection:
         query = """ SELECT * FROM fixture_currencies ; """
         return self._fetch_query(query, params)
 
-    def get_all_trade_data(self, table_name):
+    def get_all_trade_data(self):
         log.debug('{PSQL} == GET trade data ==')
         params = {}
-        query = """ SELECT * FROM """ + table_name
+        query = """ SELECT * FROM """ + self.table_name('trade_data')
         return self._fetch_query(query, params)
 
     def get_most_recent_trades(self):
@@ -245,6 +245,12 @@ class PostgresConnection:
         query, columns, values = save_tickers(tickers, self.table_name('save_tickers'))
         params = {"columns": AsIs(columns), "values": AsIs(values)}
         self._exec_query(query, params)
+
+    def save_collected_trade_data(self, trade_data):
+        self.save_trade_data(trade_data, 'cc_trades')
+
+    def save_analyzed_trade_data(self, trade_data):
+        self.save_trade_data(trade_data, 'cc_trades_analyzed')
 
     def save_trade_data(self, trade_data, table_name):
         log.debug('{PSQL} == SAVE historical_trade_data ==')

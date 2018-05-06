@@ -39,10 +39,10 @@ class PortfolioReporter():
     def generate_p_report(self):
         self.load_trade_data(False)
         self.analyze_trades()
-        self.save_trade_data()
-        # self.get_aggregate_exchange_balances()
-        # self.get_coin_rates()
-        # self.calculate_portfolio_totals()
+        self.save_analyzed_trade_data()
+        self.get_aggregate_exchange_balances()
+        self.get_coin_rates()
+        self.calculate_portfolio_totals()
         # self.calculate_cost_avgs()
         # self.save_p_report()
 
@@ -112,20 +112,23 @@ class PortfolioReporter():
             self.p_report = self.calculate_daily_changes(self.p_report, self.prev_daily_report)
         if self.prev_weekly_report is not None and not self.prev_weekly_report.empty:
             self.p_report = self.calculate_weekly_changes(self.p_report, self.prev_weekly_report)
-        self.calculate_rois()
+        # self.calculate_rois()
 
     def load_trade_data(self, full_refresh):
         if full_refresh:
             self.pull_trade_data_from_exchanges()
-            self.save_trade_data()
+            self.save_collected_trade_data()
         else:
             self.pull_trade_data_from_db()
 
-    def save_trade_data(self):
-        self.pg.save_trade_data(self.trade_data.T.to_dict().values(), 'cc_trades_analyzed')
+    def save_analyzed_trade_data(self):
+        self.pg.save_analyzed_trade_data(self.trade_data.T.to_dict().values())
+
+    def save_collected_trade_data(self):
+        self.pg.save_collected_trade_data(self.trade_data.T.to_dict().values())
 
     def pull_trade_data_from_db(self):
-        self.trade_data = self.pg.get_all_trade_data('cc_trades')
+        self.trade_data = self.pg.get_all_trade_data()
 
     def pull_trade_data_from_exchanges(self):
         self.trade_data = []
@@ -139,12 +142,6 @@ class PortfolioReporter():
         # TODO: update trade data in database
 
     def analyze_trades(self):
-        """
-            run through trade data to calculate cost_averages
-        :param asset_data: dict
-        :param trade_data:  dataframe
-        :return:
-        """
         total_coins = defaultdict(int)
         cost_avg_btc = defaultdict(int)
         cost_avg_eth = defaultdict(int)
@@ -184,12 +181,12 @@ class PortfolioReporter():
                     rate_btc[coin] = trade_row['rate']
                     rate_eth[coin] = coin_exchange_rates['ETH']
                     rate_usd[coin], rate_base_currency = get_usd_rate({'ETH': rate_eth[coin], 'BTC': rate_btc[coin]},
-                                                                base_currency_usd_rates)
+                                                                      base_currency_usd_rates)
                 if trade_row['base_coin'].upper() == 'ETH':
                     rate_btc[coin] = coin_exchange_rates['BTC']
                     rate_eth[coin] = trade_row['rate']
                     rate_usd[coin], rate_base_currency = get_usd_rate({'ETH': rate_eth[coin], 'BTC': rate_btc[coin]},
-                                                                base_currency_usd_rates)
+                                                                      base_currency_usd_rates)
                 if trade_row['base_coin'].upper() == 'USD':
                     rate_btc[coin] = coin_exchange_rates['BTC']
                     rate_eth[coin] = coin_exchange_rates['ETH']
@@ -197,14 +194,11 @@ class PortfolioReporter():
 
                 # calculate cost averages
                 if trade_row['trade_direction'] == 'buy':
-                    cost_avg_btc[coin] = calculate_cost_average(total_coins[coin],
-                                                                cost_avg_btc[coin], num_new_coins,
+                    cost_avg_btc[coin] = calculate_cost_average(total_coins[coin], cost_avg_btc[coin], num_new_coins,
                                                                 rate_btc[coin])
-                    cost_avg_eth[coin] = calculate_cost_average(total_coins[coin],
-                                                                cost_avg_eth[coin], num_new_coins,
+                    cost_avg_eth[coin] = calculate_cost_average(total_coins[coin], cost_avg_eth[coin], num_new_coins,
                                                                 rate_eth[coin])
-                    cost_avg_usd[coin] = calculate_cost_average(total_coins[coin],
-                                                                cost_avg_usd[coin], num_new_coins,
+                    cost_avg_usd[coin] = calculate_cost_average(total_coins[coin], cost_avg_usd[coin], num_new_coins,
                                                                 rate_usd[coin])
                     total_coins[coin] += num_new_coins
                 elif trade_row['trade_direction'] == 'sell':

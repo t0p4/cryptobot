@@ -104,8 +104,8 @@ else:
 
 
 
-rep = PortfolioReporter(['binance', 'bittrex', 'gemini'])
-rep.generate_p_report()
+# rep = PortfolioReporter(['binance', 'bittrex', 'gemini'])
+# rep.generate_p_report()
 # rep.pull_all_trade_data_from_exchanges()
 
 
@@ -132,6 +132,7 @@ rep.generate_p_report()
 #         ticker = ex_ad.get_current_pair_ticker(ex, pair)
 #     print(ex)
 
-# balances = ExchangeAdaptor().get_current_tickers('gemini', False)
+balances = ExchangeAdaptor().get_historical_trades('cryptopia', {'pair': 'DOT/BTC', 'base_coin': 'BTC', 'mkt_coin': 'DOT'})
+print('ok')
 # balances2 = ExchangeAdaptor().get_current_tickers('gdax', False)
 # print('ok')
