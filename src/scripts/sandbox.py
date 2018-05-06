@@ -132,8 +132,8 @@ else:
 #         ticker = ex_ad.get_current_pair_ticker(ex, pair)
 #     print(ex)
 
-balances = ExchangeAdaptor().get_exchange_pairs('binance')
-balances2 = ExchangeAdaptor().get_exchange_pairs('cryptopia')
+balances = ExchangeAdaptor().get_current_tickers('cryptopia', False)
+balances2 = ExchangeAdaptor().get_current_pair_ticker('cryptopia', pair={'pair': 'DOT/BTC', 'base_coin': 'BTC', 'mkt_coin': 'DOT'})
 print('ok')
 # balances2 = ExchangeAdaptor().get_current_tickers('gdax', False)
 # print('ok')

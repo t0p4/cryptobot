@@ -101,6 +101,8 @@ class ExchangeAdaptor:
             return start, end
         elif exchange == 'gdax':
             return datetime.fromtimestamp(start).isoformat(), datetime.fromtimestamp(end).isoformat()
+        elif exchange == 'cryptopia':
+            return start, end
 
     @staticmethod
     def format_exchange_interval(exchange, interval):
@@ -112,6 +114,8 @@ class ExchangeAdaptor:
             return int(interval[0]) * INTERVAL_RATES[interval[1]]
         elif exchange == 'gdax':
             return int(int(interval[0]) * INTERVAL_RATES[interval[1]] / INTERVAL_RATES['s'])
+        elif exchange == 'cryptopia':
+            return interval
 
     @staticmethod
     def get_timestamp_delta(interval):

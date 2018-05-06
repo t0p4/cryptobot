@@ -86,10 +86,10 @@ class CryptopiaAPI(object):
         return self.api_query(feature_requested='GetMarket',
                               get_parameters={'market': market})
 
-    def get_history(self, market):
+    def get_history(self, market, hours):
         """ Gets the full order history for the market (all users) """
         return self.api_query(feature_requested='GetMarketHistory',
-                              get_parameters={'market': market})
+                              get_parameters={'market': market, 'hours': hours})
 
     def get_orders(self, market):
         """ Gets the user history for the specified market """
@@ -258,35 +258,34 @@ class CryptopiaAPI(object):
 
     def get_current_tickers(self):
         try:
-            tickers = self.get_all_tickers()
+            tickers = self.get_markets()
             pairs = self.get_exchange_pairs()
             res = []
-            for tick in tickers:
+            for tick in tickers[0]:
                 # find the matching pair
                 pair = None
                 i = 0
                 while pair is None:
-                    if pairs[i]['pair'] == tick['symbol']:
+                    if pairs[i]['pair'] == tick['Label']:
                         pair = pairs[i]
                     i += 1
                 res.append(self.normalize_ticker(tick, pair))
             return res
-        except (BinanceAPIException, BinanceRequestException) as e:
+        except Exception as e:
             self.throw_error('get_current_pair_ticker', e.__str__())
-
 
     def get_current_pair_ticker(self, pair):
         try:
-            return self.normalize_ticker(self.get_ticker(symbol=pair['pair']), pair)
-        except (BinanceAPIException, BinanceRequestException) as e:
+            p = pair['pair'].split('/')
+            return self.normalize_ticker(self.get_market(p[0] + '_' + p[1])[0], pair)
+        except Exception as e:
             self.throw_error('get_current_pair_ticker', e.__str__())
-
 
     @staticmethod
     def normalize_ticker(tick, pair):
         return {
-            'pair': tick['symbol'],
-            'last': float(tick['price']),
+            'pair': tick['Label'],
+            'last': float(tick['LastPrice']),
             'exchange': 'binance',
             **pair
         }
@@ -419,10 +418,10 @@ class CryptopiaAPI(object):
     # TODO, get_historical_rate, get_account_info, initiate_withdrawal, get_historical_tickers, get_current_tickers
 
     def get_historical_rate(self, pair=None, start=None, end=None, interval='1m'):
-        # OpenTime, Open, High, Low, Close, Volume, CloseTime, QuoteAssVol, NumTrades, TakeBuyBaseAssVol, TakeBuyQuoteAssVol, Ignore
-        klines = self.get_klines(symbol=pair, limit=1, startTime=start, interval=interval)
-        return klines[0][4]
-
+        # # OpenTime, Open, High, Low, Close, Volume, CloseTime, QuoteAssVol, NumTrades, TakeBuyBaseAssVol, TakeBuyQuoteAssVol, Ignore
+        # klines = self.get_history(pair, start)
+        # return klines[0][4]
+        raise APIRequestError('cryptopia', 'get_historical_rate', 'cryptopia doesnt go back very far')
         #
         # def get_account_info(self):
         #     raise APIDoesNotExistError('binance', 'get_account_info')
