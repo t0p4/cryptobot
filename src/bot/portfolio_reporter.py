@@ -37,14 +37,20 @@ class PortfolioReporter():
         return self.pg.get_initial_investments()
 
     def generate_p_report(self):
+        # self.generate_trade_report()
+        self.generate_asset_report()
+        # self.save_p_report()
+
+    def generate_trade_report(self):
         self.load_trade_data(False)
         self.analyze_trades()
         self.save_analyzed_trade_data()
+
+    def generate_asset_report(self):
         self.get_aggregate_exchange_balances()
         self.get_coin_rates()
         self.calculate_portfolio_totals()
-        # self.calculate_cost_avgs()
-        # self.save_p_report()
+        print('done')
 
     def get_prev_daily(self):
         return self.pg.get_full_report(get_past_date(1))
@@ -83,7 +89,6 @@ class PortfolioReporter():
         for ex in self.exchanges:
             self.aggregate_portfolio = self.aggregate_portfolio.append(
                 pd.DataFrame(self.ex.get_exchange_balances(exchange=ex)))
-        self.p_report['total_coins'] = len(self.aggregate_portfolio)
         self.aggregate_portfolio.drop(columns='address', inplace=True)
 
     def calculate_portfolio_totals(self):
@@ -113,6 +118,10 @@ class PortfolioReporter():
         if self.prev_weekly_report is not None and not self.prev_weekly_report.empty:
             self.p_report = self.calculate_weekly_changes(self.p_report, self.prev_weekly_report)
         # self.calculate_rois()
+
+        # drop coins with 0 balance
+        self.aggregate_portfolio = self.aggregate_portfolio[self.aggregate_portfolio['balance'] > 0]
+        self.p_report['total_coins'] = len(self.aggregate_portfolio)
 
     def load_trade_data(self, full_refresh):
         if full_refresh:
@@ -152,6 +161,9 @@ class PortfolioReporter():
 
         self.trade_data.sort_values(by=['trade_time'], inplace=True)
         for idx, trade_row in self.trade_data.iterrows():
+            if trade_row['exchange_id'] == 'cryptopia':
+                continue
+
             coin = trade_row['mkt_coin'].upper()
             if trade_row['analyzed']:
                 cost_avg_btc[coin] = trade_row['cost_avg_btc']
