@@ -4,6 +4,7 @@ from src.exchange.backtest_exchange import BacktestExchange
 from src.exchange.coinigy.coinigy_api import CoinigyAPI
 from src.exchange.gemini.gemini_api import GeminiAPI
 from src.exchange.cryptopia.cryptopia_api import CryptopiaAPI
+from src.exchange.gateio.gateio_api import GateIOAPI
 from src.exchange.gdax.gdax import GDAXAPI
 import pandas as pd
 from src.utils.conversion_utils import convert_str_columns_to_num, get_usd_rate
@@ -36,33 +37,38 @@ class ExchangeAdaptor:
             'backtest': BacktestExchange,
             'gemini': GeminiAPI,
             'gdax': GDAXAPI,
-            'cryptopia': CryptopiaAPI
+            'cryptopia': CryptopiaAPI,
+            'gateio': GateIOAPI
         }
         self.rate_limiters = {
             'binance': RateLimiter('binance'),
             'bittrex': RateLimiter('bittrex'),
             'gdax': RateLimiter('gdax'),
             'gemini': RateLimiter('gemini'),
-            'cryptopia': RateLimiter('cryptopia')
+            'cryptopia': RateLimiter('cryptopia'),
+            'gateio': RateLimiter('gateio')
         }
         self.exchange_pairs = {
             'binance': {},
             'bittrex': {},
             'gemini': {},
-            'cryptopia': {}
+            'cryptopia': {},
+            'gateio': {}
         }
         self.balances = {
             'binance': {},
             'bittrex': {},
             'gemini': {},
-            'cryptoptia': {}
+            'cryptoptia': {},
+            'gateio': {}
         }
         self.exchange_divisors = {
             'binance': 1,
             'bittrex': 1,
             'gemini': 1000,
             'gdax': 1000,
-            'cryptopia': 1
+            'cryptopia': 1,
+            'gateio': 1
         }
         self.historical_rates = HistoricalRates('gemini')
 

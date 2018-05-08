@@ -32,6 +32,7 @@ class PortfolioReporter():
         self.exchanges = exchanges
         self.coin_rates = pd.DataFrame()
         self.trade_data = None
+        self.off_exchange_balance_file_name = 'off_ex_bal.csv'
 
     def get_initial_investments(self):
         return self.pg.get_initial_investments()
@@ -45,12 +46,13 @@ class PortfolioReporter():
         self.load_trade_data(False)
         self.analyze_trades()
         self.save_analyzed_trade_data()
+        log.info('GENERATE TRADE REPORT complete')
 
     def generate_asset_report(self):
-        self.get_aggregate_exchange_balances()
+        self.load_portfolio_balances()
         self.get_coin_rates()
         self.calculate_portfolio_totals()
-        print('done')
+        log.info('GENERATE ASSET REPORT complete')
 
     def get_prev_daily(self):
         return self.pg.get_full_report(get_past_date(1))
@@ -83,13 +85,22 @@ class PortfolioReporter():
         self.coin_rates = self.coin_rates.groupby('mkt_coin').agg(agg_funcs)
         self.coin_rates.columns = self.coin_rates.columns.droplevel(1)
 
-    def get_aggregate_exchange_balances(self):
+    def load_portfolio_balances(self):
+        self.load_aggregate_exchange_balances()
+        self.load_off_exchange_balances()
+
+    def load_aggregate_exchange_balances(self):
         log.debug('{PORTFOLIO REPORTER} == agg exchange balances ==')
         self.aggregate_portfolio = pd.DataFrame()
         for ex in self.exchanges:
             self.aggregate_portfolio = self.aggregate_portfolio.append(
                 pd.DataFrame(self.ex.get_exchange_balances(exchange=ex)))
         self.aggregate_portfolio.drop(columns='address', inplace=True)
+
+    def load_off_exchange_balances(self):
+        log.debug('{PORTFOLIO REPORTER} == load off exchange balances ==')
+        off_exchange_assets = pd.read_csv(self.off_exchange_balance_file_name)
+        self.aggregate_portfolio = self.aggregate_portfolio.append(off_exchange_assets)
 
     def calculate_portfolio_totals(self):
         btc_usd_rate = self.ex.get_btc_usd_rate()
