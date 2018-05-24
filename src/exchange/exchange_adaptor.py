@@ -6,7 +6,7 @@ from src.exchange.gemini.gemini_api import GeminiAPI
 from src.exchange.cryptopia.cryptopia_api import CryptopiaAPI
 from src.exchange.gateio.gateio_api import GateIOAPI
 from src.exchange.gdax.gdax import GDAXAPI
-from src.exchange.coinmarketcap.core import CMCAPI
+from src.exchange.coinmarketcap.core import Market
 import pandas as pd
 from src.utils.conversion_utils import convert_str_columns_to_num, get_usd_rate
 from src.utils.utils import is_eth, is_btc
@@ -40,7 +40,7 @@ class ExchangeAdaptor:
             'gdax': GDAXAPI,
             'cryptopia': CryptopiaAPI,
             'gateio': GateIOAPI,
-            'cmc': CMCAPI
+            'cmc': Market
         }
         self.rate_limiters = {
             'binance': RateLimiter('binance'),
@@ -729,7 +729,7 @@ class ExchangeAdaptor:
 
     def get_stats(self, convert='USD'):
         ex = self.exchange_adaptors['cmc']()
-        return ex.stats(convert)
+        return ex.stats(convert=convert)
 
     def get_ticker(self, coin='BTC', start=None, limit=None, convert='USD'):
         ex = self.exchange_adaptors['cmc']()
