@@ -373,16 +373,16 @@ class GeminiAPI(object):
             'trade_id': trade['tid'],
             'exchange_id': 'gemini',
             'trade_time': trade['timestampms'],
-            'trade_direction': trade['type'],
+            'trade_direction': trade['type'].lower(),
             'cost_avg_btc': 0,
             'cost_avg_eth': 0,
             'cost_avg_usd': 0,
             'analyzed': False,
-            'rate_btc': None,
-            'rate_eth': None,
-            'rate_usd': None,
-            'commish': None,  ## TODO :: CALCULATE COMMISH
-            'commish_asset': None
+            'rate_btc': 0,
+            'rate_eth': 0,
+            'rate_usd': 0,
+            'commish': 0,  ## TODO :: CALCULATE COMMISH
+            'commish_asset': ''
         }
 
     #
@@ -414,6 +414,7 @@ class GeminiAPI(object):
             'vol_base': float(tick['volume'][pair['base_coin'].upper()]),
             'vol_mkt': float(tick['volume'][pair['mkt_coin'].upper()]),
             'timestamp': tick['volume']['timestamp'],
+            'exchange': 'gemini',
             **pair
         }
 

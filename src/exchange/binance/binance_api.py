@@ -1710,7 +1710,7 @@ class BinanceAPI(object):
         return {
             'exchange': 'binance',
             'coin': balance['asset'],
-            'balance': balance['free'],
+            'balance': float(balance['free']),
             'address': None
         }
 
@@ -1733,8 +1733,8 @@ class BinanceAPI(object):
 
         return {
             'order_type': 'limit',
-            'quantity': trade['qty'],
-            'rate': trade['price'],
+            'quantity': float(trade['qty']),
+            'rate': float(trade['price']),
             'trade_id': trade['orderId'],
             'exchange_id': 'binance',
             'trade_time': trade['time'],
@@ -1743,16 +1743,34 @@ class BinanceAPI(object):
             'cost_avg_eth': 0,
             'cost_avg_usd': 0,
             'analyzed': False,
-            'rate_btc': None,
-            'rate_eth': None,
-            'rate_usd': None,
-            'commish': trade['commission'],
+            'rate_btc': 0,
+            'rate_eth': 0,
+            'rate_usd': 0,
+            'commish': float(trade['commission']),
             'commish_asset': trade['commissionAsset']
         }
 
     #
     # GET PAIR TICKER
     #
+
+    def get_current_tickers(self):
+        try:
+            tickers = self.get_all_tickers()
+            pairs = self.get_exchange_pairs()
+            res = []
+            for tick in tickers:
+                # find the matching pair
+                pair = None
+                i = 0
+                while pair is None:
+                    if pairs[i]['pair'] == tick['symbol']:
+                        pair = pairs[i]
+                    i += 1
+                res.append(self.normalize_ticker(tick, pair))
+            return res
+        except (BinanceAPIException, BinanceRequestException) as e:
+            self.throw_error('get_current_pair_ticker', e.__str__())
 
     def get_current_pair_ticker(self, pair):
         try:
@@ -1763,12 +1781,9 @@ class BinanceAPI(object):
     @staticmethod
     def normalize_ticker(tick, pair):
         return {
-            'bid': tick['bidPrice'],
-            'ask': tick['askPrice'],
-            'last': tick['lastPrice'],
-            'vol_base': tick['quoteVolume'],
-            'vol_mkt': tick['volume'],
-            'timestamp': tick['volume'],
+            'pair': tick['symbol'],
+            'last': float(tick['price']),
+            'exchange': 'binance',
             **pair
         }
 
@@ -1792,11 +1807,11 @@ class BinanceAPI(object):
         return {
             "order_id": order_data['orderId'],
             "pair": order_data['symbol'],
-            "price": order_data['price'],
+            "price": float(order_data['price']),
             "timestampms": order_data['transactTime'],
-            "original_amount": order_data['origQty'],
-            "executed_amount": order_data['executedQty'],
-            "remaining_amount": order_data['origQty'] - order_data['executedQty'],
+            "original_amount": float(order_data['origQty']),
+            "executed_amount": float(order_data['executedQty']),
+            "remaining_amount": float(order_data['origQty']) - float(order_data['executedQty']),
             "is_live": order_data['status'] in (self.ORDER_STATUS_NEW, self.ORDER_STATUS_PARTIALLY_FILLED),
             "is_cancelled": order_data['status'] in (self.ORDER_STATUS_CANCELED, self.ORDER_STATUS_PENDING_CANCEL),
             "order_type": order_data['type'],
@@ -1861,8 +1876,8 @@ class BinanceAPI(object):
     @staticmethod
     def normalize_order(order):
         return {
-            'price': order[0],
-            'amount': order[1]
+            'price': float(order[0]),
+            'amount': float(order[1])
         }
 
     #
@@ -1886,8 +1901,11 @@ class BinanceAPI(object):
 
     # TODO, get_historical_rate, get_account_info, initiate_withdrawal, get_historical_tickers, get_current_tickers
 
-    # def get_historical_rate(self, pair, timestamp=None, interval='1m'):
-    #     raise APIDoesNotExistError('binance', 'get_historical_rate')
+    def get_historical_rate(self, pair=None, start=None, end=None, interval='1m'):
+        # OpenTime, Open, High, Low, Close, Volume, CloseTime, QuoteAssVol, NumTrades, TakeBuyBaseAssVol, TakeBuyQuoteAssVol, Ignore
+        klines = self.get_klines(symbol=pair, limit=1, startTime=start, interval=interval)
+        return klines[0][4]
+
     #
     # def get_account_info(self):
     #     raise APIDoesNotExistError('binance', 'get_account_info')

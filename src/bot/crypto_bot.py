@@ -302,7 +302,7 @@ class CryptoBot:
 
     def get_current_tickers(self):
         log.debug('{BOT} == GET current pair ticker ==')
-        return self.ex.get_current_tickers(self.exchange)
+        return self.ex.get_current_tickers(self.exchange, True)
 
     def get_current_pair_ticker(self, pair):
         log.debug('{BOT} == GET current pair ticker ==')
