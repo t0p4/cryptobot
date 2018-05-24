@@ -6,6 +6,7 @@ from src.exchange.gemini.gemini_api import GeminiAPI
 from src.exchange.cryptopia.cryptopia_api import CryptopiaAPI
 from src.exchange.gateio.gateio_api import GateIOAPI
 from src.exchange.gdax.gdax import GDAXAPI
+from src.exchange.coinmarketcap.core import CMCAPI
 import pandas as pd
 from src.utils.conversion_utils import convert_str_columns_to_num, get_usd_rate
 from src.utils.utils import is_eth, is_btc
@@ -13,7 +14,7 @@ from src.exchange.gdax.gdax_public import PublicClient as GDaxPub
 from datetime import datetime
 from src.utils.logger import Logger
 from src.utils.rate_limiter import RateLimiter
-from src.exceptions import APIRequestError, InvalidCoinError
+from src.exceptions import APIRequestError, InvalidCoinError, APIDoesNotExistError
 from src.exchange.exchange_utils.binance_utils import create_normalized_trade_data_binance
 from src.data_structures.historical_prices import HistoricalRates
 
@@ -38,7 +39,8 @@ class ExchangeAdaptor:
             'gemini': GeminiAPI,
             'gdax': GDAXAPI,
             'cryptopia': CryptopiaAPI,
-            'gateio': GateIOAPI
+            'gateio': GateIOAPI,
+            'cmc': CMCAPI
         }
         self.rate_limiters = {
             'binance': RateLimiter('binance'),
@@ -46,21 +48,24 @@ class ExchangeAdaptor:
             'gdax': RateLimiter('gdax'),
             'gemini': RateLimiter('gemini'),
             'cryptopia': RateLimiter('cryptopia'),
-            'gateio': RateLimiter('gateio')
+            'gateio': RateLimiter('gateio'),
+            'cmc': RateLimiter('cmc')
         }
         self.exchange_pairs = {
             'binance': {},
             'bittrex': {},
             'gemini': {},
             'cryptopia': {},
-            'gateio': {}
+            'gateio': {},
+            'cmc': {}
         }
         self.balances = {
             'binance': {},
             'bittrex': {},
             'gemini': {},
             'cryptoptia': {},
-            'gateio': {}
+            'gateio': {},
+            'cmc': {}
         }
         self.exchange_divisors = {
             'binance': 1,
@@ -68,7 +73,8 @@ class ExchangeAdaptor:
             'gemini': 1000,
             'gdax': 1000,
             'cryptopia': 1,
-            'gateio': 1
+            'gateio': 1,
+            'cmc': 1
         }
         self.historical_rates = HistoricalRates('gemini')
 
@@ -94,6 +100,8 @@ class ExchangeAdaptor:
             return mkt_coin.lower() + base_coin.lower()
         elif exchange == 'gdax':
             return mkt_coin.upper() + '-' + base_coin.upper()
+        else:
+            raise APIDoesNotExistError(exchange, 'format_exchange_pair')
 
     def format_exchange_start_and_end_times(self, exchange, timestamp, minutes):
         divisor = self.exchange_divisors[exchange]
@@ -109,6 +117,8 @@ class ExchangeAdaptor:
             return datetime.fromtimestamp(start).isoformat(), datetime.fromtimestamp(end).isoformat()
         elif exchange == 'cryptopia':
             return start, end
+        else:
+            raise APIDoesNotExistError(exchange, 'format_exchange_start_and_end_times')
 
     @staticmethod
     def format_exchange_interval(exchange, interval):
@@ -122,6 +132,8 @@ class ExchangeAdaptor:
             return int(int(interval[0]) * INTERVAL_RATES[interval[1]] / INTERVAL_RATES['s'])
         elif exchange == 'cryptopia':
             return interval
+        else:
+            raise APIDoesNotExistError(exchange, 'format_exchange_interval')
 
     @staticmethod
     def get_timestamp_delta(interval):
@@ -708,3 +720,21 @@ class ExchangeAdaptor:
         # 'rate_btc': rates['btc'],
         # 'rate_eth': rates['eth'],
         # 'rate_usd': rates['usd'],
+
+    #####################################################
+    #                                                   #
+    #   Full Market (CMC) Functions                     #
+    #                                                   #
+    #####################################################
+
+    def get_stats(self, convert='USD'):
+        ex = self.exchange_adaptors['cmc']()
+        return ex.stats(convert)
+
+    def get_ticker(self, coin='BTC', start=None, limit=None, convert='USD'):
+        ex = self.exchange_adaptors['cmc']()
+        return ex.ticker(currency=coin, start=start, limit=limit, convert=convert)
+
+    def get_listings(self):
+        ex = self.exchange_adaptors['cmc']()
+        return ex.listings()
