@@ -16,10 +16,10 @@ class IndexStrat2(BaseStrategy):
         self.add_columns = [self.ema_stat_key, self.pct_weight_key]
         self.trade_threshold_pct = options['trade_threshold_pct']
 
-    def handle_data(self, full_mkt_data, holdings_data):
+    def handle_data_index(self, full_mkt_data, holdings_data, price_data):
         # if full_mkt_data.groupby('id').agg('count').loc['bitcoin', 'symbol'] >= self.sma_window:
         index_data = self.calc_index(full_mkt_data)
-        index_data = self.calc_deltas(index_data, holdings_data)
+        index_data = self.calc_deltas(index_data, holdings_data, price_data)
         return index_data
 
     def calc_index(self, full_mkt_data):
@@ -49,7 +49,7 @@ class IndexStrat2(BaseStrategy):
         return index_data[['id', 'index_pct']]
         # exp_12 = df.ewm(span=20, min_period=12, adjust=False).mean()
 
-    def calc_deltas(self, index_data, holdings_data):
+    def calc_deltas(self, index_data, holdings_data, price_data):
         """
         :param index_data: <Dataframe> columns = ['id', 'index_pct']
         :param holdings_data: <Dataframe> columns = ['id', 'balance', 'balance_btc']

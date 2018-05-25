@@ -115,7 +115,8 @@ class CryptoBot:
 
     def run_prod(self):
         log.info('* * * ! * * * BEGIN PRODUCTION RUN * * * ! * * *')
-        self.timer_reset()
+        self.rate_limiter_reset()
+        self.cmc_timer_reset()
         while (True):
             # self.rate_limiter_limit()
             self.tick_step()
@@ -164,7 +165,8 @@ class CryptoBot:
         historical_data = self.cmc_historical_data.drop(columns=['coin'])
         self.cmc_coin_metadata = self.psql.get_cmc_coin_metadata()
         balances = pd.merge(self.balances, self.cmc_coin_metadata, on='coin')
-        self.index_strats[0].handle_data(historical_data, balances)
+        self.cmc_price_data = self.psql.get_cmc_price_data()
+        self.index_strats[0].handle_data_index(historical_data, balances, self.cmc_price_data)
 
     def tick_step(self):
         self.minor_tick_step()
@@ -323,6 +325,7 @@ class CryptoBot:
         else:
             return datetime.datetime.now()
 
+    # TODO get historical btc and eth prices to work into index strategy
     def get_cmc_tickers(self):
         log.debug('{BOT} == GET cmc tickers ==')
         try:

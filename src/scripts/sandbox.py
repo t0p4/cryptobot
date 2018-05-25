@@ -71,26 +71,26 @@ else:
 #     'fast_ema_window': 12,
 #     'sma_window': 9
 # }
-# index_options = {
-#     'name': 'EmaMktCapIndex',
-#     'active': True,
-#     'plot_overlay': False,
-#     'stat_key': 'market_cap',
-#     'window': 26,
-#     'ema_window': 90,
-#     'sma_window': 9,
-#     'index_depth': 25,
-#     'trade_threshold_pct': .01
-# }
+index_options = {
+    'name': 'EmaMktCapIndex',
+    'active': True,
+    'plot_overlay': False,
+    'stat_key': 'market_cap',
+    'window': 26,
+    'ema_window': 90,
+    'sma_window': 9,
+    'index_depth': 25,
+    'trade_threshold_pct': .01
+}
 #
 # bb_strat = BollingerBandsStrat(bb_options)
 # stoch_rsi_strat = StochasticRSIStrat(stoch_rsi_options)
 # w_pct_strat = WilliamsPctStrat(w_pct_options)
 # vol_strat = VolumeStrat(vol_options)
 # macd_strat = MACDStrat(macd_options)
-# index_strat = IndexStrat2(index_options)
+index_strat = IndexStrat2(index_options)
 #
-# bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]}, btrx)
+bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]}, btrx)
 #
 # bot = CryptoBot([macd_strat], btrx)
 
@@ -108,13 +108,13 @@ else:
 # bot.collect_currencies()
 # bot.collect_summaries()
 
-# bot.get_historical_data()
-# bot.run()
+# bot.get_historical_data(s
+# bot.run()s
 # bot.calculate_num_coins('buy', 'BTC-ETH', 1)
-# bot.send_report('This is a test', 'TEST REPORT')
+# bot.send_report('This is a tesst', 'TEST REPORT')
 # bot.run_collect_cmc()
 # bot.collect_historical_cmc_data()
-# bot.run_cmc_index_test()
+bot.run_cmc_index_test()
 # bot.collect_cmc_coin_metadata()
 
 
@@ -155,7 +155,7 @@ else:
 # balances2 = ExchangeAdaptor().get_current_tickers('gdax', False)
 # print('ok')
 
-exad = ExchangeAdaptor()
+# exad = ExchangeAdaptor()
 # listings = exad.get_listings()
-stats = exad.get_stats()
-ticker = exad.get_ticker()
+# stats = exad.get_stats()
+# ticker = exad.get_ticker()
