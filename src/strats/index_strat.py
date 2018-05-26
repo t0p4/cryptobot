@@ -16,10 +16,10 @@ class IndexStrat2(BaseStrategy):
         self.add_columns = [self.ema_stat_key, self.pct_weight_key]
         self.trade_threshold_pct = options['trade_threshold_pct']
 
-    def handle_data_index(self, full_mkt_data, holdings_data, price_data):
+    def handle_data_index(self, full_mkt_data, holdings_data):
         # if full_mkt_data.groupby('id').agg('count').loc['bitcoin', 'symbol'] >= self.sma_window:
         index_data = self.calc_index(full_mkt_data)
-        index_data = self.calc_deltas(index_data, holdings_data, price_data)
+        index_data = self.calc_deltas(index_data, holdings_data)
         return index_data
 
     def calc_index(self, full_mkt_data):
@@ -49,17 +49,17 @@ class IndexStrat2(BaseStrategy):
         return index_data[['id', 'index_pct']]
         # exp_12 = df.ewm(span=20, min_period=12, adjust=False).mean()
 
-    def calc_deltas(self, index_data, holdings_data, price_data):
+    def calc_deltas(self, index_data, holdings_data):
         """
         :param index_data: <Dataframe> columns = ['id', 'index_pct']
         :param holdings_data: <Dataframe> columns = ['id', 'balance', 'balance_btc']
         :return: <Dataframe> columns = ['id', 'balance', 'index_pct', 'balance_btc', 'index_btc', 'delta_btc', 'delta_pct', 'should_trade']
         """
         dataset = pd.merge(index_data, holdings_data, on='id', how='outer')
-        total_btc = dataset['balance_btc'].sum()
-        dataset['index_btc'] = dataset['index_pct'] * total_btc
-        dataset['delta_btc'] = dataset['index_btc'] - dataset['balance_btc']
-        dataset['delta_pct'] = dataset['delta_btc'] / dataset['balance_btc']
+        total_usd = dataset['balance'].sum()
+        dataset['index_usd'] = dataset['index_pct'] * total_usd
+        dataset['delta_usd'] = dataset['index_usd'] - dataset['balance']
+        dataset['delta_pct'] = dataset['delta_usd'] / dataset['balance']
         dataset['should_trade'] = dataset['delta_pct'] >= self.trade_threshold_pct
         return dataset
 

@@ -165,8 +165,8 @@ class CryptoBot:
         historical_data = self.cmc_historical_data.drop(columns=['coin'])
         self.cmc_coin_metadata = self.psql.get_cmc_coin_metadata()
         balances = pd.merge(self.balances, self.cmc_coin_metadata, on='coin')
-        self.cmc_price_data = self.psql.get_cmc_price_data()
-        self.index_strats[0].handle_data_index(historical_data, balances, self.cmc_price_data)
+        # self.cmc_price_data = self.psql.get_cmc_price_data()
+        self.index_strats[0].handle_data_index(historical_data, balances)
 
     def tick_step(self):
         self.minor_tick_step()
