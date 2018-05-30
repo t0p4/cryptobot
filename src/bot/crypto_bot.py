@@ -160,11 +160,11 @@ class CryptoBot:
     # # QUANT # #
 
     def tick_step_index(self):
+        log.info('*** INDEX TICK STEP *** %s' % self.test_date)
         self.cmc_historical_data = self.psql.get_cmc_historical_data(self.test_date.__str__())
         historical_data = self.cmc_historical_data.drop(columns=['coin'])
         self.cmc_coin_metadata = self.psql.get_cmc_coin_metadata()
-        balances = pd.merge(self.balances, self.cmc_coin_metadata, on='coin')
-        # self.cmc_price_data = self.psql.get_cmc_price_data()
+        balances = self.get_compressed_balances()
         self.index_strats[0].handle_data_index(historical_data, balances)
 
     def tick_step(self):
@@ -247,6 +247,19 @@ class CryptoBot:
 
         # end = datetime.datetime.now()
         # log.info('COMPRESS TICKERS runtime :: ' + str(end - start))
+
+    def get_compressed_balances(self):
+        balances = pd.merge(self.balances, self.cmc_coin_metadata, on='coin').drop(columns=['address'])
+        agg_funcs = {
+            'balance': ['sum'],
+            'coin': ['last'],
+            'id': ['last'],
+            'exchange': lambda x: ','.join(x)
+        }
+        balances = balances.groupby('coin').agg(agg_funcs)
+        balances.columns = balances.columns.droplevel(1)
+        balances.reset_index(drop=True, inplace=True)
+        return balances
 
     def enable_volume_threshold(self):
         log.info('* * * ! * * * VOLUME THRESHOLD ENABLED * * * ! * * *')
