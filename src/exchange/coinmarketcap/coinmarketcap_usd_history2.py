@@ -87,7 +87,6 @@ def download_data(currency, start_date, end_date):
       print("Error message: " + e.message)
     else:
       print(e)
-      sys.exit(1)
 
   return html
 
@@ -149,7 +148,7 @@ def processDataFrame(df):
     df.loc[:,'Date'] = pd.to_datetime(df.Date)
     for col in cols:
         try:
-            df.loc[:, col] = df[col].apply(lambda x: '0' if x == '' else x)
+            df.loc[:, col] = df[col].apply(lambda x: '0' if x == '' or x == '-' else x)
             df.loc[:, col] = df[col].apply(lambda x: float(x))
         except ValueError as e:
             print(col)
@@ -181,12 +180,11 @@ def main(args=None):
     if(args.dataframe):
         import pandas as pd
         df = processDataFrame(pd.DataFrame(data=rows,columns=header))
-        return normalize_data(df, currency)
+        return normalize_data(df)
     else:
         render_csv_data(header, rows)
 
-def normalize_data(df, coin):
-    df['id'] = coin
+def normalize_data(df):
     return df.rename(columns={
         'Date': 'date',
         'Open': 'open',

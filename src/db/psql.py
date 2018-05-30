@@ -309,6 +309,7 @@ class PostgresConnection:
         fmt_str = """
                 (
                     '{coin}',
+                    '{website_slug}',
                     '{id}',
                     '{date}',
                     {open},
@@ -322,6 +323,7 @@ class PostgresConnection:
                 """
         columns = """
                     coin,
+                    website_slug,
                     id,
                     date,
                     open,

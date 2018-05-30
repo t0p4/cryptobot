@@ -55,7 +55,7 @@ class Market(object):
         """
 
 		response = self.__request('listings/', params=None)
-		return response
+		return response['data']
 
 	def ticker(self, currency="", **kwargs):
 		"""

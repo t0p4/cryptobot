@@ -623,10 +623,13 @@ class CryptoBot:
         self.cmc_data = pd.DataFrame()
 
     def collect_historical_cmc_data(self):
-        self.get_cmc_tickers()
-        coins = self.cmc_data['name'].values
-        for coin in coins:
-            hist_data = coinmarketcap_usd_history2.main(['-'.join(coin.split(' ')), '2017-01-01', '2018-03-30', '--dataframe'])
+        self.cmc_data = self.cmc.listings()
+        for coin in self.cmc_data:
+            log.info('collecting historical data for %s' % coin['name'])
+            hist_data = coinmarketcap_usd_history2.main([coin['website_slug'], '2016-01-01', '2018-05-29', '--dataframe'])
+            hist_data['coin'] = coin['symbol']
+            hist_data['id'] = coin['name']
+            hist_data['website_slug'] = coin['website_slug']
             self.psql.save_cmc_historical_data(hist_data)
 
     def collect_cmc_coin_metadata(self):
