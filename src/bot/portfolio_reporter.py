@@ -43,9 +43,9 @@ class PortfolioReporter():
         # self.save_p_report()
 
     def generate_trade_report(self):
-        self.load_trade_data(False)
-        self.analyze_trades()
-        self.save_analyzed_trade_data()
+        self.load_trade_data(True)
+        # self.analyze_trades()
+        # self.save_analyzed_trade_data()
         log.info('GENERATE TRADE REPORT complete')
 
     def generate_asset_report(self):
@@ -88,6 +88,12 @@ class PortfolioReporter():
     def load_portfolio_balances(self):
         self.load_aggregate_exchange_balances()
         self.load_off_exchange_balances()
+
+    def load_all_exchange_pairs(self):
+        pairs = pd.DataFrame()
+        for ex in self.exchanges:
+            pairs = pairs.append(pd.DataFrame(self.ex.get_exchange_pairs(ex, as_list=True)))
+        return pairs
 
     def load_aggregate_exchange_balances(self):
         log.debug('{PORTFOLIO REPORTER} == agg exchange balances ==')

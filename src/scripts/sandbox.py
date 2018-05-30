@@ -104,8 +104,8 @@ else:
 
 
 
-rep = PortfolioReporter(['binance', 'bittrex', 'gemini', 'cryptopia'])
-rep.generate_p_report()
+rep = PortfolioReporter(['gateio'])
+rep.load_all_exchange_pairs()
 # rep.pull_all_trade_data_from_exchanges()
 
 
