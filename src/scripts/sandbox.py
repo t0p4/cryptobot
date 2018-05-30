@@ -17,10 +17,10 @@ BACKTESTING_START_DATE = datetime.datetime(2017, 1, 1)
 BACKTESTING_END_DATE = datetime.datetime(2017, 8, 31)
 BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
 
-if BACKTESTING == 'TRUE':
-    btrx = ExchangeFactory().get_exchange()(BACKTESTING_START_DATE, BACKTESTING_END_DATE)
-else:
-    btrx = ExchangeFactory().get_exchange()()
+# if BACKTESTING == 'TRUE':
+#     btrx = ExchangeFactory().get_exchange()(BACKTESTING_START_DATE, BACKTESTING_END_DATE)
+# else:
+#     btrx = ExchangeFactory().get_exchange()()
 
 # MAJOR_TICK_SIZE = int(os.getenv('MAJOR_TICK_SIZE', 5))
 # SMA_WINDOW = int(os.getenv('SMA_WINDOW', 15))
@@ -90,7 +90,7 @@ index_options = {
 # macd_strat = MACDStrat(macd_options)
 index_strat = IndexStrat2(index_options)
 #
-bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]}, btrx)
+bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
 #
 # bot = CryptoBot([macd_strat], btrx)
 
@@ -123,7 +123,7 @@ bot.run_cmc_index_test()
 
 # rep = PortfolioReporter(['binance', 'bittrex', 'gemini', 'cryptopia'])
 # rep.generate_p_report()
-# rep.pull_all_trade_data_from_exchanges()
+#  rep.pull_all_trade_data_from_exchanges()
 
 
 

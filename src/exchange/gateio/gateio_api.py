@@ -10,10 +10,9 @@ import os
 from src.exceptions import APIRequestError, APIDoesNotExistError
 
 class GateIOAPI:
-    def __init__(self, url):
+    def __init__(self):
         self.__api_url = 'data.gateio.io'
         self.__trade_url = 'api.gateio.io'
-        self.__url = url
         self.__apiKey = os.getenv('GATEIO_API_KEY')
         self.__secretKey = os.getenv('GATEIO_API_SECRET')
 
@@ -343,7 +342,7 @@ class GateIOAPI:
     def get_exchange_pairs(self):
         try:
             ex_pairs = self.pairs()
-            return [self.normalize_exchange_pair(pair) for pair in ex_pairs[0]]
+            return [self.normalize_exchange_pair(pair) for pair in ex_pairs]
         except Exception as e:
             self.throw_error('get_exchange_pairs', e.__str__())
 

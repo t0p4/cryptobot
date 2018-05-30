@@ -29,6 +29,11 @@ INTERVAL_RATES = {
 }
 
 
+# ################################################################################################################### #
+# ################################################# DEPRECATED ###################################################### #
+# ################################################################################################################### #
+
+
 class ExchangeAdaptor:
     def __init__(self):
         self.exchange_adaptors = {
@@ -523,7 +528,7 @@ class ExchangeAdaptor:
         :return:
         """
 
-    def get_exchange_pairs(self, exchange):
+    def get_exchange_pairs(self, exchange, as_list=False):
         """
             gets a list of the available pairs on a given exchange
         :param exchange: 'binance'
@@ -533,7 +538,10 @@ class ExchangeAdaptor:
         pair_list = ex.get_exchange_pairs()
         for pair in pair_list:
             self.exchange_pairs[exchange][pair['pair']] = pair
-        return self.exchange_pairs[exchange]
+        if as_list:
+            return pair_list
+        else:
+            return self.exchange_pairs[exchange]
 
     def get_current_timestamp(self, exchange):
         """

@@ -34,13 +34,12 @@ TARGET_PAIR_TICKERS = os.getenv('TARGET_PAIR_TICKERS', 'FALSE') == 'TRUE'
 
 
 class CryptoBot:
-    def __init__(self, strats, exchange):
+    def __init__(self, strats):
         log.info('Initializing bot...')
         self.psql = PostgresConnection()
         self.ex = ExchangeAdaptor()
         self.strats = strats['v1_strats']
         self.index_strats = strats['index_strats']
-        self.btrx = exchange
         self.trade_functions = {'buy': self.buy_limit, 'sell': self.sell_limit}
         self.base_coins = ['btc']
         # self.tradeable_markets = self.init_tradeable_markets()
