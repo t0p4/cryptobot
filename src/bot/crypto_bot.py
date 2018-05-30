@@ -15,7 +15,7 @@ from src.utils.reporter import Reporter
 from src.utils.plotter import Plotter
 from src.exchange.exchange_adaptor import ExchangeAdaptor
 from src.exchange.coinmarketcap.core import Market
-from src.exchange.coinmarketcap import coinmarketcap_usd_history
+from src.exchange.coinmarketcap import coinmarketcap_usd_history2
 
 MAX_CURRENCY_PER_BUY = {
     'BTC': .2,
@@ -624,9 +624,9 @@ class CryptoBot:
 
     def collect_historical_cmc_data(self):
         self.get_cmc_tickers()
-        coins = self.cmc_data['id'].values
+        coins = self.cmc_data['name'].values
         for coin in coins:
-            hist_data = coinmarketcap_usd_history.main([coin, '2017-01-01', '2018-03-30', '--dataframe'])
+            hist_data = coinmarketcap_usd_history2.main(['-'.join(coin.split(' ')), '2017-01-01', '2018-03-30', '--dataframe'])
             self.psql.save_cmc_historical_data(hist_data)
 
     def collect_cmc_coin_metadata(self):

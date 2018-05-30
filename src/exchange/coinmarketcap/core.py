@@ -97,7 +97,7 @@ class Market(object):
 
 		try:
 			response = self.__request('ticker/' + currency, params)
-			response = [self.normalize_tick(tick) for tick in response]
+			response = [self.normalize_tick(tick) for idx, tick in response['data'].items()]
 		except Exception as e:
 			print(e)
 
@@ -109,15 +109,15 @@ class Market(object):
 			'name': tick['name'],
 			'symbol': tick['symbol'],
 			'rank': tick['rank'],
-			'price_btc': self.float_or_none(tick['price_btc']),
-			'price_usd': self.float_or_none(tick['price_usd']),
-			'daily_volume_usd': self.float_or_none(tick['24h_volume_usd']),
-			'market_cap_usd': self.float_or_none(tick['market_cap_usd']),
-			'available_supply': self.float_or_none(tick['available_supply']),
+			# 'price_btc': self.float_or_none(tick['quotes']['BTC']['price']),
+			'price_usd': self.float_or_none(tick['quotes']['USD']['price']),
+			'daily_volume_usd': self.float_or_none(tick['quotes']['USD']['volume_24h']),
+			'market_cap_usd': self.float_or_none(tick['quotes']['USD']['market_cap']),
+			'available_supply': self.float_or_none(tick['circulating_supply']),
 			'total_supply': self.float_or_none(tick['total_supply']),
-			'percent_change_1h': self.float_or_none(tick['percent_change_1h']),
-			'percent_change_24h': self.float_or_none(tick['percent_change_24h']),
-			'percent_change_7d': self.float_or_none(tick['percent_change_7d']),
+			'percent_change_1h': self.float_or_none(tick['quotes']['USD']['percent_change_1h']),
+			'percent_change_24h': self.float_or_none(tick['quotes']['USD']['percent_change_24h']),
+			'percent_change_7d': self.float_or_none(tick['quotes']['USD']['percent_change_7d']),
 			'last_updated': tick['last_updated']
 		}
 

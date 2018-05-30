@@ -43,8 +43,8 @@ class IndexStrat2(BaseStrategy):
 
         index_data = full_mkt_data.sort_values(self.stat_key, ascending=False).head(self.index_depth)
         index_data['in_index'] = True
-        total = index_data[self.stat_key].sum()
-        index_data['index_pct'] = index_data[self.stat_key] / total
+        stat_total = index_data[self.stat_key].sum()
+        index_data['index_pct'] = index_data[self.stat_key] / stat_total
 
         return index_data[['id', 'index_pct']]
         # exp_12 = df.ewm(span=20, min_period=12, adjust=False).mean()

@@ -113,8 +113,8 @@ bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
 # bot.calculate_num_coins('buy', 'BTC-ETH', 1)
 # bot.send_report('This is a tesst', 'TEST REPORT')
 # bot.run_collect_cmc()
-# bot.collect_historical_cmc_data()
-bot.run_cmc_index_test()
+bot.collect_historical_cmc_data()
+# bot.run_cmc_index_test()
 # bot.collect_cmc_coin_metadata()
 
 
