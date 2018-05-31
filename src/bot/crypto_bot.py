@@ -624,9 +624,12 @@ class CryptoBot:
 
     def collect_historical_cmc_data(self):
         self.cmc_data = self.cmc.listings()
-        for coin in self.cmc_data:
-            log.info('collecting historical data for %s' % coin['name'])
+        num_coins = len(self.cmc_data)
+        for idx, coin in enumerate(self.cmc_data):
+            log.info('collecting historical data for %s :: %s of %s' % (coin['name'], idx, num_coins))
             hist_data = coinmarketcap_usd_history2.main([coin['website_slug'], '2016-01-01', '2018-05-29', '--dataframe'])
+            if hist_data is None:
+                continue
             hist_data['coin'] = coin['symbol']
             hist_data['id'] = coin['name']
             hist_data['website_slug'] = coin['website_slug']

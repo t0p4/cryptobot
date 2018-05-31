@@ -12,6 +12,9 @@ from urllib.request import urlopen
 import argparse
 import datetime
 import string
+from src.utils.logger import Logger
+
+log = Logger(__name__)
 
 parser = argparse.ArgumentParser()
 
@@ -55,7 +58,7 @@ def parse_options(args):
   invalid_args = invalid_args or end_year   < start_year
 
   if invalid_args:
-    print('Usage: ' + __file__ + ' <currency> <start_date> <end_date> --dataframe')
+    log.error('Usage: ' + __file__ + ' <currency> <start_date> <end_date> --dataframe')
     sys.exit(1)
 
   start_date = start_date_split[0]+ start_date_split[1] + start_date_split[2]
@@ -80,13 +83,14 @@ def download_data(currency, start_date, end_date):
     page.close()
 
   except Exception as e:
-    print('Error fetching price data from ' + url)
-    print('Did you use a valid CoinMarketCap currency?\nIt should be entered exactly as displayed on CoinMarketCap.com (case-insensitive), with dashes in place of spaces.')
+    log.error('Error fetching price data from ' + url)
+    log.error('Did you use a valid CoinMarketCap currency?\nIt should be entered exactly as displayed on CoinMarketCap.com (case-insensitive), with dashes in place of spaces.')
     
     if hasattr(e, 'message'):
-      print("Error message: " + e.message)
+      log.error("Error message: " + e.message)
     else:
-      print(e)
+      log.error(e)
+    return None
 
   return html
 
@@ -132,10 +136,10 @@ def render_csv_data(header, rows):
   """
   Render the data in CSV format.
   """
-  print(','.join(header))
+  log.info(','.join(header))
 
   for row in rows:
-    print(','.join(row))
+    log.info(','.join(row))
 
 # --------------------------------------------- Util Methods -----------------------------------------------------------
 
@@ -151,7 +155,7 @@ def processDataFrame(df):
             df.loc[:, col] = df[col].apply(lambda x: '0' if x == '' or x == '-' else x)
             df.loc[:, col] = df[col].apply(lambda x: float(x))
         except ValueError as e:
-            print(col)
+            log.error(col)
     df.Date = df.Date.apply(lambda x: x._date_repr)
     return df.sort_values(by='Date').reset_index(drop=True)
 
@@ -160,7 +164,7 @@ def rowsFromFile(filename):
     with open(filename, 'rb') as infile:
         rows = csv.reader(infile, delimiter=',')
         for row in rows:
-            print(row)
+            log.info(row)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -174,6 +178,9 @@ def main(args=None):
     currency, start_date, end_date = parse_options(args)
 
     html = download_data(currency, start_date, end_date)
+
+    if html is None:
+        return None
 
     header, rows = extract_data(html)
 
