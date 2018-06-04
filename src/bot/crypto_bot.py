@@ -8,7 +8,7 @@ from time import sleep
 import pandas as pd
 from bs4 import BeautifulSoup
 from src.db.psql import PostgresConnection
-from src.utils.utils import is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index, calculate_base_currency_volume, is_valid_pair
+from src.utils.utils import is_first_of_the_month, is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index, calculate_base_currency_volume, is_valid_pair
 from src.utils.logger import Logger
 from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsError, MixedTradeError, MissingTickError
 from src.utils.reporter import Reporter
@@ -42,6 +42,18 @@ class CryptoBot:
         self.index_strats = strats['index_strats']
         self.trade_functions = {'buy': self.buy_limit, 'sell': self.sell_limit}
         self.base_coins = ['btc']
+
+        # index strat data
+        self.cmc = Market()
+        self.cmc_data = pd.DataFrame()
+        self.cmc_api_tick = datetime.datetime.now()
+        self.cmc_rate_limit = datetime.timedelta(minutes=5)
+        self.cmc_historical_data = None
+        self.test_date = datetime.date(2017, 1, 1)
+        self.one_day = datetime.timedelta(days=1)
+        self.nonce = 0
+        self.current_index = None
+
         # self.tradeable_markets = self.init_tradeable_markets()
         self.active_currencies = {}
         self.tradeable_currencies = dict((m[4:], True) for m in os.getenv('TRADEABLE_MARKETS', 'BTC-LTC').split(','))
@@ -61,20 +73,12 @@ class CryptoBot:
         self.reporter = Reporter()
         self.plotter = Plotter()
         self.exchange = 'gemini'
-        self.exchanges = ['gemini', 'binance']
+        self.exchanges = ['gemini', 'binance', 'bittrex']
         self.exchange_pairs = {}
-        self.balances = self.get_exchange_balances()
+        self.balances = self.init_balances()
         self.valid_mkt_coins = None
         self.valid_base_coins = None
-        self.init_pairs()
-        self.cmc = Market()
-        self.cmc_data = pd.DataFrame()
-        self.cmc_api_tick = datetime.datetime.now()
-        self.cmc_rate_limit = datetime.timedelta(minutes=5)
-        self.cmc_historical_data = None
-        self.test_date = datetime.date(2017, 1, 1)
-        self.one_day = datetime.timedelta(days=1)
-        self.nonce = 0
+        # self.init_pairs()
         log.info('...bot successfully initialized')
 
     def init_pairs(self):
@@ -87,6 +91,12 @@ class CryptoBot:
                 self.tickers[p] = pd.DataFrame()
         for strat in self.strats:
             strat.init_market_positions(self.exchange_pairs[self.exchange])
+
+    def init_balances(self):
+        if BACKTESTING:
+            return self.get_backtest_balances()
+        else:
+            return self.get_exchange_balances()
 
     @staticmethod
     def init_valid_coins(coin_type):
@@ -134,6 +144,8 @@ class CryptoBot:
         log.info('* * * ! * * * BEGIN INDEX TEST RUN * * * ! * * *')
         while self.test_date < datetime.date.today():
             self.tick_step_index()
+            if is_first_of_the_month(self.test_date):
+                self.rebalance_index_holdings()
             self.test_date += self.one_day
 
     def run_collect_cmc(self):
@@ -162,10 +174,10 @@ class CryptoBot:
     def tick_step_index(self):
         log.info('*** INDEX TICK STEP *** %s' % self.test_date)
         self.cmc_historical_data = self.psql.get_cmc_historical_data(self.test_date.__str__())
-        historical_data = self.cmc_historical_data.drop(columns=['coin'])
+        historical_data = self.cmc_historical_data
         self.cmc_coin_metadata = self.psql.get_cmc_coin_metadata()
         balances = self.get_compressed_balances()
-        self.index_strats[0].handle_data_index(historical_data, balances)
+        self.current_index = self.index_strats[0].handle_data_index(historical_data, balances)
 
     def tick_step(self):
         self.minor_tick_step()
@@ -210,6 +222,14 @@ class CryptoBot:
 
         # end = datetime.datetime.now()
         # log.info('MAJOR TICK STEP runtime :: ' + str(end - start))
+
+    def rebalance_index_holdings(self):
+        log.info('== REBALANCING INDEX ==')
+        self.current_index['balance'] = self.current_index['balance'] + self.current_index['delta_coins']
+        self.current_index['balance_usd'] = self.current_index['balance'] * self.current_index['rate_usd']
+        self.current_index.rename(columns={'id': 'coin_id'}, inplace=True)
+        self.current_index['index_date'] = self.test_date.strftime('%Y-%m-%d')
+        self.psql.save_index_balances(self.current_index.head(20))
 
     def generate_cmc_index(self):
         self.index_strats[0].handle_data(self.cmc_data)
@@ -259,6 +279,7 @@ class CryptoBot:
         balances = balances.groupby('coin').agg(agg_funcs)
         balances.columns = balances.columns.droplevel(1)
         balances.reset_index(drop=True, inplace=True)
+        balances.rename(columns={'id': 'exchange_id'}, inplace=True)
         return balances
 
     def enable_volume_threshold(self):
@@ -559,12 +580,22 @@ class CryptoBot:
         print("CAN BUY current " + pair['pair'] + " balance : " + str(balance['balance']))
         return balance['balance'] > 0
 
+    def get_filtered_exchange_balances(self, exclude_coins):
+        balances = self.get_exchange_balances()
+        # remove exclude_coins
+
     def get_exchange_balances(self):
         log.debug('{BOT} == GET exchange balances ==')
         balances = pd.DataFrame()
         for ex in self.exchanges:
             balances = balances.append(pd.DataFrame(self.ex.get_exchange_balances(exchange=ex)))
         return balances
+
+    def get_backtest_balances(self):
+        log.debug('{BOT} == GET backtest balances ==')
+        # btc_price = self.psql.get_cmc_historical_data(self.test_date.__str__(), coin='BTC').loc[0, 'close']
+        data = {'coin': 'BTC', 'exchange': 'gemini', 'balance': 1000000, 'address': '0x0'}
+        return pd.DataFrame([data])
 
     def get_balance(self, coin):
         log.debug('{BOT} == GET balance ==')

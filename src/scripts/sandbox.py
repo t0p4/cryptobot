@@ -79,7 +79,7 @@ index_options = {
     'window': 26,
     'ema_window': 90,
     'sma_window': 9,
-    'index_depth': 25,
+    'index_depth': 20,
     'trade_threshold_pct': .01
 }
 #
@@ -113,9 +113,11 @@ bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
 # bot.calculate_num_coins('buy', 'BTC-ETH', 1)
 # bot.send_report('This is a tesst', 'TEST REPORT')
 # bot.run_collect_cmc()
-bot.collect_historical_cmc_data()
-# bot.run_cmc_index_test()
+# bot.collect_historical_cmc_data()
+bot.run_cmc_index_test()
 # bot.collect_cmc_coin_metadata()
+# balances = bot.get_exchange_balances()
+print('ok')
 
 
 

@@ -10,6 +10,10 @@ log = Logger(__name__)
 INF = 999999999999999
 
 
+def is_first_of_the_month(date):
+    return date.day == 1
+
+
 def is_valid_market(mkt_name, currencies):
     mkts = mkt_name.split('-')
     return mkts[0] in currencies

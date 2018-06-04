@@ -2,6 +2,7 @@ import pandas as pd
 from src.strats.base_strat import BaseStrategy
 from src.utils.logger import Logger
 from datetime import datetime
+import numpy
 log = Logger(__name__)
 
 
@@ -45,8 +46,8 @@ class IndexStrat2(BaseStrategy):
         index_data['in_index'] = True
         stat_total = index_data[self.stat_key].sum()
         index_data['index_pct'] = index_data[self.stat_key] / stat_total
-
-        return index_data[['id', 'index_pct']]
+        index_data.rename(columns={'open': 'rate_usd'}, inplace=True)
+        return index_data[['id', 'index_pct', 'coin', 'rate_usd']]
         # exp_12 = df.ewm(span=20, min_period=12, adjust=False).mean()
 
     def calc_deltas(self, index_data, holdings_data):
@@ -55,11 +56,16 @@ class IndexStrat2(BaseStrategy):
         :param holdings_data: <Dataframe> columns = ['id', 'balance', 'balance_btc']
         :return: <Dataframe> columns = ['id', 'balance', 'index_pct', 'balance_btc', 'index_btc', 'delta_btc', 'delta_pct', 'should_trade']
         """
-        dataset = pd.merge(index_data, holdings_data, on='id', how='outer')
-        total_usd = dataset['balance'].sum()
+        dataset = pd.merge(index_data, holdings_data, on='coin', how='outer')
+        dataset['balance'] = dataset['balance'].replace(numpy.NaN, 0)
+        dataset['balance_usd'] = dataset['balance'] * dataset['rate_usd']
+        total_usd = dataset['balance_usd'].sum()
+        dataset['balance_pct'] = dataset['balance_usd'] / total_usd
         dataset['index_usd'] = dataset['index_pct'] * total_usd
-        dataset['delta_usd'] = dataset['index_usd'] - dataset['balance']
-        dataset['delta_pct'] = dataset['delta_usd'] / dataset['balance']
+        dataset['delta_usd'] = dataset['index_usd'] - dataset['balance_usd']
+        dataset['delta_pct'] = dataset['delta_usd'] / dataset['balance_usd']
+        dataset['delta_coins'] = (dataset['index_pct'] - dataset['balance_pct']) * total_usd / dataset['rate_usd']
+        # transaction_diff = ( index_pct - holdings_pct ) * total_portfolio_value / current_coin_usd_rate
         dataset['should_trade'] = dataset['delta_pct'] >= self.trade_threshold_pct
         return dataset
 

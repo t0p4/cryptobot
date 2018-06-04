@@ -61,5 +61,10 @@ TABLE_NAMES = {
         'PROD': 'cmc_coin_metadata',
         'PROD_TEST': 'cmc_coin_metadata',
         'BACKTEST': 'cmc_coin_metadata'
+    },
+    'index_balances': {
+        'PROD': 'index_balances',
+        'PROD_TEST': 'index_balances',
+        'BACKTEST': 'index_balances'
     }
 }

@@ -13,7 +13,8 @@ from src.db.queries.save_portfolio_assets import save_portfolio_assets
 from src.db.queries.save_portfolio_report import save_portfolio_report
 from src.db.queries.save_order_data import save_order_data
 from src.db.queries.save_trade_data import save_trade_data
-from src.db.queries.save_tickers import  save_tickers
+from src.db.queries.save_tickers import save_tickers
+from src.db.queries.save_index_balances import save_index_balances
 
 log = Logger(__name__)
 
@@ -343,9 +344,12 @@ class PostgresConnection:
         query = """ INSERT INTO """ + self.table_name('cmc_historical_data') + """ (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
-    def get_cmc_historical_data(self, date):
+    def get_cmc_historical_data(self, date, coin=None):
         log.debug('{PSQL} == GET BACKTEST cmc historical data ==')
-        query = """SELECT * FROM """ + self.table_name('cmc_historical_data') + """ WHERE date = '""" + date + """';"""
+        query = """SELECT * FROM """ + self.table_name('cmc_historical_data') + """ WHERE date = '""" + date + """'"""
+        if coin is not None:
+            query += """ AND coin = '""" + coin + """'"""
+        query += """;"""
         return self._fetch_query(query, {})
 
     def save_cmc_coin_metadata(self, metadata):
@@ -408,5 +412,11 @@ class PostgresConnection:
     def save_portfolio_assets(self, portfolio_assets):
         log.debug('{PSQL} == SAVE portfolio assets ==')
         query, columns, values = save_portfolio_assets(portfolio_assets, self.table_name('portfolio_assets'))
+        params = {"columns": AsIs(columns), "values": AsIs(values)}
+        self._exec_query(query, params)
+
+    def save_index_balances(self, index_balances):
+        log.debug('{PSQL} == SAVE index balances ==')
+        query, columns, values = save_index_balances(index_balances, self.table_name('index_balances'))
         params = {"columns": AsIs(columns), "values": AsIs(values)}
         self._exec_query(query, params)
