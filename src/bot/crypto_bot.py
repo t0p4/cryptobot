@@ -227,8 +227,9 @@ class CryptoBot:
         log.info('== REBALANCING INDEX ==')
         self.current_index['balance'] = self.current_index['balance'] + self.current_index['delta_coins']
         self.current_index['balance_usd'] = self.current_index['balance'] * self.current_index['rate_usd']
-        self.current_index.rename(columns={'id': 'coin_id'}, inplace=True)
         self.current_index['index_date'] = self.test_date.strftime('%Y-%m-%d')
+        self.balances = self.current_index[['coin', 'balance']]
+        self.balances['exchange'] = 'test'
         self.psql.save_index_balances(self.current_index.head(20))
 
     def generate_cmc_index(self):
@@ -269,7 +270,9 @@ class CryptoBot:
         # log.info('COMPRESS TICKERS runtime :: ' + str(end - start))
 
     def get_compressed_balances(self):
-        balances = pd.merge(self.balances, self.cmc_coin_metadata, on='coin').drop(columns=['address'])
+        balances = pd.merge(self.balances, self.cmc_coin_metadata, on='coin')
+        if 'address' in balances.columns:
+            balances.drop(columns=['address'], inplace=True)
         agg_funcs = {
             'balance': ['sum'],
             'coin': ['last'],
@@ -593,8 +596,8 @@ class CryptoBot:
 
     def get_backtest_balances(self):
         log.debug('{BOT} == GET backtest balances ==')
-        # btc_price = self.psql.get_cmc_historical_data(self.test_date.__str__(), coin='BTC').loc[0, 'close']
-        data = {'coin': 'BTC', 'exchange': 'gemini', 'balance': 1000000, 'address': '0x0'}
+        btc_price = self.psql.get_cmc_historical_data(self.test_date.__str__(), coin='BTC').loc[0, 'close']
+        data = {'coin': 'BTC', 'exchange': 'gemini', 'balance': 1000000/btc_price, 'address': '0x0'}
         return pd.DataFrame([data])
 
     def get_balance(self, coin):
@@ -667,13 +670,14 @@ class CryptoBot:
             self.psql.save_cmc_historical_data(hist_data)
 
     def collect_cmc_coin_metadata(self):
-        tickers = self.cmc.ticker(limit=250, convert='USD')
+        tickers = self.cmc.listings()
         metadata = []
         for tick in tickers:
             metadata.append({
                 'id': tick['id'],
                 'coin': tick['symbol'],
-                'name': tick['name']
+                'name': tick['name'].replace("'", ""),
+                'website-slub': tick['website_slug']
             })
         self.psql.save_cmc_coin_metadata(metadata)
 

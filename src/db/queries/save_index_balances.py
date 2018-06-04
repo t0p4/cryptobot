@@ -1,7 +1,7 @@
 def save_index_balances(index_balances, table_name):
     fmt_str = """(
         '{coin}',
-        '{coin_id}',
+        '{id}',
         {balance},
         {balance_usd},
         {index_pct},
@@ -9,7 +9,7 @@ def save_index_balances(index_balances, table_name):
     )"""
     columns = """
         coin,
-        coin_id,
+        id,
         balance,
         balance_usd,
         index_pct,
