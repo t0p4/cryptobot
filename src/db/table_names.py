@@ -66,5 +66,10 @@ TABLE_NAMES = {
         'PROD': 'index_balances',
         'PROD_TEST': 'index_balances',
         'BACKTEST': 'index_balances'
+    },
+    'index_metadata': {
+        'PROD': 'index_metadata',
+        'PROD_TEST': 'index_metadata',
+        'BACKTEST': 'index_metadata'
     }
 }

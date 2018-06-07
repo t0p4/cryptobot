@@ -4,6 +4,7 @@ import json
 import math
 import urllib
 from datetime import timedelta
+import time
 from time import sleep
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -227,10 +228,19 @@ class CryptoBot:
         log.info('== REBALANCING INDEX ==')
         self.current_index['balance'] = self.current_index['balance'] + self.current_index['delta_coins']
         self.current_index['balance_usd'] = self.current_index['balance'] * self.current_index['rate_usd']
-        self.current_index['index_date'] = self.test_date.strftime('%Y-%m-%d')
+        index_date = self.test_date.strftime('%Y-%m-%d')
+        self.current_index['index_date'] = index_date
         self.balances = self.current_index[['coin', 'balance']]
         self.balances['exchange'] = 'test'
-        self.psql.save_index_balances(self.current_index.head(20))
+        index_id = time.mktime(datetime.datetime.now().timetuple())
+        self.current_index['index_id'] = index_id
+        index_metadata = {
+            'index_id': time.mktime(datetime.datetime.now().timetuple()),
+            'index_date': index_date,
+            'portfolio_balance_usd': self.current_index['balance_usd'].sum(),
+            'bitcoin_value_usd': self.current_index[self.current_index['coin'] == 'BTC']['balance_usd'][0]
+        }
+        self.psql.save_index(self.current_index.head(20), index_metadata)
 
     def generate_cmc_index(self):
         self.index_strats[0].handle_data(self.cmc_data)
@@ -609,6 +619,8 @@ class CryptoBot:
         history = self.ex.get_historical_trades(self.exchange, pair=pair)
         return history
 
+    def get_index_balances(self, index_date):
+        return self.psql.get_index_balances(index_date)
 
     # # MARKET DATA COLLECTOR # #
 

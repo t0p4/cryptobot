@@ -14,7 +14,7 @@ from src.db.queries.save_portfolio_report import save_portfolio_report
 from src.db.queries.save_order_data import save_order_data
 from src.db.queries.save_trade_data import save_trade_data
 from src.db.queries.save_tickers import save_tickers
-from src.db.queries.save_index_balances import save_index_balances
+from src.db.queries.save_index_balances import save_index_balances, save_index_metadata
 
 log = Logger(__name__)
 
@@ -420,3 +420,19 @@ class PostgresConnection:
         query, columns, values = save_index_balances(index_balances, self.table_name('index_balances'))
         params = {"columns": AsIs(columns), "values": AsIs(values)}
         self._exec_query(query, params)
+
+    def save_index_metadata(self, index_metadata):
+        log.debug('{PSQL} == SAVE index metadata ==')
+        query, columns, values = save_index_metadata(index_metadata, self.table_name('index_metadata'))
+        params = {"columns": AsIs(columns), "values": AsIs(values)}
+        self._exec_query(query, params)
+
+    def save_index(self, index_balances, index_metadata):
+        self.save_index_balances(index_balances)
+        self.save_index_metadata(index_metadata)
+
+    def get_index_balances(self, index_date):
+        log.debug('{PSQL} == GET index balances ==')
+        query = """SELECT * FROM """ + self.table_name('index_balances') + """
+            WHERE index_date = '""" + index_date + """'"""
+        return self._fetch_query(query, {})
