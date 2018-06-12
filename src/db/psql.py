@@ -436,3 +436,14 @@ class PostgresConnection:
         query = """SELECT * FROM """ + self.table_name('index_balances') + """
             WHERE index_date = '""" + index_date + """'"""
         return self._fetch_query(query, {})
+
+    def pull_index_data(self, index_id):
+        log.debug('{PSQL} == GET index data ==')
+        query = """SELECT * FROM """ + self.table_name('index_metadata') + """
+            WHERE index_id = '%s'""" % index_id
+        return self._fetch_query(query, {})
+
+    def pull_all_index_ids(self):
+        log.debug('{PSQL} == GET all index ids ==')
+        query = """SELECT DISTINCT(index_id) FROM """ + self.table_name('index_metadata')
+        return self._fetch_query(query, {})

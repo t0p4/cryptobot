@@ -154,7 +154,7 @@ class CryptoBot:
             self.test_date += self.one_day
 
     def should_rebalance_index(self):
-        return is_first_of_the_month(self.test_date) or is_fifteenth_of_the_month(self.test_date)
+        return is_first_of_the_month(self.test_date)
 
     def run_collect_cmc(self):
         self.rate_limiter_reset()
@@ -243,10 +243,10 @@ class CryptoBot:
         index_metadata = {
             'index_id': self.index_id,
             'index_date': index_date,
-            'portfolio_balance_usd': self.current_index.head(20)['balance_usd'].sum(),
+            'portfolio_balance_usd': self.current_index.head(self.index_strats[0].index_depth)['balance_usd'].sum(),
             'bitcoin_value_usd': self.current_index[self.current_index['coin'] == 'BTC']['balance_usd'][0]
         }
-        self.psql.save_index(self.current_index.head(20), index_metadata)
+        self.psql.save_index(self.current_index.head(self.index_strats[0].index_depth), index_metadata)
 
     def generate_cmc_index(self):
         self.index_strats[0].handle_data(self.cmc_data)

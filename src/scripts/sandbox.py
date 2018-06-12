@@ -80,7 +80,8 @@ index_options = {
     'ema_window': 90,
     'sma_window': 9,
     'index_depth': 20,
-    'trade_threshold_pct': .01
+    'trade_threshold_pct': .01,
+    'blacklist': ['USDT', 'XVG']
 }
 #
 # bb_strat = BollingerBandsStrat(bb_options)
@@ -88,10 +89,15 @@ index_options = {
 # w_pct_strat = WilliamsPctStrat(w_pct_options)
 # vol_strat = VolumeStrat(vol_options)
 # macd_strat = MACDStrat(macd_options)
-index_strat = IndexStrat2(index_options)
-#
-bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
-#
+
+
+# index_strat = IndexStrat2(index_options)
+# bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
+# bot.run_cmc_index_test()
+
+rep = PortfolioReporter([])
+rep.compare_indexes(index_id_list=None)
+
 # bot = CryptoBot([macd_strat], btrx)
 
 # bot.get_balance('ETH')
@@ -114,7 +120,7 @@ bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
 # bot.send_report('This is a tesst', 'TEST REPORT')
 # bot.run_collect_cmc()
 # bot.collect_historical_cmc_data()
-bot.run_cmc_index_test()
+
 # bot.collect_cmc_coin_metadata()
 # balances = bot.get_exchange_balances()
 print('ok')

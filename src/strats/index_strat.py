@@ -16,6 +16,7 @@ class IndexStrat2(BaseStrategy):
         self.positions = None
         self.add_columns = [self.ema_stat_key, self.pct_weight_key]
         self.trade_threshold_pct = options['trade_threshold_pct']
+        self.blacklist = options['blacklist']
 
     def handle_data_index(self, full_mkt_data, holdings_data):
         # if full_mkt_data.groupby('id').agg('count').loc['bitcoin', 'symbol'] >= self.sma_window:
@@ -42,6 +43,7 @@ class IndexStrat2(BaseStrategy):
         # total = ema_index_data[self.ema_stat_key].sum()
         # ema_index_data[self.pct_weight_key] = ema_index_data[self.ema_stat_key] / total
 
+        full_mkt_data = full_mkt_data.drop(full_mkt_data[full_mkt_data['coin'].isin(self.blacklist)].index)
         index_data = full_mkt_data.sort_values(self.stat_key, ascending=False)
         # index_data['in_index'] = True
         stat_total = index_data[self.stat_key].head(self.index_depth).sum()

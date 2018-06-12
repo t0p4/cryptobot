@@ -291,3 +291,22 @@ class PortfolioReporter():
 
     def save_p_report(self):
         self.pg.save_p_report(self.p_report)
+
+    # INDEX PLOTTER FUNCTIONS
+    def compare_indexes(self, index_id_list=None):
+        if index_id_list is None:
+            index_id_list = self.pull_all_index_ids()
+        index_data = self.pull_index_data(index_id_list)
+        index_data.plot()
+
+    def pull_index_data(self, index_id_list):
+        index_data = pd.DataFrame(columns=['index_date'])
+        for index_id in index_id_list:
+            new_index_data = self.pg.pull_index_data(index_id)
+            new_id = 'balance_' + index_id
+            new_index_data.rename(columns={'portfolio_balance_usd': new_id}, inplace=True)
+            index_data = pd.merge(index_data, new_index_data[['index_date', new_id]], on='index_date', how='outer')
+        return pd.DataFrame(index_data)
+
+    def pull_all_index_ids(self):
+        return self.pg.pull_all_index_ids()['index_id'].values
