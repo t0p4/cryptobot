@@ -9,7 +9,7 @@ from time import sleep
 import pandas as pd
 from bs4 import BeautifulSoup
 from src.db.psql import PostgresConnection
-from src.utils.utils import is_first_of_the_month, is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index, calculate_base_currency_volume, is_valid_pair
+from src.utils.utils import is_first_of_the_month, is_fifteenth_of_the_month, is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index, calculate_base_currency_volume, is_valid_pair
 from src.utils.logger import Logger
 from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsError, MixedTradeError, MissingTickError
 from src.utils.reporter import Reporter
@@ -54,6 +54,7 @@ class CryptoBot:
         self.one_day = datetime.timedelta(days=1)
         self.nonce = 0
         self.current_index = None
+        self.index_id = self.get_index_id()
 
         # self.tradeable_markets = self.init_tradeable_markets()
         self.active_currencies = {}
@@ -98,6 +99,9 @@ class CryptoBot:
             return self.get_backtest_balances()
         else:
             return self.get_exchange_balances()
+
+    def get_index_id(self):
+        return self.index_strats[0].name + str(time.mktime(datetime.datetime.now().timetuple()))
 
     @staticmethod
     def init_valid_coins(coin_type):
@@ -145,9 +149,12 @@ class CryptoBot:
         log.info('* * * ! * * * BEGIN INDEX TEST RUN * * * ! * * *')
         while self.test_date < datetime.date.today():
             self.tick_step_index()
-            if is_first_of_the_month(self.test_date):
+            if self.should_rebalance_index():
                 self.rebalance_index_holdings()
             self.test_date += self.one_day
+
+    def should_rebalance_index(self):
+        return is_first_of_the_month(self.test_date) or is_fifteenth_of_the_month(self.test_date)
 
     def run_collect_cmc(self):
         self.rate_limiter_reset()
@@ -232,12 +239,11 @@ class CryptoBot:
         self.current_index['index_date'] = index_date
         self.balances = self.current_index[['coin', 'balance']]
         self.balances['exchange'] = 'test'
-        index_id = time.mktime(datetime.datetime.now().timetuple())
-        self.current_index['index_id'] = index_id
+        self.current_index['index_id'] = self.index_id
         index_metadata = {
-            'index_id': time.mktime(datetime.datetime.now().timetuple()),
+            'index_id': self.index_id,
             'index_date': index_date,
-            'portfolio_balance_usd': self.current_index['balance_usd'].sum(),
+            'portfolio_balance_usd': self.current_index.head(20)['balance_usd'].sum(),
             'bitcoin_value_usd': self.current_index[self.current_index['coin'] == 'BTC']['balance_usd'][0]
         }
         self.psql.save_index(self.current_index.head(20), index_metadata)

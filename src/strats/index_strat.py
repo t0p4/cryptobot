@@ -42,11 +42,11 @@ class IndexStrat2(BaseStrategy):
         # total = ema_index_data[self.ema_stat_key].sum()
         # ema_index_data[self.pct_weight_key] = ema_index_data[self.ema_stat_key] / total
 
-        index_data = full_mkt_data.sort_values(self.stat_key, ascending=False).head(self.index_depth)
-        index_data['in_index'] = True
-        stat_total = index_data[self.stat_key].sum()
+        index_data = full_mkt_data.sort_values(self.stat_key, ascending=False)
+        # index_data['in_index'] = True
+        stat_total = index_data[self.stat_key].head(self.index_depth).sum()
         index_data['index_pct'] = index_data[self.stat_key] / stat_total
-        index_data.rename(columns={'open': 'rate_usd'}, inplace=True)
+        index_data.rename(columns={'close': 'rate_usd'}, inplace=True)
         return index_data[['id', 'index_pct', 'coin', 'rate_usd']]
         # exp_12 = df.ewm(span=20, min_period=12, adjust=False).mean()
 
@@ -59,7 +59,7 @@ class IndexStrat2(BaseStrategy):
         dataset = pd.merge(index_data, holdings_data, on='coin', how='outer')
         dataset['balance'] = dataset['balance'].replace(numpy.NaN, 0)
         dataset['balance_usd'] = dataset['balance'] * dataset['rate_usd']
-        total_usd = dataset['balance_usd'].sum()
+        total_usd = dataset.head(self.index_depth)['balance_usd'].sum()
         dataset['balance_pct'] = dataset['balance_usd'] / total_usd
         dataset['index_usd'] = dataset['index_pct'] * total_usd
         dataset['delta_usd'] = dataset['index_usd'] - dataset['balance_usd']

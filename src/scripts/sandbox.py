@@ -72,7 +72,7 @@ BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
 #     'sma_window': 9
 # }
 index_options = {
-    'name': 'EmaMktCapIndex',
+    'name': 'MktCapIndex',
     'active': True,
     'plot_overlay': False,
     'stat_key': 'market_cap',

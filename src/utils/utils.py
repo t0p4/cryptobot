@@ -14,6 +14,10 @@ def is_first_of_the_month(date):
     return date.day == 1
 
 
+def is_fifteenth_of_the_month(date):
+    return date.day == 15
+
+
 def is_valid_market(mkt_name, currencies):
     mkts = mkt_name.split('-')
     return mkts[0] in currencies
