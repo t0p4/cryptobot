@@ -54,7 +54,9 @@ class CryptoBot:
         self.one_day = datetime.timedelta(days=1)
         self.nonce = 0
         self.current_index = None
+        self.current_index_coins = None
         self.index_id = self.get_index_id()
+        self.has_index = False
 
         # self.tradeable_markets = self.init_tradeable_markets()
         self.active_currencies = {}
@@ -181,11 +183,17 @@ class CryptoBot:
 
     def tick_step_index(self):
         log.info('*** INDEX TICK STEP *** %s' % self.test_date)
+        if is_first_of_the_month(self.test_date):
+            self.has_index = False
         self.cmc_historical_data = self.psql.get_cmc_historical_data(self.test_date.__str__())
         historical_data = self.cmc_historical_data
         self.cmc_coin_metadata = self.psql.get_cmc_coin_metadata()
         balances = self.get_compressed_balances()
         self.current_index = self.index_strats[0].handle_data_index(historical_data, balances)
+        if not self.has_index:
+            self.current_index_coins = self.current_index.head(self.index_strats[0].index_depth)['coin'].values
+            self.has_index = True
+        self.save_index(self.current_index[self.current_index['coin'].isin(self.current_index_coins)])
 
     def tick_step(self):
         self.minor_tick_step()
@@ -235,18 +243,22 @@ class CryptoBot:
         log.info('== REBALANCING INDEX ==')
         self.current_index['balance'] = self.current_index['balance'] + self.current_index['delta_coins']
         self.current_index['balance_usd'] = self.current_index['balance'] * self.current_index['rate_usd']
-        index_date = self.test_date.strftime('%Y-%m-%d')
-        self.current_index['index_date'] = index_date
         self.balances = self.current_index[['coin', 'balance']]
         self.balances['exchange'] = 'test'
-        self.current_index['index_id'] = self.index_id
+        self.current_index = self.save_index(self.current_index)
+
+    def save_index(self, index):
+        index_date = self.test_date.strftime('%Y-%m-%d')
+        index['index_date'] = index_date
+        index['index_id'] = self.index_id
         index_metadata = {
             'index_id': self.index_id,
             'index_date': index_date,
-            'portfolio_balance_usd': self.current_index.head(self.index_strats[0].index_depth)['balance_usd'].sum(),
-            'bitcoin_value_usd': self.current_index[self.current_index['coin'] == 'BTC']['balance_usd'][0]
+            'portfolio_balance_usd': index.head(self.index_strats[0].index_depth)['balance_usd'].sum(),
+            'bitcoin_value_usd': index[index['coin'] == 'BTC']['balance_usd'][0]
         }
-        self.psql.save_index(self.current_index.head(self.index_strats[0].index_depth), index_metadata)
+        self.psql.save_index(index.head(self.index_strats[0].index_depth), index_metadata)
+        return index
 
     def generate_cmc_index(self):
         self.index_strats[0].handle_data(self.cmc_data)

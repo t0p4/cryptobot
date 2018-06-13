@@ -1,5 +1,7 @@
 import pandas as pd
 from collections import defaultdict
+import matplotlib.pyplot as plt
+import numpy as np
 
 from src.exceptions import BotError, BadMathError
 from src.exchange.exchange_adaptor import ExchangeAdaptor
@@ -297,16 +299,21 @@ class PortfolioReporter():
         if index_id_list is None:
             index_id_list = self.pull_all_index_ids()
         index_data = self.pull_index_data(index_id_list)
-        index_data.plot()
+        fig, ax = plt.subplots()
+        index_data[index_id_list[0]].plot(ax=ax)
+        index_data[index_id_list[1]].plot(ax=ax)
+        index_data['ROI diff %'].plot(ax=ax, secondary_y=True)
+        ax.legend([ax.get_lines()[0], ax.right_ax.get_lines()[0], ax.get_lines()[0]], index_id_list, bbox_to_anchor=(10.0, 0.0))
+        print('ok')
 
     def pull_index_data(self, index_id_list):
         index_data = pd.DataFrame(columns=['index_date'])
         for index_id in index_id_list:
             new_index_data = self.pg.pull_index_data(index_id)
-            new_id = 'balance_' + index_id
-            new_index_data.rename(columns={'portfolio_balance_usd': new_id}, inplace=True)
-            index_data = pd.merge(index_data, new_index_data[['index_date', new_id]], on='index_date', how='outer')
-        return pd.DataFrame(index_data)
+            new_index_data.rename(columns={'portfolio_balance_usd': index_id}, inplace=True)
+            index_data = pd.merge(index_data, new_index_data[['index_date', index_id]], on='index_date', how='outer')
+        index_data['ROI diff %'] = index_data[index_id_list[0]] / index_data[index_id_list[1]]
+        return index_data.set_index('index_date')
 
     def pull_all_index_ids(self):
         return self.pg.pull_all_index_ids()['index_id'].values

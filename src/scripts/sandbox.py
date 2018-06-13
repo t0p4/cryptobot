@@ -72,14 +72,14 @@ BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
 #     'sma_window': 9
 # }
 index_options = {
-    'name': 'MktCapIndex',
+    'name': 'CC20 (Chrisyviro Crypto Index)',
     'active': True,
     'plot_overlay': False,
     'stat_key': 'market_cap',
     'window': 26,
     'ema_window': 90,
     'sma_window': 9,
-    'index_depth': 20,
+    'index_depth': 2,
     'trade_threshold_pct': .01,
     'blacklist': ['USDT', 'XVG']
 }
@@ -90,7 +90,7 @@ index_options = {
 # vol_strat = VolumeStrat(vol_options)
 # macd_strat = MACDStrat(macd_options)
 
-
+#
 # index_strat = IndexStrat2(index_options)
 # bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
 # bot.run_cmc_index_test()
