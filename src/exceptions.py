@@ -93,3 +93,12 @@ class APIDoesNotExistError(BotError):
         super(APIDoesNotExistError, self).__init__(from_class + " :: " + from_function)
         self.from_class = from_class
         self.from_function = from_function
+
+
+class StratError(BotError):
+    """Raise when something goes wrong inside a strategy"""
+    def __init__(self, from_strat, from_function, err_msg):
+        super(StratError, self).__init__(from_strat + " :: " + from_function + " - " + err_msg)
+        self.from_strat = from_strat
+        self.from_function = from_function
+        self.err_msg = err_msg

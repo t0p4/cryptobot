@@ -79,7 +79,7 @@ index_options = {
     'window': 26,
     'ema_window': 90,
     'sma_window': 9,
-    'index_depth': 2,
+    'index_depth': 20,
     'trade_threshold_pct': .01,
     'blacklist': ['USDT', 'XVG']
 }

@@ -437,8 +437,16 @@ class PostgresConnection:
             WHERE index_date = '""" + index_date + """'"""
         return self._fetch_query(query, {})
 
-    def pull_index_data(self, index_id):
-        log.debug('{PSQL} == GET index data ==')
+    def pull_index_balance_data(self, index_id_list):
+        log.debug('{PSQL} == GET index balance data ==')
+        index_ids = ','.join(repr(index_id) for index_id in index_id_list)
+        query = """SELECT * FROM """ + self.table_name('index_balance_data') + """
+                    WHERE index_id in (""" + index_ids + """) """ + """
+                    AND index_date = (SELECT MAX(index_date) FROM """ + self.table_name('index_balance_data') + """);"""
+        return self._fetch_query(query, {})
+
+    def pull_index_metadata(self, index_id):
+        log.debug('{PSQL} == GET index metadata ==')
         query = """SELECT * FROM """ + self.table_name('index_metadata') + """
             WHERE index_id = '%s'""" % index_id
         return self._fetch_query(query, {})

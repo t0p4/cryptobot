@@ -181,20 +181,6 @@ class CryptoBot:
 
     # # QUANT # #
 
-    def tick_step_index(self):
-        log.info('*** INDEX TICK STEP *** %s' % self.test_date)
-        if is_first_of_the_month(self.test_date):
-            self.has_index = False
-        self.cmc_historical_data = self.psql.get_cmc_historical_data(self.test_date.__str__())
-        historical_data = self.cmc_historical_data
-        self.cmc_coin_metadata = self.psql.get_cmc_coin_metadata()
-        balances = self.get_compressed_balances()
-        self.current_index = self.index_strats[0].handle_data_index(historical_data, balances)
-        if not self.has_index:
-            self.current_index_coins = self.current_index.head(self.index_strats[0].index_depth)['coin'].values
-            self.has_index = True
-        self.save_index(self.current_index[self.current_index['coin'].isin(self.current_index_coins)])
-
     def tick_step(self):
         self.minor_tick_step()
         if self.check_major_tick():
@@ -238,6 +224,22 @@ class CryptoBot:
 
         # end = datetime.datetime.now()
         # log.info('MAJOR TICK STEP runtime :: ' + str(end - start))
+
+    # # INDEX QUANT # #
+
+    def tick_step_index(self):
+        log.info('*** INDEX TICK STEP *** %s' % self.test_date)
+        if is_first_of_the_month(self.test_date):
+            self.has_index = False
+        self.cmc_historical_data = self.psql.get_cmc_historical_data(self.test_date.__str__())
+        historical_data = self.cmc_historical_data
+        self.cmc_coin_metadata = self.psql.get_cmc_coin_metadata()
+        balances = self.get_compressed_balances()
+        self.current_index = self.index_strats[0].handle_data_index(historical_data, balances, self.current_index_coins)
+        if not self.has_index:
+            self.current_index_coins = self.current_index.head(self.index_strats[0].index_depth)['coin'].values
+            self.has_index = True
+        self.save_index(self.current_index[self.current_index['coin'].isin(self.current_index_coins)])
 
     def rebalance_index_holdings(self):
         log.info('== REBALANCING INDEX ==')

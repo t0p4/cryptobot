@@ -1,5 +1,6 @@
 import pandas as pd
 from src.strats.base_strat import BaseStrategy
+from src.exceptions import StratError
 from src.utils.logger import Logger
 from datetime import datetime
 import numpy
@@ -18,17 +19,25 @@ class IndexStrat2(BaseStrategy):
         self.trade_threshold_pct = options['trade_threshold_pct']
         self.blacklist = options['blacklist']
 
-    def handle_data_index(self, full_mkt_data, holdings_data):
+    def handle_data_index(self, full_mkt_data, holdings_data, index_coins=None):
+        """
+        :param full_mkt_data: <DataFrame> full market prices from cmc
+        :param holdings_data: <DataFrame> aggregate account balances
+        :param index_coins: <List> current coins in index
+                            * index_coins=None to reset the index (calculate new index makeup)
+        :return:
+        """
         # if full_mkt_data.groupby('id').agg('count').loc['bitcoin', 'symbol'] >= self.sma_window:
-        index_data = self.calc_index(full_mkt_data)
+        index_data = self.calc_index(full_mkt_data, index_coins)
         index_data = self.calc_deltas(index_data, holdings_data)
         return index_data
 
-    def calc_index(self, full_mkt_data):
+    def calc_index(self, full_mkt_data, index_coins=None):
         """
-
-        :param full_mkt_data: <Dataframe>
-        :return:
+        :param full_mkt_data: <DataFrame> full market prices from cmc
+        :param index_coins: <List> current coins in index
+                            * index_coins=None to reset the index (calculate new index makeup)
+        :return: <DataFrame> index data
         """
         # full_mkt_data = self.apply_ema(full_mkt_data)
         # full_mkt_data.sort_values(by=self.ema_stat_key, ascending=False, inplace=True, na_position='last')
@@ -42,11 +51,20 @@ class IndexStrat2(BaseStrategy):
         # ema_index_data = full_mkt_data.sort_values(self.ema_stat_key, ascending=False).head(self.index_depth)
         # total = ema_index_data[self.ema_stat_key].sum()
         # ema_index_data[self.pct_weight_key] = ema_index_data[self.ema_stat_key] / total
+        #
+        # index_data['in_index'] = True
 
         full_mkt_data = full_mkt_data.drop(full_mkt_data[full_mkt_data['coin'].isin(self.blacklist)].index)
-        index_data = full_mkt_data.sort_values(self.stat_key, ascending=False)
-        # index_data['in_index'] = True
-        stat_total = index_data[self.stat_key].head(self.index_depth).sum()
+
+        if index_coins is None:
+            index_data = full_mkt_data.sort_values(self.stat_key, ascending=False).head(self.index_depth)
+        else:
+            index_data = full_mkt_data[full_mkt_data['coin'].isin(index_coins)]
+            if len(index_data) != self.index_depth:
+                err = 'given coins (%s) / index depth (%s) mismatch' % len(index_coins), len(index_data)
+                raise StratError(self.name, "calc_index", err)
+
+        stat_total = index_data[self.stat_key].sum()
         index_data['index_pct'] = index_data[self.stat_key] / stat_total
         index_data.rename(columns={'close': 'rate_usd'}, inplace=True)
         return index_data[['id', 'index_pct', 'coin', 'rate_usd']]

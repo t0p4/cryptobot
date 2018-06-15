@@ -298,22 +298,37 @@ class PortfolioReporter():
     def compare_indexes(self, index_id_list=None):
         if index_id_list is None:
             index_id_list = self.pull_all_index_ids()
-        index_data = self.pull_index_data(index_id_list)
-        fig, ax = plt.subplots()
-        index_data[index_id_list[0]].plot(ax=ax)
-        index_data[index_id_list[1]].plot(ax=ax)
-        index_data['ROI diff %'].plot(ax=ax, secondary_y=True)
-        ax.legend([ax.get_lines()[0], ax.right_ax.get_lines()[0], ax.get_lines()[0]], index_id_list, bbox_to_anchor=(10.0, 0.0))
+        (index_metadata, index_balance_data) = self.pull_index_data(index_id_list)
+        self.plot_indexes(index_id_list, index_metadata, index_balance_data)
         print('ok')
 
-    def pull_index_data(self, index_id_list):
-        index_data = pd.DataFrame(columns=['index_date'])
+    def plot_indexes(self, index_id_list, index_metadata, index_balance_data):
+        # pct makeup pie chart (most recent makeup)
         for index_id in index_id_list:
-            new_index_data = self.pg.pull_index_data(index_id)
-            new_index_data.rename(columns={'portfolio_balance_usd': index_id}, inplace=True)
-            index_data = pd.merge(index_data, new_index_data[['index_date', index_id]], on='index_date', how='outer')
-        index_data['ROI diff %'] = index_data[index_id_list[0]] / index_data[index_id_list[1]]
-        return index_data.set_index('index_date')
+            cur_index = index_balance_data[index_balance_data['index_id'] == index_id].set_index('coin')
+            cur_index.plot.pie(x='coin', y='index_pct', figsize=(6, 6))
+
+        # value line graph
+        fig, ax = plt.subplots()
+        index_metadata[index_id_list[0]].plot(ax=ax)
+        index_metadata[index_id_list[1]].plot(ax=ax)
+        index_metadata['ROI diff %'].plot(ax=ax, secondary_y=True)
+        ax.legend([ax.get_lines()[0], ax.right_ax.get_lines()[0], ax.get_lines()[0]], index_id_list, bbox_to_anchor=(10.0, 0.0))
+
+    def pull_index_data(self, index_id_list):
+        return self.pull_index_metadata(index_id_list), self.pull_index_balance_data(index_id_list)
+
+    def pull_index_metadata(self, index_id_list):
+        index_metadata = pd.DataFrame(columns=['index_date'])
+        for index_id in index_id_list:
+            new_index_metadata = self.pg.pull_index_metadata(index_id)
+            new_index_metadata.rename(columns={'portfolio_balance_usd': index_id}, inplace=True)
+            index_metadata = pd.merge(index_metadata, new_index_metadata[['index_date', index_id]], on='index_date', how='outer')
+        index_metadata['ROI diff %'] = index_metadata[index_id_list[0]] / index_metadata[index_id_list[1]]
+        return index_metadata.set_index('index_date')
+
+    def pull_index_balance_data(self, index_id_list):
+        return self.pg.pull_index_balance_data(index_id_list)
 
     def pull_all_index_ids(self):
         return self.pg.pull_all_index_ids()['index_id'].values
