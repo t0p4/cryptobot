@@ -307,7 +307,8 @@ class PortfolioReporter():
         index_balance_data['index_pct'] = round(index_balance_data['index_pct'] * 100, 2)
         for index_id in index_id_list:
             cur_index = index_balance_data[index_balance_data['index_id'] == index_id]
-            cur_plot = cur_index.set_index('coin').plot.pie(x='coin', y='index_pct', figsize=(6, 6), title=index_id, labels=None)
+            index_title = index_id + " :: " + cur_index.loc[cur_index.index[0], 'index_date']
+            cur_plot = cur_index.set_index('coin').plot.pie(x='coin', y='index_pct', figsize=(6, 6), title=index_title, labels=None)
             labels = ['{0:<{coin_width}}{1:>{pct_width}}'.format(row['coin'], str(row['index_pct']) + '%', coin_width=10, pct_width=10) for idx, row in cur_index.iterrows()]
             plt.axis('off')
             plt.axis('equal')
