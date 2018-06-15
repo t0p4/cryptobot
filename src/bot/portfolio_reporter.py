@@ -304,13 +304,15 @@ class PortfolioReporter():
 
     def plot_indexes(self, index_id_list, index_metadata, index_balance_data):
         # pct makeup pie chart (most recent makeup)
-        index_balance_data['index_pct'] = index_balance_data['index_pct'] * 100
+        index_balance_data['index_pct'] = round(index_balance_data['index_pct'] * 100, 2)
         for index_id in index_id_list:
             cur_index = index_balance_data[index_balance_data['index_id'] == index_id]
             cur_plot = cur_index.set_index('coin').plot.pie(x='coin', y='index_pct', figsize=(6, 6), title=index_id, labels=None)
-            labels = ['{0} - {1:1.2f} %'.format(row['coin'], row['index_pct']) for idx, row in cur_index.iterrows()]
+            labels = ['{0:<{coin_width}}{1:>{pct_width}}'.format(row['coin'], str(row['index_pct']) + '%', coin_width=10, pct_width=10) for idx, row in cur_index.iterrows()]
             plt.axis('off')
-            plt.legend(cur_plot.patches, labels, loc='left center', fontsize=8, bbox_to_anchor=(0.1, 0.8))
+            plt.axis('equal')
+            plt.subplots_adjust(right=1.1)
+            plt.legend(cur_plot.patches, labels, loc='left center', fontsize=8, bbox_to_anchor=(0.15, 0.8))
 
         # value line graph
         fig, ax = plt.subplots()
