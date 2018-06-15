@@ -303,6 +303,11 @@ class PortfolioReporter():
         print('ok')
 
     def plot_indexes(self, index_id_list, index_metadata, index_balance_data):
+        self.plot_index_balances(index_id_list, index_balance_data)
+        self.plot_index_value(index_id_list, index_metadata)
+
+    @staticmethod
+    def plot_index_balances(index_id_list, index_balance_data):
         # pct makeup pie chart (most recent makeup)
         index_balance_data['index_pct'] = round(index_balance_data['index_pct'] * 100, 2)
         for index_id in index_id_list:
@@ -315,6 +320,8 @@ class PortfolioReporter():
             plt.subplots_adjust(right=1.1)
             plt.legend(cur_plot.patches, labels, loc='left center', fontsize=8, bbox_to_anchor=(0.15, 0.8))
 
+    @staticmethod
+    def plot_index_value(index_id_list, index_metadata):
         # value line graph
         fig, ax = plt.subplots()
         index_metadata[index_id_list[0]].plot(ax=ax)
