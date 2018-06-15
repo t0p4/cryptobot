@@ -303,7 +303,7 @@ class PortfolioReporter():
         print('ok')
 
     def plot_indexes(self, index_id_list, index_metadata, index_balance_data):
-        self.plot_index_balances(index_id_list, index_balance_data)
+        # self.plot_index_balances(index_id_list, index_balance_data)
         self.plot_index_value(index_id_list, index_metadata)
 
     @staticmethod
@@ -324,10 +324,17 @@ class PortfolioReporter():
     def plot_index_value(index_id_list, index_metadata):
         # value line graph
         fig, ax = plt.subplots()
-        index_metadata[index_id_list[0]].plot(ax=ax)
-        index_metadata[index_id_list[1]].plot(ax=ax)
-        index_metadata['ROI diff %'].plot(ax=ax, secondary_y=True)
-        ax.legend([ax.get_lines()[0], ax.right_ax.get_lines()[0], ax.get_lines()[0]], index_id_list, bbox_to_anchor=(10.0, 0.0))
+        index_title = 'CC20 vs ...'
+        legend = []
+        i = 0
+        for index_id in index_id_list:
+            index_metadata[index_id].plot(ax=ax, title=index_title)
+            legend.append(ax.get_lines()[i])
+            i += 1
+        # index_metadata['Value Diff %'].plot(ax=ax, secondary_y=True, title=index_title)
+        # ax.legend([ax.get_lines()[0], ax.right_ax.get_lines()[0], ax.get_lines()[0]], index_id_list, bbox_to_anchor=(10.0, 0.0))
+        ax.legend([ax.get_lines()[0], ax.get_lines()[1]], index_id_list, loc='left top', bbox_to_anchor=[.58, .95])
+        ax.get_yaxis().set_visible(False)
         plt.show()
 
     def pull_index_data(self, index_id_list):
@@ -339,7 +346,8 @@ class PortfolioReporter():
             new_index_metadata = self.pg.pull_index_metadata(index_id)
             new_index_metadata.rename(columns={'portfolio_balance_usd': index_id}, inplace=True)
             index_metadata = pd.merge(index_metadata, new_index_metadata[['index_date', index_id]], on='index_date', how='outer')
-        index_metadata['ROI diff %'] = index_metadata[index_id_list[0]] / index_metadata[index_id_list[1]]
+        index_metadata['Value Diff %'] = index_metadata[index_id_list[0]] / index_metadata[index_id_list[1]]
+        print(repr(index_metadata))
         return index_metadata.set_index('index_date')
 
     def pull_index_balance_data(self, index_id_list):
