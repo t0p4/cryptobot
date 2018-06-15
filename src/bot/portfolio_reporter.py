@@ -304,9 +304,13 @@ class PortfolioReporter():
 
     def plot_indexes(self, index_id_list, index_metadata, index_balance_data):
         # pct makeup pie chart (most recent makeup)
+        index_balance_data['index_pct'] = index_balance_data['index_pct'] * 100
         for index_id in index_id_list:
-            cur_index = index_balance_data[index_balance_data['index_id'] == index_id].set_index('coin')
-            cur_index.plot.pie(x='coin', y='index_pct', figsize=(6, 6))
+            cur_index = index_balance_data[index_balance_data['index_id'] == index_id]
+            cur_plot = cur_index.set_index('coin').plot.pie(x='coin', y='index_pct', figsize=(6, 6), title=index_id, labels=None)
+            labels = ['{0} - {1:1.2f} %'.format(row['coin'], row['index_pct']) for idx, row in cur_index.iterrows()]
+            plt.axis('off')
+            plt.legend(cur_plot.patches, labels, loc='left center', fontsize=8, bbox_to_anchor=(0.1, 0.8))
 
         # value line graph
         fig, ax = plt.subplots()
@@ -314,6 +318,7 @@ class PortfolioReporter():
         index_metadata[index_id_list[1]].plot(ax=ax)
         index_metadata['ROI diff %'].plot(ax=ax, secondary_y=True)
         ax.legend([ax.get_lines()[0], ax.right_ax.get_lines()[0], ax.get_lines()[0]], index_id_list, bbox_to_anchor=(10.0, 0.0))
+        plt.show()
 
     def pull_index_data(self, index_id_list):
         return self.pull_index_metadata(index_id_list), self.pull_index_balance_data(index_id_list)
