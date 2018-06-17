@@ -332,6 +332,7 @@ class PortfolioReporter():
             legend.append(ax.get_lines()[i])
             i += 1
 
+        # SECONDARY Y AXIS
         # dji = ax.twinx()
         # sp500 = ax.twinx()
         # sp500.spines['right'].set_position(('axes', 1.2))
@@ -340,9 +341,11 @@ class PortfolioReporter():
         #
         # index_metadata['DJI'].plot(ax=dji, secondary_y=True, title=index_title)
         # index_metadata['SP500'].plot(ax=sp500, secondary_y=True, title=index_title)
-
+        #
         # ax.legend([ax.get_lines()[0], ax.right_ax.get_lines()[0], ax.get_lines()[0]], index_id_list, bbox_to_anchor=(10.0, 0.0))
-        ax.legend([ax.get_lines()[0], ax.get_lines()[1]], index_id_list, loc='best', bbox_to_anchor=[.58, .95])
+
+        ax_lines = ax.get_lines()
+        ax.legend(ax_lines, index_id_list, loc='best', bbox_to_anchor=[.58, .95])
         ax.set_yscale('log')
         ax.get_yaxis().set_visible(False)
 
@@ -363,8 +366,8 @@ class PortfolioReporter():
             new_index_metadata.rename(columns={'portfolio_balance_usd': index_id}, inplace=True)
             index_metadata = pd.merge(index_metadata, new_index_metadata[['index_date', index_id]], on='index_date', how='outer')
         # index_metadata['Value Diff %'] = index_metadata[index_id_list[0]] / index_metadata[index_id_list[1]]
-        print(repr(index_metadata))
-        return index_metadata.set_index('index_date').sort_index()
+        index_metadata = index_metadata.set_index('index_date').sort_index()
+        return index_metadata.fillna(method='ffill')
 
     def pull_index_balance_data(self, index_id_list):
         return self.pg.pull_index_balance_data(index_id_list)
