@@ -344,6 +344,52 @@ class PostgresConnection:
         query = """ INSERT INTO """ + self.table_name('cmc_historical_data') + """ (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
+    def save_stock_historical_data(self, stock_data):
+        log.debug('{PSQL} == SAVE historical cmc data ==')
+        fmt_str = """
+                (
+                    '{coin}',
+                    '{date}',
+                    '{id}',
+                    {open},
+                    {high},
+                    {low},
+                    {close},
+                    {volume}
+                )
+                """
+        columns = """
+                    coin,
+                    date,
+                    id,
+                    open,
+                    high,
+                    low,
+                    close,
+                    volume
+                """
+        tickers = stock_data.where(pd.notna(stock_data), stock_data.mean(), axis='columns')
+        values = AsIs(','.join(fmt_str.format(**ticker) for idx, ticker in tickers.iterrows()))
+        params = {
+            "columns": AsIs(columns),
+            "values": values
+        }
+        query = """ INSERT INTO """ + self.table_name('stock_historical_data') + """ (%(columns)s) VALUES %(values)s ; """
+        self._exec_query(query, params)
+
+    def get_stock_historical_data(self, date, coin=None):
+        log.debug('{PSQL} == GET BACKTEST stock historical data ==')
+        query = """SELECT * FROM """ + self.table_name('stock_historical_data') + """ WHERE date = '""" + date + """'"""
+        if coin is not None:
+            query += """ AND coin = '""" + coin + """'"""
+        query += """;"""
+        return self._fetch_query(query, {})
+
+    def get_stock_metadata(self):
+        log.debug('{PSQL} == GET BACKTEST stock historical data ==')
+        query = """SELECT * FROM """ + self.table_name('stock_metadata')
+        return self._fetch_query(query, {})
+
     def get_cmc_historical_data(self, date, coin=None):
         log.debug('{PSQL} == GET BACKTEST cmc historical data ==')
         query = """SELECT * FROM """ + self.table_name('cmc_historical_data') + """ WHERE date = '""" + date + """'"""

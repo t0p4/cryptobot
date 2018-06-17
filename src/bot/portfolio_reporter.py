@@ -305,6 +305,7 @@ class PortfolioReporter():
     def plot_indexes(self, index_id_list, index_metadata, index_balance_data):
         # self.plot_index_balances(index_id_list, index_balance_data)
         self.plot_index_value(index_id_list, index_metadata)
+        plt.show()
 
     @staticmethod
     def plot_index_balances(index_id_list, index_balance_data):
@@ -320,8 +321,7 @@ class PortfolioReporter():
             plt.subplots_adjust(right=1.1)
             plt.legend(cur_plot.patches, labels, loc='left center', fontsize=8, bbox_to_anchor=(0.15, 0.8))
 
-    @staticmethod
-    def plot_index_value(index_id_list, index_metadata):
+    def plot_index_value(self, index_id_list, index_metadata):
         # value line graph
         fig, ax = plt.subplots()
         index_title = 'CC20 vs ...'
@@ -331,11 +331,27 @@ class PortfolioReporter():
             index_metadata[index_id].plot(ax=ax, title=index_title)
             legend.append(ax.get_lines()[i])
             i += 1
-        # index_metadata['Value Diff %'].plot(ax=ax, secondary_y=True, title=index_title)
+
+        # dji = ax.twinx()
+        # sp500 = ax.twinx()
+        # sp500.spines['right'].set_position(('axes', 1.2))
+        # self.make_patch_spines_invisible(sp500)
+        # sp500.spines['right'].set_visible(True)
+        #
+        # index_metadata['DJI'].plot(ax=dji, secondary_y=True, title=index_title)
+        # index_metadata['SP500'].plot(ax=sp500, secondary_y=True, title=index_title)
+
         # ax.legend([ax.get_lines()[0], ax.right_ax.get_lines()[0], ax.get_lines()[0]], index_id_list, bbox_to_anchor=(10.0, 0.0))
-        ax.legend([ax.get_lines()[0], ax.get_lines()[1]], index_id_list, loc='left top', bbox_to_anchor=[.58, .95])
+        ax.legend([ax.get_lines()[0], ax.get_lines()[1]], index_id_list, loc='best', bbox_to_anchor=[.58, .95])
+        ax.set_yscale('log')
         ax.get_yaxis().set_visible(False)
-        plt.show()
+
+    @staticmethod
+    def make_patch_spines_invisible(ax):
+        ax.set_frame_on(True)
+        ax.patch.set_visible(False)
+        for sp in ax.spines.values():
+            sp.set_visible(False)
 
     def pull_index_data(self, index_id_list):
         return self.pull_index_metadata(index_id_list), self.pull_index_balance_data(index_id_list)
@@ -346,9 +362,9 @@ class PortfolioReporter():
             new_index_metadata = self.pg.pull_index_metadata(index_id)
             new_index_metadata.rename(columns={'portfolio_balance_usd': index_id}, inplace=True)
             index_metadata = pd.merge(index_metadata, new_index_metadata[['index_date', index_id]], on='index_date', how='outer')
-        index_metadata['Value Diff %'] = index_metadata[index_id_list[0]] / index_metadata[index_id_list[1]]
+        # index_metadata['Value Diff %'] = index_metadata[index_id_list[0]] / index_metadata[index_id_list[1]]
         print(repr(index_metadata))
-        return index_metadata.set_index('index_date')
+        return index_metadata.set_index('index_date').sort_index()
 
     def pull_index_balance_data(self, index_id_list):
         return self.pg.pull_index_balance_data(index_id_list)

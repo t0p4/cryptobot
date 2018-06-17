@@ -76,5 +76,15 @@ TABLE_NAMES = {
         'PROD': 'index_balances',
         'PROD_TEST': 'index_balances',
         'BACKTEST': 'index_balances'
+    },
+    'stock_historical_data': {
+        'PROD': 'stock_historical_data',
+        'PROD_TEST': 'stock_historical_data',
+        'BACKTEST': 'stock_historical_data'
+    },
+    'stock_metadata': {
+        'PROD': 'stock_metadata',
+        'PROD_TEST': 'stock_metadata',
+        'BACKTEST': 'stock_metadata'
     }
 }

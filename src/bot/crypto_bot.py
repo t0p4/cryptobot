@@ -32,7 +32,7 @@ ORDER_BOOK_DEPTH = 20
 REQUIRE_STRAT_CONSENSUS = os.getenv('REQUIRE_STRAT_CONSENSUS', 'FALSE') == 'TRUE'
 SEND_REPORTS = os.getenv('SEND_REPORTS', 'FALSE') == 'TRUE'
 TARGET_PAIR_TICKERS = os.getenv('TARGET_PAIR_TICKERS', 'FALSE') == 'TRUE'
-
+STOCK_INDEX = True
 
 class CryptoBot:
     def __init__(self, strats):
@@ -57,6 +57,7 @@ class CryptoBot:
         self.current_index_coins = None
         self.index_id = self.get_index_id()
         self.has_index = False
+        self.current_stock = 'SP500'
 
         # self.tradeable_markets = self.init_tradeable_markets()
         self.active_currencies = {}
@@ -103,7 +104,7 @@ class CryptoBot:
             return self.get_exchange_balances()
 
     def get_index_id(self):
-        return self.index_strats[0].name + str(time.mktime(datetime.datetime.now().timetuple()))
+        return self.index_strats[0].name
 
     @staticmethod
     def init_valid_coins(coin_type):
@@ -147,8 +148,14 @@ class CryptoBot:
         self.cash_out()
         self.analyze_performance()
 
+    def run_stock_index_test(self):
+        log.info('* * * ! * * * BEGIN STOCK INDEX TEST RUN * * * ! * * *')
+        while self.test_date < datetime.date.today():
+            self.tick_step_stock_index()
+            self.test_date += self.one_day
+
     def run_cmc_index_test(self):
-        log.info('* * * ! * * * BEGIN INDEX TEST RUN * * * ! * * *')
+        log.info('* * * ! * * * BEGIN CMC INDEX TEST RUN * * * ! * * *')
         while self.test_date < datetime.date.today():
             self.tick_step_index()
             if self.should_rebalance_index():
@@ -227,6 +234,25 @@ class CryptoBot:
 
     # # INDEX QUANT # #
 
+    def tick_step_stock_index(self):
+        log.info('*** INDEX TICK STEP *** %s' % self.test_date)
+        if is_first_of_the_month(self.test_date):
+            self.has_index = False
+
+        self.cmc_historical_data = self.psql.get_stock_historical_data(self.test_date.__str__(), self.current_stock)
+        while self.cmc_historical_data.empty:
+            self.test_date += self.one_day
+            self.cmc_historical_data = self.psql.get_stock_historical_data(self.test_date.__str__(), self.current_stock)
+
+        historical_data = self.cmc_historical_data
+        self.cmc_coin_metadata = self.psql.get_stock_metadata()
+        balances = self.get_compressed_balances()
+        self.current_index = self.index_strats[0].handle_data_index(historical_data, balances, self.current_index_coins)
+        if not self.has_index:
+            self.current_index_coins = self.current_index.head(self.index_strats[0].index_depth)['coin'].values
+            self.has_index = True
+        self.save_index(self.current_index[self.current_index['coin'].isin(self.current_index_coins)])
+
     def tick_step_index(self):
         log.info('*** INDEX TICK STEP *** %s' % self.test_date)
         if is_first_of_the_month(self.test_date):
@@ -253,11 +279,15 @@ class CryptoBot:
         index_date = self.test_date.strftime('%Y-%m-%d')
         index['index_date'] = index_date
         index['index_id'] = self.index_id
+        if self.current_stock is not None:
+            btc_value_usd = 0
+        else:
+            btc_value_usd = index[index['coin'] == 'BTC']['balance_usd'][0]
         index_metadata = {
             'index_id': self.index_id,
             'index_date': index_date,
             'portfolio_balance_usd': index.head(self.index_strats[0].index_depth)['balance_usd'].sum(),
-            'bitcoin_value_usd': index[index['coin'] == 'BTC']['balance_usd'][0]
+            'bitcoin_value_usd': btc_value_usd
         }
         self.psql.save_index(index.head(self.index_strats[0].index_depth), index_metadata)
         return index
@@ -626,8 +656,16 @@ class CryptoBot:
 
     def get_backtest_balances(self):
         log.debug('{BOT} == GET backtest balances ==')
-        btc_price = self.psql.get_cmc_historical_data(self.test_date.__str__(), coin='BTC').loc[0, 'close']
-        data = {'coin': 'BTC', 'exchange': 'gemini', 'balance': 1000000/btc_price, 'address': '0x0'}
+        if STOCK_INDEX:
+            stock_price_data = pd.DataFrame()
+            while stock_price_data.empty:
+                stock_price_data = self.psql.get_stock_historical_data(self.test_date.__str__(), coin=self.current_stock)
+                self.test_date += self.one_day
+            stock_price = stock_price_data.loc[0, 'close']
+            data = {'coin': self.current_stock, 'exchange': 'gemini', 'balance': 1000000/stock_price, 'address': '0x0'}
+        else:
+            btc_price = self.psql.get_cmc_historical_data(self.test_date.__str__()).loc[0, 'close']
+            data = {'coin': 'BTC', 'exchange': 'gemini', 'balance': 1000000/btc_price, 'address': '0x0'}
         return pd.DataFrame([data])
 
     def get_balance(self, coin):
@@ -757,3 +795,11 @@ class CryptoBot:
         recent_rate = mkt_data.loc[len(mkt_data) - 1, 'last']
         recent_base_currency_trade_volume = calculate_base_currency_volume(recent_volume, recent_rate)
         return recent_base_currency_trade_volume >= vol_threshold
+
+    def load_stock_csv_into_db(self, filenames):
+        for filename in filenames:
+            df = pd.read_csv('src/data/' + filename + '.csv')
+            df.rename(str.lower, axis='columns', inplace=True)
+            df['coin'] = filename.upper()
+            df['id'] = filename
+            self.psql.save_stock_historical_data(df)

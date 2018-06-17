@@ -83,6 +83,19 @@ index_options = {
     'trade_threshold_pct': .01,
     'blacklist': ['USDT', 'XVG']
 }
+stock_index_options = {
+    'name': 'SP500',
+    'active': True,
+    'plot_overlay': False,
+    'stat_key': 'close',
+    'window': 26,
+    'ema_window': 90,
+    'sma_window': 9,
+    'index_depth': 1,
+    'trade_threshold_pct': .01,
+    'blacklist': ['USDT', 'XVG']
+}
+
 #
 # bb_strat = BollingerBandsStrat(bb_options)
 # stoch_rsi_strat = StochasticRSIStrat(stoch_rsi_options)
@@ -91,9 +104,11 @@ index_options = {
 # macd_strat = MACDStrat(macd_options)
 
 #
-# index_strat = IndexStrat2(index_options)
+# index_strat = IndexStrat2(stock_index_options)
 # bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
 # bot.run_cmc_index_test()
+# bot.run_stock_index_test()
+# bot.load_stock_csv_into_db(['dji', 'sp500'])
 
 rep = PortfolioReporter([])
 rep.compare_indexes(index_id_list=None)
