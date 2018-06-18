@@ -312,7 +312,7 @@ class PortfolioReporter():
         # pct makeup pie chart (most recent makeup)
         index_balance_data['index_pct'] = round(index_balance_data['index_pct'] * 100, 2)
         for index_id in index_id_list:
-            cur_index = index_balance_data[index_balance_data['index_id'] == index_id]
+            cur_index = index_balance_data[index_balance_data['index_id'] == index_id].sort_values('index_pct', ascending=False)
             if len(cur_index) <= 1:
                 continue
             index_title = index_id + " :: " + cur_index.loc[cur_index.index[0], 'index_date']
@@ -348,7 +348,7 @@ class PortfolioReporter():
 
         ax_lines = ax.get_lines()
         ax.legend(ax_lines, index_id_list, loc='best', bbox_to_anchor=[.58, .95])
-        ax.set_yscale('log')
+        # ax.set_yscale('log')
         ax.get_yaxis().set_visible(False)
 
     @staticmethod

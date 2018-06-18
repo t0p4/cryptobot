@@ -72,16 +72,17 @@ BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
 #     'sma_window': 9
 # }
 index_options = {
-    'name': 'CC20 (Chrisyviro Crypto Index)',
+    'name': 'Maybe Bitwise',
     'active': True,
     'plot_overlay': False,
     'stat_key': 'market_cap',
     'window': 26,
     'ema_window': 90,
     'sma_window': 9,
-    'index_depth': 20,
+    'index_depth': 10,
     'trade_threshold_pct': .01,
-    'blacklist': ['USDT', 'XVG']
+    'blacklist': ['USDT', 'XVG'],
+    'whitelist': ['BTC', 'ETH', 'XRP', 'ZEC', 'BCC', 'XEM', 'ETC', 'XLM', 'DASH', 'LTC']
 }
 stock_index_options = {
     'name': 'SP500',
@@ -104,7 +105,7 @@ stock_index_options = {
 # macd_strat = MACDStrat(macd_options)
 
 #
-# index_strat = IndexStrat2(stock_index_options)
+# index_strat = IndexStrat2(index_options)
 # bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
 # bot.run_cmc_index_test()
 # bot.run_stock_index_test()

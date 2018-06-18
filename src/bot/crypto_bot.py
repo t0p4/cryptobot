@@ -32,7 +32,7 @@ ORDER_BOOK_DEPTH = 20
 REQUIRE_STRAT_CONSENSUS = os.getenv('REQUIRE_STRAT_CONSENSUS', 'FALSE') == 'TRUE'
 SEND_REPORTS = os.getenv('SEND_REPORTS', 'FALSE') == 'TRUE'
 TARGET_PAIR_TICKERS = os.getenv('TARGET_PAIR_TICKERS', 'FALSE') == 'TRUE'
-STOCK_INDEX = True
+STOCK_INDEX = False
 
 class CryptoBot:
     def __init__(self, strats):

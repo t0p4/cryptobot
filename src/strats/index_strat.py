@@ -18,6 +18,7 @@ class IndexStrat2(BaseStrategy):
         self.add_columns = [self.ema_stat_key, self.pct_weight_key]
         self.trade_threshold_pct = options['trade_threshold_pct']
         self.blacklist = options['blacklist']
+        self.whitelist = options['whitelist']
 
     def handle_data_index(self, full_mkt_data, holdings_data, index_coins=None):
         """
@@ -56,13 +57,16 @@ class IndexStrat2(BaseStrategy):
 
         full_mkt_data = full_mkt_data.drop(full_mkt_data[full_mkt_data['coin'].isin(self.blacklist)].index)
 
+        if self.whitelist is not None:
+            full_mkt_data = full_mkt_data[full_mkt_data['coin'].isin(self.whitelist)]
+
         if index_coins is None:
             index_data = full_mkt_data.sort_values(self.stat_key, ascending=False).head(self.index_depth)
         else:
             index_data = full_mkt_data[full_mkt_data['coin'].isin(index_coins)]
-            if len(index_data) != self.index_depth:
-                err = 'given coins (%s) / index depth (%s) mismatch' % len(index_coins), len(index_data)
-                raise StratError(self.name, "calc_index", err)
+            # if len(index_data) != self.index_depth:
+            #     err = 'given coins (%s) / index depth (%s) mismatch' % len(index_coins), len(index_data)
+            #     raise StratError(self.name, "calc_index", err)
 
         stat_total = index_data[self.stat_key].sum()
         index_data['index_pct'] = index_data[self.stat_key] / stat_total
