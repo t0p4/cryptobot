@@ -316,7 +316,7 @@ class PortfolioReporter():
             if len(cur_index) <= 1:
                 continue
             index_title = index_id + " :: " + cur_index.loc[cur_index.index[0], 'index_date']
-            cur_plot = cur_index.set_index('coin').plot.pie(x='coin', y='index_pct', figsize=(6, 6), title=index_title, labels=None)
+            cur_plot = cur_index.set_index('coin').plot.pie(x='coin', y='index_pct', figsize=(6, 6), title=index_title, labels=None, startangle=90)
             labels = ['{0:<{coin_width}}{1:>{pct_width}}'.format(row['coin'], str(row['index_pct']) + '%', coin_width=10, pct_width=10) for idx, row in cur_index.iterrows()]
             plt.axis('off')
             plt.axis('equal')
@@ -347,8 +347,8 @@ class PortfolioReporter():
         # ax.legend([ax.get_lines()[0], ax.right_ax.get_lines()[0], ax.get_lines()[0]], index_id_list, bbox_to_anchor=(10.0, 0.0))
 
         ax_lines = ax.get_lines()
-        ax.legend(ax_lines, index_id_list, loc='best', bbox_to_anchor=[.58, .95])
-        # ax.set_yscale('log')
+        ax.legend(ax_lines, index_id_list, loc='best', bbox_to_anchor=[.45, .95])
+        ax.set_yscale('log')
         ax.get_yaxis().set_visible(False)
 
     @staticmethod

@@ -102,3 +102,10 @@ class StratError(BotError):
         self.from_strat = from_strat
         self.from_function = from_function
         self.err_msg = err_msg
+
+
+class NoDataError(BotError):
+    """Raise when a dataframe turns up empty when it shouldn't"""
+    def __init__(self, data_name):
+        super(NoDataError, self).__init__("Empty DataFrame :: " + data_name)
+        self.data_name = data_name

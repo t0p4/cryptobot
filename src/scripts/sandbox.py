@@ -12,6 +12,7 @@ from src.data_structures.historical_prices import HistoricalRates
 from src.exchange.exchange_adaptor import ExchangeAdaptor
 import datetime
 import os
+from src.utils.utils import merge_2_dicts
 
 BACKTESTING_START_DATE = datetime.datetime(2017, 1, 1)
 BACKTESTING_END_DATE = datetime.datetime(2017, 8, 31)
@@ -71,18 +72,37 @@ BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
 #     'fast_ema_window': 12,
 #     'sma_window': 9
 # }
-index_options = {
-    'name': 'Maybe Bitwise',
+index_base_options = {
+    'name': 'Basic Index',
     'active': True,
     'plot_overlay': False,
     'stat_key': 'market_cap',
     'window': 26,
     'ema_window': 90,
     'sma_window': 9,
-    'index_depth': 10,
+    'index_depth': 25,
     'trade_threshold_pct': .01,
     'blacklist': ['USDT', 'XVG'],
-    'whitelist': ['BTC', 'ETH', 'XRP', 'ZEC', 'BCC', 'XEM', 'ETC', 'XLM', 'DASH', 'LTC']
+    'whitelist': None
+}
+cc20_options = {
+    'name': 'CC20 (Chrisyviro Crypto Index)',
+    'index_depth': 20
+}
+bitwise_options = {
+    'name': 'Bitwise Index',
+    'index_depth': 10,
+    'whitelist': ['BTC', 'ETH', 'LTC', 'ETC', 'BCC', 'ZEC', 'DASH', 'XRP', 'XLM', 'XEM']
+}
+coinbase_options = {
+    'name': 'Coinbase Index',
+    'index_depth': 4,
+    'whitelist': ['BTC', 'ETH', 'LTC', 'ETC']
+}
+bitcoin_options = {
+    'name': 'Bitcoin',
+    'index_depth': 1,
+    'whitelist': ['BTC']
 }
 stock_index_options = {
     'name': 'SP500',
@@ -96,6 +116,11 @@ stock_index_options = {
     'trade_threshold_pct': .01,
     'blacklist': ['USDT', 'XVG']
 }
+
+CC20 = merge_2_dicts(index_base_options, cc20_options)
+Bitcoin = merge_2_dicts(index_base_options, bitcoin_options)
+Coinbase = merge_2_dicts(index_base_options, coinbase_options)
+Bitwise = merge_2_dicts(index_base_options, bitwise_options)
 
 #
 # bb_strat = BollingerBandsStrat(bb_options)

@@ -116,3 +116,9 @@ def is_eth(coin):
 
 def is_btc(coin):
     return coin.lower() == 'btc'
+
+
+def merge_2_dicts(dict1, dict2):
+    new_dict = dict1.copy()
+    new_dict.update(dict2)
+    return new_dict
