@@ -100,15 +100,15 @@ ema_index = {
 
 EMA = merge_2_dicts(index_base_options, ema_index)
 
-for i in range(80, 100):
-    try:
-        EMA['weights']['stat_weight'] = round(i / 100, 2)
-        EMA['weights']['ema_diff_avg_weight'] = round(1 - (i / 100), 2)
-        index_strat = EMAIndexStrat(EMA)
-        bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
-        bot.run_cmc_ema_index_test()
-    except NoDataError:
-        continue
+# for i in range(90, 100):
+#     try:
+#         EMA['weights']['stat_weight'] = round(i / 100, 2)
+#         EMA['weights']['ema_diff_avg_weight'] = round(1 - (i / 100), 2)
+#         index_strat = EMAIndexStrat(EMA)
+#         bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
+#         bot.run_cmc_ema_index_test()
+#     except NoDataError:
+#         continue
 
 # for crypto_index in crypto_indexes:
 #     try:
@@ -128,4 +128,4 @@ for i in range(80, 100):
 # bot.load_stock_csv_into_db(['dji', 'sp500'])
 
 rep = PortfolioReporter([])
-rep.compare_indexes(index_id_list=['CC20 (Chrisyviro Crypto Index)', 'Coinbase Index', 'Bitcoin', 'DJI', 'MC_EMA_DIFF_0.8/0.2'])
+rep.compare_indexes(index_id_list=['CC20 (Chrisyviro Crypto Index)', 'Coinbase Index', 'Bitcoin', 'DJI', 'MC_EMA_DIFF_0.9/0.1'])

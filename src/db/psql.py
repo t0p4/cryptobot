@@ -494,6 +494,13 @@ class PostgresConnection:
             WHERE index_date = '""" + index_date + """'"""
         return self._fetch_query(query, {})
 
+    def pull_all_index_balance_data(self, index_id_list):
+        log.debug('{PSQL} == GET all index balance data ==')
+        index_ids = ','.join(repr(index_id) for index_id in index_id_list)
+        query = """SELECT * FROM """ + self.table_name('index_balance_data') + """
+                    WHERE index_id in (""" + index_ids + """);"""
+        return self._fetch_query(query, {})
+
     def pull_index_balance_data(self, index_id_list):
         log.debug('{PSQL} == GET index balance data ==')
         index_ids = ','.join(repr(index_id) for index_id in index_id_list)

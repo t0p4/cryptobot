@@ -298,30 +298,35 @@ class PortfolioReporter():
     def compare_indexes(self, index_id_list=None):
         if index_id_list is None:
             index_id_list = self.pull_all_index_ids()
-        (index_metadata, index_balance_data) = self.pull_index_data(index_id_list)
-        self.plot_indexes(index_id_list, index_metadata, index_balance_data)
+        (index_metadata, index_balance_data, full_index_balance_data) = self.pull_index_data(index_id_list)
+        self.plot_indexes(index_id_list, index_metadata, index_balance_data, full_index_balance_data)
         print('ok')
 
-    def plot_indexes(self, index_id_list, index_metadata, index_balance_data):
-        self.plot_index_balances(index_id_list, index_balance_data)
+    def plot_indexes(self, index_id_list, index_metadata, index_balance_data, full_index_balance_data):
+        self.plot_index_balances(index_id_list, index_balance_data, full_index_balance_data)
         self.plot_index_value(index_id_list, index_metadata)
         plt.show()
 
-    @staticmethod
-    def plot_index_balances(index_id_list, index_balance_data):
+    def plot_index_balances(self, index_id_list, index_balance_data, full_index_balance_data):
         # pct makeup pie chart (most recent makeup)
         index_balance_data['index_pct'] = round(index_balance_data['index_pct'] * 100, 2)
         for index_id in index_id_list:
             cur_index = index_balance_data[index_balance_data['index_id'] == index_id].sort_values('index_pct', ascending=False)
+            cur_time_series_index = full_index_balance_data[full_index_balance_data['index_id'] == index_id]
             if len(cur_index) <= 1:
                 continue
+            self.plot_index_pcts(index_id, cur_time_series_index)
             index_title = index_id + " :: " + cur_index.loc[cur_index.index[0], 'index_date']
             cur_plot = cur_index.set_index('coin').plot.pie(x='coin', y='index_pct', figsize=(6, 6), title=index_title, labels=None, startangle=90)
             labels = ['{0:<{coin_width}}{1:>{pct_width}}'.format(row['coin'], str(row['index_pct']) + '%', coin_width=10, pct_width=10) for idx, row in cur_index.iterrows()]
             plt.axis('off')
             plt.axis('equal')
             plt.subplots_adjust(right=1.1)
-            plt.legend(cur_plot.patches, labels, loc='left center', fontsize=8, bbox_to_anchor=(0.15, 0.8))
+            plt.legend(cur_plot.patches, labels, loc='center left', fontsize=8, bbox_to_anchor=(0.15, 0.8))
+
+    def plot_index_pcts(self, index_id, index_data):
+        index_data[index_data['index_date'] < '2017-06-01'].pivot_table(index='index_date', columns='coin', values='index_pct').plot.area()
+        # cur_plot = index_data.set_index('coin').plot.area(x='index_date', y='index_pct')
 
     def plot_index_value(self, index_id_list, index_metadata):
         # value line graph
@@ -359,7 +364,7 @@ class PortfolioReporter():
             sp.set_visible(False)
 
     def pull_index_data(self, index_id_list):
-        return self.pull_index_metadata(index_id_list), self.pull_index_balance_data(index_id_list)
+        return self.pull_index_metadata(index_id_list), self.pull_index_balance_data(index_id_list), self.pull_all_index_balance_data(index_id_list)
 
     def pull_index_metadata(self, index_id_list):
         index_metadata = pd.DataFrame(columns=['index_date'])
@@ -373,6 +378,9 @@ class PortfolioReporter():
 
     def pull_index_balance_data(self, index_id_list):
         return self.pg.pull_index_balance_data(index_id_list)
+
+    def pull_all_index_balance_data(self, index_id_list):
+        return self.pg.pull_all_index_balance_data(index_id_list)
 
     def pull_all_index_ids(self):
         return self.pg.pull_all_index_ids()['index_id'].values

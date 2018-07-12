@@ -58,10 +58,10 @@ class EMAIndexStrat(BaseStrategy):
                             * index_coins=None to reset the index (calculate new index makeup)
         :return: <DataFrame> index data
         """
-        # remove low volume coins
-        self.index_data = self.index_data.drop(self.index_data[self.index_data['volume'] < 1000].index)
         # remove bottom percentile
         if index_coins is None:
+            # remove low volume coins
+            self.index_data = self.index_data.drop(self.index_data[self.index_data['volume'] < 1000].index)
             num_in_top_percentile = round(len(self.index_data[self.index_data['date'] == index_date]) * (1 - self.stat_top_percentile))
             # sort by stat key on index date, then take top percentile coins, keep those coins in self.index_data
             top_percentile_coins = self.index_data[self.index_data['date'] == index_date].sort_values(by=[self.stat_key], ascending=False)[
