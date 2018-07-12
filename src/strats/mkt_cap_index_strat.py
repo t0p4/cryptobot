@@ -40,20 +40,6 @@ class IndexStrat2(BaseStrategy):
                             * index_coins=None to reset the index (calculate new index makeup)
         :return: <DataFrame> index data
         """
-        # full_mkt_data = self.apply_ema(full_mkt_data)
-        # full_mkt_data.sort_values(by=self.ema_stat_key, ascending=False, inplace=True, na_position='last')
-        # full_mkt_data = full_mkt_data.groupby(['id']).agg(['last'])
-        # full_mkt_data.columns = full_mkt_data.columns.droplevel(1)
-        #
-        # index_data = full_mkt_data.sort_values(self.stat_key, ascending=False).head(self.index_depth)
-        # total = index_data[self.stat_key].sum()
-        # index_data[self.pct_weight_key] = index_data[self.stat_key] / total
-        #
-        # ema_index_data = full_mkt_data.sort_values(self.ema_stat_key, ascending=False).head(self.index_depth)
-        # total = ema_index_data[self.ema_stat_key].sum()
-        # ema_index_data[self.pct_weight_key] = ema_index_data[self.ema_stat_key] / total
-        #
-        # index_data['in_index'] = True
 
         full_mkt_data = full_mkt_data.drop(full_mkt_data[full_mkt_data['coin'].isin(self.blacklist)].index)
 

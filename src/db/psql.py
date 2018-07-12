@@ -15,6 +15,7 @@ from src.db.queries.save_order_data import save_order_data
 from src.db.queries.save_trade_data import save_trade_data
 from src.db.queries.save_tickers import save_tickers
 from src.db.queries.save_index_balances import save_index_balances, save_index_metadata
+from src.exceptions import DatabaseError
 
 log = Logger(__name__)
 
@@ -39,6 +40,7 @@ class PostgresConnection:
         except Exception as e:
             log.error('*** POSTGRES ERROR ***')
             log.error(e)
+            raise DatabaseError(e.pgerror)
 
         self.conn.commit()
         self.cur.close()
@@ -390,11 +392,20 @@ class PostgresConnection:
         query = """SELECT * FROM """ + self.table_name('stock_metadata')
         return self._fetch_query(query, {})
 
-    def get_cmc_historical_data(self, date, coin=None):
+    def get_cmc_historical_data(self, date, coin=None, start_date=None):
         log.debug('{PSQL} == GET BACKTEST cmc historical data ==')
-        query = """SELECT * FROM """ + self.table_name('cmc_historical_data') + """ WHERE date = '""" + date + """'"""
+        query = """SELECT * FROM """ + self.table_name('cmc_historical_data')
+
+        if start_date is not None:
+            query += """ WHERE date >= '""" + start_date + """'"""
+            if date is not None:
+                query += """ AND date <= '""" + date + """'"""
+        elif date is not None:
+            query += """ WHERE date = '""" + date + """'"""
+
         if coin is not None:
             query += """ AND coin = '""" + coin + """'"""
+
         query += """;"""
         return self._fetch_query(query, {})
 

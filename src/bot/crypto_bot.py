@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from src.db.psql import PostgresConnection
 from src.utils.utils import is_first_of_the_month, is_fifteenth_of_the_month, is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index, calculate_base_currency_volume, is_valid_pair
 from src.utils.logger import Logger
-from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsError, MixedTradeError, MissingTickError, NoDataError
+from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsError, MixedTradeError, MissingTickError, NoDataError, DatabaseError
 from src.utils.reporter import Reporter
 from src.utils.plotter import Plotter
 from src.exchange.exchange_adaptor import ExchangeAdaptor
@@ -50,6 +50,7 @@ class CryptoBot:
         self.cmc_rate_limit = datetime.timedelta(minutes=5)
         self.cmc_historical_data = None
         self.test_date = datetime.date(2017, 1, 1)
+        self.index_calc_window = datetime.timedelta(days=90)
         self.one_day = datetime.timedelta(days=1)
         self.nonce = 0
         self.current_index = None
@@ -166,6 +167,18 @@ class CryptoBot:
                 self.rebalance_index_holdings()
             self.test_date += self.one_day
 
+    def run_cmc_ema_index_test(self):
+        log.info('* * * ! * * * BEGIN CMC EMA INDEX TEST RUN * * * ! * * *')
+        self.index_calc_window = datetime.timedelta(days=self.index_strats[0].ema_window)
+        self.stock_index = False
+        self.balances = self.init_balances()
+        while self.test_date < datetime.date.today():
+            self.calc_ema_index()
+            if self.should_rebalance_index():
+                self.rebalance_index_holdings()
+            self.save_index(self.current_index[self.current_index['coin'].isin(self.current_index_coins)])
+            self.test_date += self.one_day
+
     def should_rebalance_index(self):
         return is_first_of_the_month(self.test_date)
 
@@ -238,10 +251,25 @@ class CryptoBot:
 
     # # INDEX QUANT # #
 
+    def calc_ema_index(self):
+        log.info('*** RUN CALC EMA INDEX *** %s' % self.test_date)
+        if is_first_of_the_month(self.test_date):
+            self.has_index = False
+            self.current_index_coins = None
+        self.cmc_historical_data = self.get_cmc_historical_data(self.test_date.__str__(), start_date=(self.test_date - self.index_calc_window).__str__())
+        historical_data = self.cmc_historical_data
+        self.cmc_coin_metadata = self.psql.get_cmc_coin_metadata()
+        balances = self.get_compressed_balances()
+        self.current_index = self.index_strats[0].handle_data_index(historical_data, balances, self.current_index_coins)
+        if not self.has_index:
+            self.current_index_coins = self.current_index.head(self.index_strats[0].index_depth)['coin'].values
+            self.has_index = True
+
     def tick_step_stock_index(self):
         log.info('*** INDEX TICK STEP *** %s' % self.test_date)
         if is_first_of_the_month(self.test_date):
             self.has_index = False
+            self.current_index_coins = None
 
         self.cmc_historical_data = self.get_stock_historical_data(self.test_date.__str__(), self.current_stock)
         i = 0
@@ -265,6 +293,7 @@ class CryptoBot:
         log.info('*** INDEX TICK STEP *** %s' % self.test_date)
         if is_first_of_the_month(self.test_date):
             self.has_index = False
+            self.current_index_coins = None
         self.cmc_historical_data = self.get_cmc_historical_data(self.test_date.__str__())
         historical_data = self.cmc_historical_data
         self.cmc_coin_metadata = self.psql.get_cmc_coin_metadata()
@@ -282,8 +311,8 @@ class CryptoBot:
         self.balances = self.current_index[['coin', 'balance']]
         self.balances['exchange'] = 'test'
 
-    def get_cmc_historical_data(self, date):
-        data = self.psql.get_cmc_historical_data(date)
+    def get_cmc_historical_data(self, date, start_date=None):
+        data = self.psql.get_cmc_historical_data(date, start_date=start_date)
         if data.empty:
             raise NoDataError('self.cmc_historical_data')
         return data
@@ -308,7 +337,10 @@ class CryptoBot:
             'portfolio_balance_usd': index.head(self.index_strats[0].index_depth)['balance_usd'].sum(),
             'bitcoin_value_usd': btc_value_usd
         }
-        self.psql.save_index(index.head(self.index_strats[0].index_depth), index_metadata)
+        try:
+            self.psql.save_index(index.head(self.index_strats[0].index_depth), index_metadata)
+        except DatabaseError as e:
+            print(e)
         return index
 
     def generate_cmc_index(self):

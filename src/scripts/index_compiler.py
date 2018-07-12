@@ -3,7 +3,8 @@ from src.strats.bollinger_bands_strat import BollingerBandsStrat
 from src.strats.stochastic_rsi_strat import StochasticRSIStrat
 from src.strats.williams_pct_strat import WilliamsPctStrat
 from src.strats.volume_strat import VolumeStrat
-from src.strats.index_strat import IndexStrat2
+from src.strats.mkt_cap_index_strat import IndexStrat2
+from src.strats.mkt_cap_ema_index_strat import EMAIndexStrat
 from src.strats.macd_strat import MACDStrat
 from src.exchange.exchange_factory import ExchangeFactory
 from src.bot.portfolio_reporter import PortfolioReporter
@@ -29,7 +30,7 @@ index_base_options = {
     'ema_window': 90,
     'sma_window': 9,
     'index_depth': 25,
-    'trade_threshold_pct': .01,
+    'trade_threshold_pct': .0001,
     'blacklist': ['USDT', 'XVG'],
     'whitelist': None
 }
@@ -61,7 +62,7 @@ Bitcoin = merge_2_dicts(index_base_options, bitcoin_options)
 Coinbase = merge_2_dicts(index_base_options, coinbase_options)
 Bitwise = merge_2_dicts(index_base_options, bitwise_options)
 
-crypto_indexes = [CC20, Bitwise, Coinbase, Bitcoin]
+crypto_indexes = [CC20]
 
 ## STOCK INDEX OPTIONS
 
@@ -81,6 +82,33 @@ DJI = merge_2_dicts(index_base_options, dji_options)
 
 stock_indexes = [SP500, DJI]
 
+# EMA INDEX
+
+ema_index = {
+    'name': 'MC_EMA_DIFF',
+    'index_depth': 20,
+    'pre_index_depth': 40,
+    'ema_window': 90,
+    'sma_window': 30,
+    'stat_key': 'market_cap',
+    'weights': {
+        'stat_weight': .8,
+        'ema_diff_avg_weight': .2
+    },
+    'stat_top_percentile': .9
+}
+
+EMA = merge_2_dicts(index_base_options, ema_index)
+#
+# for i in range(80, 100):
+#     try:
+#         EMA['weights']['stat_weight'] = round(i / 100, 2)
+#         EMA['weights']['ema_diff_avg_weight'] = round(1 - (i / 100), 2)
+#         index_strat = EMAIndexStrat(EMA)
+#         bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
+#         bot.run_cmc_ema_index_test()
+#     except NoDataError:
+#         continue
 
 # for crypto_index in crypto_indexes:
 #     try:
@@ -95,10 +123,9 @@ stock_indexes = [SP500, DJI]
 #         index_strat = IndexStrat2(stock_index)
 #         bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
 #         bot.run_stock_index_test()
-#     except NoDataError:
-#         continue
+
 
 # bot.load_stock_csv_into_db(['dji', 'sp500'])
 
 rep = PortfolioReporter([])
-rep.compare_indexes(index_id_list=['CC20 (Chrisyviro Crypto Index)', 'Coinbase Index', 'Bitcoin', 'DJI'])
+rep.compare_indexes(index_id_list=['CC20 (Chrisyviro Crypto Index)', 'Coinbase Index', 'Bitcoin', 'DJI', 'MC_EMA_DIFF_0.8/0.2'])

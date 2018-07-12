@@ -109,3 +109,10 @@ class NoDataError(BotError):
     def __init__(self, data_name):
         super(NoDataError, self).__init__("Empty DataFrame :: " + data_name)
         self.data_name = data_name
+
+
+class DatabaseError(BotError):
+    """Raise when an error occurs in the psql module"""
+    def __init__(self, msg):
+        super(DatabaseError, self).__init__("DB error :: " + msg)
+        self.msg = msg

@@ -3,7 +3,7 @@ from src.strats.bollinger_bands_strat import BollingerBandsStrat
 from src.strats.stochastic_rsi_strat import StochasticRSIStrat
 from src.strats.williams_pct_strat import WilliamsPctStrat
 from src.strats.volume_strat import VolumeStrat
-from src.strats.index_strat import IndexStrat2
+from src.strats.mkt_cap_index_strat import IndexStrat2
 from src.strats.macd_strat import MACDStrat
 from src.exchange.exchange_factory import ExchangeFactory
 from src.bot.portfolio_reporter import PortfolioReporter
