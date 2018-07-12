@@ -314,11 +314,12 @@ class CryptoBot:
 
     def get_cmc_historical_data(self, date, start_date=None):
         if self.all_cmc_historical_data is None:
-            self.all_cmc_historical_data = self.psql.get_cmc_historical_data(date, start_date=start_date)
-        else:
-            data = self.all_cmc_historical_data[self.cmc_historical_data['data'] <= date]
-            if start_date is not None:
-                data = data[self.cmc_historical_data['data'] >= start_date]
+            self.all_cmc_historical_data = self.psql.get_cmc_historical_data(None, start_date=None)
+        data = self.all_cmc_historical_data
+        if date is not None:
+            data = self.all_cmc_historical_data[self.all_cmc_historical_data['date'] <= date]
+        if start_date is not None:
+            data = data[data['date'] >= start_date]
         if data.empty:
             raise NoDataError('self.cmc_historical_data')
         return data
