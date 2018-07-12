@@ -99,7 +99,7 @@ ema_index = {
 }
 
 EMA = merge_2_dicts(index_base_options, ema_index)
-#
+
 # for i in range(80, 100):
 #     try:
 #         EMA['weights']['stat_weight'] = round(i / 100, 2)

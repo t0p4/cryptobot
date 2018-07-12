@@ -58,18 +58,21 @@ class EMAIndexStrat(BaseStrategy):
                             * index_coins=None to reset the index (calculate new index makeup)
         :return: <DataFrame> index data
         """
+        # remove low volume coins
+        self.index_data = self.index_data.drop(self.index_data[self.index_data['volume'] < 1000].index)
         # remove bottom percentile
-        num_in_top_percentile = round(len(self.index_data[self.index_data['date'] == index_date]) * (1 - self.stat_top_percentile))
-        # sort by stat key on index date, then take top percentile coins, keep those coins in self.index_data
-        top_percentile_coins = self.index_data[self.index_data['date'] == index_date].sort_values(by=[self.stat_key], ascending=False)[
-            'coin'].unique()[:num_in_top_percentile]
-        self.index_data = self.index_data[self.index_data['coin'].isin(top_percentile_coins)]
-        # remove blacklist, sort, apply ema calcs
-        self.index_data = self.index_data.drop(self.index_data[self.index_data['coin'].isin(self.blacklist)].index)
+        if index_coins is None:
+            num_in_top_percentile = round(len(self.index_data[self.index_data['date'] == index_date]) * (1 - self.stat_top_percentile))
+            # sort by stat key on index date, then take top percentile coins, keep those coins in self.index_data
+            top_percentile_coins = self.index_data[self.index_data['date'] == index_date].sort_values(by=[self.stat_key], ascending=False)[
+                'coin'].unique()[:num_in_top_percentile]
+            self.index_data = self.index_data[self.index_data['coin'].isin(top_percentile_coins)]
+            # remove blacklist, sort, apply ema calcs
+            self.index_data = self.index_data.drop(self.index_data[self.index_data['coin'].isin(self.blacklist)].index)
+
         self.index_data.sort_values(by=['coin', 'date'], inplace=True)
         self.apply_ema()
         self.apply_ema_diff()
-
         # at this point only the latest data for each coin is relevant for the index score
         self.index_data = self.index_data[self.index_data['date'] == index_date]
         self.apply_index_score()
@@ -110,7 +113,7 @@ class EMAIndexStrat(BaseStrategy):
         self.index_data['delta_coins'] = (self.index_data['index_pct'] - self.index_data['balance_pct']) * total_usd / self.index_data['rate_usd']
         # transaction_diff = ( index_pct - holdings_pct ) * total_portfolio_value / current_coin_usd_rate
         self.index_data['should_trade'] = self.index_data['delta_pct'] >= self.trade_threshold_pct
-        self.index_data = self.index_data[self.index_data['should_trade']]
+        # self.index_data = self.index_data[self.index_data['should_trade']]
 
     def apply_ema(self):
         log.info('APPLY EMA')
