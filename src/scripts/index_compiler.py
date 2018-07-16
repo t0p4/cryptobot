@@ -13,7 +13,7 @@ from src.data_structures.historical_prices import HistoricalRates
 from src.exchange.exchange_adaptor import ExchangeAdaptor
 import datetime
 import os
-from src.utils.utils import merge_2_dicts
+from src.utils.utils import merge_2_dicts, create_calendar_list
 from src.exceptions import NoDataError
 
 BACKTESTING_START_DATE = datetime.datetime(2017, 1, 1)
@@ -31,7 +31,7 @@ index_base_options = {
     'sma_window': 9,
     'index_depth': 25,
     'trade_threshold_pct': .0001,
-    'blacklist': ['USDT', 'XVG'],
+    'blacklist': ['USDT', 'XVG', 'BCC'],
     'whitelist': None
 }
 
@@ -95,20 +95,22 @@ ema_index = {
         'stat_weight': .8,
         'ema_diff_avg_weight': .2
     },
-    'stat_top_percentile': .9
+    'stat_top_percentile': .2
 }
+
+cal = create_calendar_list('2016-01-01', '2018-07-15')
 
 EMA = merge_2_dicts(index_base_options, ema_index)
 
-# for i in range(90, 100):
-#     try:
-#         EMA['weights']['stat_weight'] = round(i / 100, 2)
-#         EMA['weights']['ema_diff_avg_weight'] = round(1 - (i / 100), 2)
-#         index_strat = EMAIndexStrat(EMA)
-#         bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
-#         bot.run_cmc_ema_index_test()
-#     except NoDataError:
-#         continue
+for i in range(95, 100):
+    try:
+        EMA['weights']['stat_weight'] = round(i / 100, 2)
+        EMA['weights']['ema_diff_avg_weight'] = round(1 - (i / 100), 2)
+        index_strat = EMAIndexStrat(EMA)
+        bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
+        bot.run_cmc_ema_index_test()
+    except NoDataError:
+        continue
 
 # for crypto_index in crypto_indexes:
 #     try:
@@ -128,4 +130,5 @@ EMA = merge_2_dicts(index_base_options, ema_index)
 # bot.load_stock_csv_into_db(['dji', 'sp500'])
 
 rep = PortfolioReporter([])
-rep.compare_indexes(index_id_list=['CC20 (Chrisyviro Crypto Index)', 'Coinbase Index', 'Bitcoin', 'DJI', 'MC_EMA_DIFF_0.9/0.1'])
+# rep.compare_indexes(index_id_list=['CC20 (Chrisyviro Crypto Index)', 'Coinbase Index', 'Bitcoin', 'DJI', 'MC_EMA_DIFF_0.95/0.05'])
+rep.compare_indexes(index_id_list=['CC20 (Chrisyviro Crypto Index)', 'Bitcoin', 'DJI'])

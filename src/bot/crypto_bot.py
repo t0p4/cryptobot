@@ -9,7 +9,7 @@ from time import sleep
 import pandas as pd
 from bs4 import BeautifulSoup
 from src.db.psql import PostgresConnection
-from src.utils.utils import is_first_of_the_month, is_fifteenth_of_the_month, is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index, calculate_base_currency_volume, is_valid_pair
+from src.utils.utils import create_calendar_list, is_day_of_the_month, is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index, calculate_base_currency_volume, is_valid_pair
 from src.utils.logger import Logger
 from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsError, MixedTradeError, MissingTickError, NoDataError, DatabaseError
 from src.utils.reporter import Reporter
@@ -181,7 +181,7 @@ class CryptoBot:
             self.test_date += self.one_day
 
     def should_rebalance_index(self):
-        return is_first_of_the_month(self.test_date)
+        return is_day_of_the_month(self.test_date, 1) or is_day_of_the_month(self.test_date, 15)
 
     def run_collect_cmc(self):
         self.rate_limiter_reset()
@@ -254,7 +254,7 @@ class CryptoBot:
 
     def calc_ema_index(self):
         log.info('*** RUN CALC EMA INDEX *** %s' % self.test_date)
-        if is_first_of_the_month(self.test_date):
+        if self.should_rebalance_index():
             self.has_index = False
             self.current_index_coins = None
         self.cmc_historical_data = self.get_cmc_historical_data(self.test_date.__str__(), start_date=(self.test_date - self.index_calc_window).__str__())
@@ -268,7 +268,7 @@ class CryptoBot:
 
     def tick_step_stock_index(self):
         log.info('*** INDEX TICK STEP *** %s' % self.test_date)
-        if is_first_of_the_month(self.test_date):
+        if is_day_of_the_month(self.test_date, 1):
             self.has_index = False
             self.current_index_coins = None
 
@@ -292,7 +292,7 @@ class CryptoBot:
 
     def tick_step_index(self):
         log.info('*** INDEX TICK STEP *** %s' % self.test_date)
-        if is_first_of_the_month(self.test_date):
+        if is_day_of_the_month(self.test_date, 1):
             self.has_index = False
             self.current_index_coins = None
         self.cmc_historical_data = self.get_cmc_historical_data(self.test_date.__str__())
@@ -311,6 +311,11 @@ class CryptoBot:
         self.current_index['balance_usd'] = self.current_index['balance'] * self.current_index['rate_usd']
         self.balances = self.current_index[['coin', 'balance']]
         self.balances['exchange'] = 'test'
+        self.current_index.fillna({'exchange': 'test', 'exchange_id': 'test'}, inplace=True)
+        self.current_index.dropna(inplace=True)
+        self.balances.dropna(inplace=True)
+        log.info("\n" + self.current_index.to_string() + "\n")
+        log.info("\n" + self.balances.to_string() + "\n")
 
     def get_cmc_historical_data(self, date, start_date=None):
         if self.all_cmc_historical_data is None:
@@ -331,6 +336,7 @@ class CryptoBot:
         return data
 
     def save_index(self, index):
+        print(index.to_string())
         index_date = self.test_date.strftime('%Y-%m-%d')
         index['index_date'] = index_date
         index['index_id'] = self.index_id
@@ -787,6 +793,7 @@ class CryptoBot:
     def collect_historical_cmc_data(self):
         self.cmc_data = self.cmc.listings()
         num_coins = len(self.cmc_data)
+        cal = create_calendar_list('2016-01-01', '2018-07-15')
         for idx, coin in enumerate(self.cmc_data):
             log.info('collecting historical data for %s :: %s of %s' % (coin['name'], idx, num_coins))
             hist_data = coinmarketcap_usd_history2.main([coin['website_slug'], '2016-01-01', '2018-05-29', '--dataframe'])

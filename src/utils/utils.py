@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from time import mktime
+import calendar
 
 import pandas as pd
 
@@ -10,8 +11,40 @@ log = Logger(__name__)
 INF = 999999999999999
 
 
+def create_calendar_list(start_date, end_date):
+    s_d = start_date.split('-')
+    start_year = s_d[0]
+    e_d = end_date.split('-')
+    end_year = e_d[0]
+
+    res = []
+    cal = calendar.Calendar()
+    for year in range(int(start_year), int(end_year) + 1):
+        for month in range(1, 13):
+            for day in cal.itermonthdays(year, month):
+                if day == 0:
+                    continue
+                d = str(day)
+                if day < 10:
+                    d = '0' + d
+                m = str(month)
+                if month < 10:
+                    m = '0' + m
+                res.append(str(year) + '-' + m + '-' + d)
+
+    return res
+
+
+def is_day_of_the_month(date, test_date):
+    return date.day == test_date
+
+
 def is_first_of_the_month(date):
     return date.day == 1
+
+
+def is_day_of_the_week(date, week_day):
+    return date.date == date
 
 
 def is_fifteenth_of_the_month(date):

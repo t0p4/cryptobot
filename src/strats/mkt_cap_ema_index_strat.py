@@ -30,6 +30,8 @@ class EMAIndexStrat(BaseStrategy):
         self.whitelist = options['whitelist']
         self.index_data = None
         self.score_key = 'index_score'
+        self.vol_avg_key = 'volume_avg'
+        self.mkt_cap_avg_key = 'mkt_cap_avg'
 
         # configure name for ML stat backtesting
         self.name = options['name'] + '_' + str(self.stat_weight) + '/' + str(self.ema_diff_avg_weight)
@@ -61,7 +63,16 @@ class EMAIndexStrat(BaseStrategy):
         # remove bottom percentile
         if index_coins is None:
             # remove low volume coins
-            self.index_data = self.index_data.drop(self.index_data[self.index_data['volume'] < 1000].index)
+            self.index_data = self.index_data.groupby('id').apply(self.apply_avg_monthly_volume)
+            self.index_data = self.index_data.groupby('id').apply(self.apply_avg_monthly_mkt_cap)
+            index_on_date = self.index_data[self.index_data['date'] == index_date]
+
+            vol_avg_coins_to_drop = index_on_date[index_on_date[self.vol_avg_key] < 1000]['id']
+            mkt_cap_avg_coins_to_drop = index_on_date[index_on_date[self.mkt_cap_avg_key] < 10000000]['id']
+            coins_to_drop = mkt_cap_avg_coins_to_drop + vol_avg_coins_to_drop
+
+            self.index_data = self.index_data.drop(self.index_data[self.index_data['id'].isin(coins_to_drop.values)].index)
+
             num_in_top_percentile = round(len(self.index_data[self.index_data['date'] == index_date]) * (1 - self.stat_top_percentile))
             # sort by stat key on index date, then take top percentile coins, keep those coins in self.index_data
             top_percentile_coins = self.index_data[self.index_data['date'] == index_date].sort_values(by=[self.stat_key], ascending=False)[
@@ -112,8 +123,16 @@ class EMAIndexStrat(BaseStrategy):
         self.index_data['delta_pct'] = self.index_data['delta_usd'] / self.index_data['balance_usd']
         self.index_data['delta_coins'] = (self.index_data['index_pct'] - self.index_data['balance_pct']) * total_usd / self.index_data['rate_usd']
         # transaction_diff = ( index_pct - holdings_pct ) * total_portfolio_value / current_coin_usd_rate
-        self.index_data['should_trade'] = self.index_data['delta_pct'] >= self.trade_threshold_pct
+        # self.index_data['should_trade'] = self.index_data['delta_pct'] >= self.trade_threshold_pct
         # self.index_data = self.index_data[self.index_data['should_trade']]
+
+    def apply_avg_monthly_volume(self, df):
+        df[self.vol_avg_key] = df.sort_values(by=['date'], ascending=True)['volume'].rolling(30).mean()
+        return df
+
+    def apply_avg_monthly_mkt_cap(self, df):
+        df[self.mkt_cap_avg_key] = df.sort_values(by=['date'], ascending=True)['market_cap'].rolling(30).mean()
+        return df
 
     def apply_ema(self):
         log.info('APPLY EMA')
