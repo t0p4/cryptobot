@@ -13,14 +13,24 @@ INF = 999999999999999
 
 def create_calendar_list(start_date, end_date):
     s_d = start_date.split('-')
-    start_year = s_d[0]
+    start_year = int(s_d[0])
+    start_month = int(s_d[1])
+    start_day = int(s_d[2])
     e_d = end_date.split('-')
-    end_year = e_d[0]
+    end_year = int(e_d[0])
+    end_month = int(e_d[1])
+    end_day = int(e_d[2])
 
     res = []
     cal = calendar.Calendar()
     for year in range(int(start_year), int(end_year) + 1):
-        for month in range(1, 13):
+        s_m = 1
+        e_m = 12
+        if year == start_year:
+            s_m = start_month
+        if year == end_year:
+            e_m = end_month
+        for month in range(s_m, e_m + 1):
             for day in cal.itermonthdays(year, month):
                 if day == 0:
                     continue
@@ -31,8 +41,24 @@ def create_calendar_list(start_date, end_date):
                 if month < 10:
                     m = '0' + m
                 res.append(str(year) + '-' + m + '-' + d)
+                if month == end_month and day == end_day:
+                    break
 
     return res
+
+
+def is_in_range(val, min, max, min_incl=True, max_incl=True):
+    if min_incl:
+        over_min = val >= min
+    else:
+        over_min = val > min
+
+    if max_incl:
+        under_max = val <= max
+    else:
+        under_max = val < max
+
+    return over_min and under_max
 
 
 def is_day_of_the_month(date, test_date):

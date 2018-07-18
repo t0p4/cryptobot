@@ -40,7 +40,7 @@ class PostgresConnection:
         except Exception as e:
             log.error('*** POSTGRES ERROR ***')
             log.error(e)
-            raise DatabaseError(e.pgerror)
+            # raise DatabaseError(e.pgerror)
 
         self.conn.commit()
         self.cur.close()

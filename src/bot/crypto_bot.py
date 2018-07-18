@@ -9,7 +9,7 @@ from time import sleep
 import pandas as pd
 from bs4 import BeautifulSoup
 from src.db.psql import PostgresConnection
-from src.utils.utils import create_calendar_list, is_day_of_the_month, is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index, calculate_base_currency_volume, is_valid_pair
+from src.utils.utils import is_in_range, create_calendar_list, is_day_of_the_month, is_valid_market, normalize_inf_rows_dicts, add_saved_timestamp, normalize_index, calculate_base_currency_volume, is_valid_pair
 from src.utils.logger import Logger
 from src.exceptions import LargeLossError, TradeFailureError, InsufficientFundsError, MixedTradeError, MissingTickError, NoDataError, DatabaseError
 from src.utils.reporter import Reporter
@@ -106,7 +106,9 @@ class CryptoBot:
             return self.get_exchange_balances()
 
     def get_index_id(self):
-        return self.index_strats[0].name
+        if len(self.index_strats) > 0:
+            return self.index_strats[0].name
+        return ''
 
     @staticmethod
     def init_valid_coins(coin_type):
@@ -728,7 +730,11 @@ class CryptoBot:
             stock_price = stock_price_data.loc[0, 'close']
             data = {'coin': self.current_stock, 'exchange': 'gemini', 'balance': 1000000/stock_price, 'address': '0x0'}
         else:
-            btc_price = self.psql.get_cmc_historical_data(self.test_date.__str__()).loc[0, 'close']
+            btc_price = self.psql.get_cmc_historical_data(self.test_date.__str__())
+            if btc_price.empty:
+                btc_price = 10000000
+            else:
+                btc_price = btc_price.loc[0, 'close']
             data = {'coin': 'BTC', 'exchange': 'gemini', 'balance': 1000000/btc_price, 'address': '0x0'}
         return pd.DataFrame([data])
 
@@ -790,19 +796,66 @@ class CryptoBot:
         self.save_cmc_data()
         self.cmc_data = pd.DataFrame()
 
-    def collect_historical_cmc_data(self):
+    def collect_historical_cmc_data(self, start_date='2016-01-01', end_date=None):
+        if end_date is None:
+            end_date = datetime.date.today().strftime("%Y-%m-%d")
         self.cmc_data = self.cmc.listings()
         num_coins = len(self.cmc_data)
-        cal = create_calendar_list('2016-01-01', '2018-07-15')
         for idx, coin in enumerate(self.cmc_data):
             log.info('collecting historical data for %s :: %s of %s' % (coin['name'], idx, num_coins))
-            hist_data = coinmarketcap_usd_history2.main([coin['website_slug'], '2016-01-01', '2018-05-29', '--dataframe'])
+            hist_data = coinmarketcap_usd_history2.main([coin['website_slug'], start_date, end_date, '--dataframe'])
             if hist_data is None:
                 continue
+            is_valid, missing_dates, missing_contiguous_dates, prune_date, hist_data = self.validate_cmc_data(hist_data)
+            if not is_valid:
+                log.warning('* * * bad cmc data %s : %s missing dates' % (coin, str(len(missing_dates))))
+                log.warning('\n%s' % repr(missing_dates))
+                log.warning('\n%s\n' % repr(missing_contiguous_dates))
+                log.warning('Fixing data.....')
+                if prune_date is not None:
+                    hist_data = hist_data[hist_data['date'] > prune_date]
+                hist_data.fillna(method='ffill', inplace=True)
+                is_valid, missing_dates, missing_contiguous_dates, prune_date, _ = self.validate_cmc_data(hist_data)
+                if is_valid:
+                    log.warning('* * * DATA FIXED!!! * * * ')
+                else:
+                    log.error('something bad happened...')
             hist_data['coin'] = coin['symbol']
             hist_data['id'] = coin['name']
             hist_data['website_slug'] = coin['website_slug']
             self.psql.save_cmc_historical_data(hist_data)
+
+    def validate_cmc_data(self, cmc_data, min_date='2016-01-01', max_date='2018-07-15'):
+        # used to prune data w/ long stretches of no readings
+        nan_date_filter = 10
+        prune_date = None
+
+        cal = create_calendar_list(min_date, max_date)
+        cmc_data = pd.merge(cmc_data, pd.DataFrame({'date': cal}), on='date', how='outer')
+        cmc_data.apply(lambda x: is_in_range(x['date'], min_date, max_date), axis=1)
+        cmc_data.sort_values(by=['date'], inplace=True)
+        cmc_data.reset_index(inplace=True)
+        missing_dates = []
+        missing_contiguous_date_counts = []
+        contiguous_count = 0
+        is_contiguous = False
+        is_valid = True
+        for i in range(len(cmc_data) - 1):
+            if math.isnan(cmc_data.loc[i, 'volume']):
+                missing_dates.append(cmc_data.loc[i, 'date'])
+                contiguous_count += 1
+                is_contiguous = True
+                is_valid = False
+                if contiguous_count > nan_date_filter:
+                    is_valid = True
+                    prune_date = cmc_data.loc[i, 'date']
+            else:
+                if is_contiguous:
+                    missing_contiguous_date_counts.append(contiguous_count)
+                contiguous_count = 0
+                is_contiguous = False
+
+        return is_valid, missing_dates, missing_contiguous_date_counts, prune_date, cmc_data
 
     def collect_cmc_coin_metadata(self):
         tickers = self.cmc.listings()
