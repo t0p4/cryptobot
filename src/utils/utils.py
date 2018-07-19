@@ -41,7 +41,7 @@ def create_calendar_list(start_date, end_date):
                 if month < 10:
                     m = '0' + m
                 res.append(str(year) + '-' + m + '-' + d)
-                if month == end_month and day == end_day:
+                if year == end_year and month == end_month and day == end_day:
                     break
 
     return res

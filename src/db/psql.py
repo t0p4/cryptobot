@@ -337,7 +337,7 @@ class PostgresConnection:
                     volume,
                     average
                 """
-        tickers = tickers.where(pd.notna(tickers), tickers.mean(), axis='columns')
+        # tickers = tickers.where(pd.notna(tickers), tickers.mean(), axis='columns')
         values = AsIs(','.join(fmt_str.format(**ticker) for idx, ticker in tickers.iterrows()))
         params = {
             "columns": AsIs(columns),
@@ -414,14 +414,14 @@ class PostgresConnection:
         fmt_str = """
                 (
                     '{coin}',
-                    '{id}',
-                    '{name}'
+                    '{cmc_id}',
+                    '{id}'
                 )
                 """
         columns = """
                     coin,
-                    id,
-                    name
+                    cmc_id,
+                    id
                 """
         values = AsIs(','.join(fmt_str.format(**data) for data in metadata))
         params = {

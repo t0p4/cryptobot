@@ -98,11 +98,9 @@ ema_index = {
     'stat_top_percentile': .2
 }
 
-cal = create_calendar_list('2016-01-01', '2018-07-15')
-
 EMA = merge_2_dicts(index_base_options, ema_index)
 
-for i in range(95, 100):
+for i in range(80, 100):
     try:
         EMA['weights']['stat_weight'] = round(i / 100, 2)
         EMA['weights']['ema_diff_avg_weight'] = round(1 - (i / 100), 2)

@@ -67,7 +67,7 @@ def parse_options(args):
   return currency, start_date, end_date
 
 
-def download_data(currency, start_date, end_date):
+def download_data(currency, start_date, end_date, retry=0):
   """
   Download HTML price history for the specified cryptocurrency and time range from CoinMarketCap.
   """
@@ -90,7 +90,12 @@ def download_data(currency, start_date, end_date):
       log.error("Error message: " + e.message)
     else:
       log.error(e)
-    return None
+
+    if retry < 5:
+        log.warning('Retrying data capture for %s' % currency)
+        return download_data(currency, start_date, end_date, retry + 1)
+    else:
+        return None
 
   return html
 

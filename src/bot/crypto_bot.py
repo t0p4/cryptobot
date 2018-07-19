@@ -179,7 +179,7 @@ class CryptoBot:
             self.calc_ema_index()
             if self.should_rebalance_index():
                 self.rebalance_index_holdings()
-            self.save_index(self.current_index[self.current_index['coin'].isin(self.current_index_coins)])
+            self.save_index(self.current_index[self.current_index['id'].isin(self.current_index_coins)])
             self.test_date += self.one_day
 
     def should_rebalance_index(self):
@@ -265,7 +265,7 @@ class CryptoBot:
         balances = self.get_compressed_balances()
         self.current_index = self.index_strats[0].handle_data_index(historical_data, balances, self.current_index_coins)
         if not self.has_index:
-            self.current_index_coins = self.current_index.head(self.index_strats[0].index_depth)['coin'].values
+            self.current_index_coins = self.current_index.head(self.index_strats[0].index_depth)['id'].values
             self.has_index = True
 
     def tick_step_stock_index(self):
@@ -311,7 +311,7 @@ class CryptoBot:
         log.info('== REBALANCING INDEX ==')
         self.current_index['balance'] = self.current_index['balance'] + self.current_index['delta_coins']
         self.current_index['balance_usd'] = self.current_index['balance'] * self.current_index['rate_usd']
-        self.balances = self.current_index[['coin', 'balance']]
+        self.balances = self.current_index[['coin', 'id', 'balance']]
         self.balances['exchange'] = 'test'
         self.current_index.fillna({'exchange': 'test', 'exchange_id': 'test'}, inplace=True)
         self.current_index.dropna(inplace=True)
@@ -396,7 +396,8 @@ class CryptoBot:
         # log.info('COMPRESS TICKERS runtime :: ' + str(end - start))
 
     def get_compressed_balances(self):
-        balances = pd.merge(self.balances, self.cmc_coin_metadata, on='coin')
+        balances = pd.merge(self.balances, self.cmc_coin_metadata, on='id')
+        balances = balances.rename(columns={'coin_x': 'coin'}).drop(columns=['coin_y'])
         if 'address' in balances.columns:
             balances.drop(columns=['address'], inplace=True)
         agg_funcs = {
@@ -405,10 +406,10 @@ class CryptoBot:
             'id': ['last'],
             'exchange': lambda x: ','.join(x)
         }
-        balances = balances.groupby('coin').agg(agg_funcs)
+        balances = balances.groupby('id').agg(agg_funcs)
         balances.columns = balances.columns.droplevel(1)
         balances.reset_index(drop=True, inplace=True)
-        balances.rename(columns={'id': 'exchange_id'}, inplace=True)
+        # balances.rename(columns={'id': 'exchange_id'}, inplace=True)
         return balances
 
     def enable_volume_threshold(self):
@@ -735,7 +736,7 @@ class CryptoBot:
                 btc_price = 10000000
             else:
                 btc_price = btc_price.loc[0, 'close']
-            data = {'coin': 'BTC', 'exchange': 'gemini', 'balance': 1000000/btc_price, 'address': '0x0'}
+            data = {'coin': 'BTC', 'exchange': 'gemini', 'balance': 1000000/btc_price, 'address': '0x0', 'id': 'Bitcoin'}
         return pd.DataFrame([data])
 
     def get_balance(self, coin):
@@ -812,8 +813,6 @@ class CryptoBot:
                 log.warning('\n%s' % repr(missing_dates))
                 log.warning('\n%s\n' % repr(missing_contiguous_dates))
                 log.warning('Fixing data.....')
-                if prune_date is not None:
-                    hist_data = hist_data[hist_data['date'] > prune_date]
                 hist_data.fillna(method='ffill', inplace=True)
                 is_valid, missing_dates, missing_contiguous_dates, prune_date, _ = self.validate_cmc_data(hist_data)
                 if is_valid:
@@ -834,7 +833,7 @@ class CryptoBot:
         cmc_data = pd.merge(cmc_data, pd.DataFrame({'date': cal}), on='date', how='outer')
         cmc_data.apply(lambda x: is_in_range(x['date'], min_date, max_date), axis=1)
         cmc_data.sort_values(by=['date'], inplace=True)
-        cmc_data.reset_index(inplace=True)
+        cmc_data.reset_index(drop=True, inplace=True)
         missing_dates = []
         missing_contiguous_date_counts = []
         contiguous_count = 0
@@ -852,6 +851,9 @@ class CryptoBot:
             else:
                 if is_contiguous:
                     missing_contiguous_date_counts.append(contiguous_count)
+                if prune_date is not None:
+                    cmc_data = cmc_data[cmc_data['date'] > prune_date]
+                    prune_date = None
                 contiguous_count = 0
                 is_contiguous = False
 
@@ -862,9 +864,9 @@ class CryptoBot:
         metadata = []
         for tick in tickers:
             metadata.append({
-                'id': tick['id'],
+                'cmc_id': tick['id'],
                 'coin': tick['symbol'],
-                'name': tick['name'].replace("'", ""),
+                'id': tick['name'].replace("'", ""),
                 'website-slub': tick['website_slug']
             })
         self.psql.save_cmc_coin_metadata(metadata)
