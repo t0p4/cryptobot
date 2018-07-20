@@ -288,9 +288,9 @@ class CryptoBot:
         balances = self.get_compressed_balances()
         self.current_index = self.index_strats[0].handle_data_index(historical_data, balances, self.current_index_coins)
         if not self.has_index:
-            self.current_index_coins = self.current_index.head(self.index_strats[0].index_depth)['coin'].values
+            self.current_index_coins = self.current_index.head(self.index_strats[0].index_depth)['id'].values
             self.has_index = True
-        self.save_index(self.current_index[self.current_index['coin'].isin(self.current_index_coins)])
+        self.save_index(self.current_index[self.current_index['id'].isin(self.current_index_coins)])
 
     def tick_step_index(self):
         log.info('*** INDEX TICK STEP *** %s' % self.test_date)
@@ -303,9 +303,9 @@ class CryptoBot:
         balances = self.get_compressed_balances()
         self.current_index = self.index_strats[0].handle_data_index(historical_data, balances, self.current_index_coins)
         if not self.has_index:
-            self.current_index_coins = self.current_index.head(self.index_strats[0].index_depth)['coin'].values
+            self.current_index_coins = self.current_index.head(self.index_strats[0].index_depth)['id'].values
             self.has_index = True
-        self.save_index(self.current_index[self.current_index['coin'].isin(self.current_index_coins)])
+        self.save_index(self.current_index[self.current_index['id'].isin(self.current_index_coins)])
 
     def rebalance_index_holdings(self):
         log.info('== REBALANCING INDEX ==')
@@ -316,8 +316,8 @@ class CryptoBot:
         self.current_index.fillna({'exchange': 'test', 'exchange_id': 'test'}, inplace=True)
         self.current_index.dropna(inplace=True)
         self.balances.dropna(inplace=True)
-        log.info("\n" + self.current_index.to_string() + "\n")
-        log.info("\n" + self.balances.to_string() + "\n")
+        # log.info("\n" + self.current_index.to_string() + "\n")
+        # log.info("\n" + self.balances.to_string() + "\n")
 
     def get_cmc_historical_data(self, date, start_date=None):
         if self.all_cmc_historical_data is None:
@@ -338,7 +338,7 @@ class CryptoBot:
         return data
 
     def save_index(self, index):
-        print(index.to_string())
+        # print(index.to_string())
         index_date = self.test_date.strftime('%Y-%m-%d')
         index['index_date'] = index_date
         index['index_id'] = self.index_id
@@ -729,7 +729,7 @@ class CryptoBot:
                 stock_price_data = self.psql.get_stock_historical_data(self.test_date.__str__(), coin=self.current_stock)
                 self.test_date += self.one_day
             stock_price = stock_price_data.loc[0, 'close']
-            data = {'coin': self.current_stock, 'exchange': 'gemini', 'balance': 1000000/stock_price, 'address': '0x0'}
+            data = {'coin': self.current_stock, 'exchange': 'gemini', 'balance': 1000000/stock_price, 'address': '0x0', 'id': self.current_stock.lower()}
         else:
             btc_price = self.psql.get_cmc_historical_data(self.test_date.__str__())
             if btc_price.empty:

@@ -31,7 +31,7 @@ index_base_options = {
     'sma_window': 9,
     'index_depth': 25,
     'trade_threshold_pct': .0001,
-    'blacklist': ['USDT', 'XVG', 'BCC'],
+    'blacklist': ['Tether', 'Verge', 'BitConnect'],
     'whitelist': None
 }
 
@@ -54,15 +54,15 @@ coinbase_options = {
 bitcoin_options = {
     'name': 'Bitcoin',
     'index_depth': 1,
-    'whitelist': ['BTC']
+    'whitelist': ['Bitcoin']
 }
 
 CC20 = merge_2_dicts(index_base_options, cc20_options)
 Bitcoin = merge_2_dicts(index_base_options, bitcoin_options)
-Coinbase = merge_2_dicts(index_base_options, coinbase_options)
-Bitwise = merge_2_dicts(index_base_options, bitwise_options)
+# Coinbase = merge_2_dicts(index_base_options, coinbase_options)
+# Bitwise = merge_2_dicts(index_base_options, bitwise_options)
 
-crypto_indexes = [CC20]
+crypto_indexes = [Bitcoin, CC20]
 
 ## STOCK INDEX OPTIONS
 
@@ -100,15 +100,15 @@ ema_index = {
 
 EMA = merge_2_dicts(index_base_options, ema_index)
 
-for i in range(80, 100):
-    try:
-        EMA['weights']['stat_weight'] = round(i / 100, 2)
-        EMA['weights']['ema_diff_avg_weight'] = round(1 - (i / 100), 2)
-        index_strat = EMAIndexStrat(EMA)
-        bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
-        bot.run_cmc_ema_index_test()
-    except NoDataError:
-        continue
+# for i in range(80, 100):
+#     try:
+#         EMA['weights']['stat_weight'] = round(i / 100, 2)
+#         EMA['weights']['ema_diff_avg_weight'] = round(1 - (i / 100), 2)
+#         index_strat = EMAIndexStrat(EMA)
+#         bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
+#         bot.run_cmc_ema_index_test()
+#     except NoDataError:
+#         continue
 
 # for crypto_index in crypto_indexes:
 #     try:
@@ -118,15 +118,22 @@ for i in range(80, 100):
 #     except NoDataError:
 #         continue
 
-# for stock_index in stock_indexes:
-#     try:
-#         index_strat = IndexStrat2(stock_index)
-#         bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
-#         bot.run_stock_index_test()
-
+for stock_index in stock_indexes:
+    try:
+        index_strat = IndexStrat2(stock_index)
+        bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
+        bot.run_stock_index_test()
+    except NoDataError:
+        continue
 
 # bot.load_stock_csv_into_db(['dji', 'sp500'])
 
 rep = PortfolioReporter([])
 # rep.compare_indexes(index_id_list=['CC20 (Chrisyviro Crypto Index)', 'Coinbase Index', 'Bitcoin', 'DJI', 'MC_EMA_DIFF_0.95/0.05'])
-rep.compare_indexes(index_id_list=['CC20 (Chrisyviro Crypto Index)', 'Bitcoin', 'DJI'])
+index_list = ['CC20 (Chrisyviro Crypto Index)','Bitcoin', 'DJI']
+# for i in range(95, 100):
+#     j = 100 - i
+#     if i > 90:
+#         j = '0' + str(j)
+#     index_list.append('MC_EMA_DIFF_0.%s/0.%s' % (str(i), str(j)))
+# rep.compare_indexes(index_id_list=index_list)

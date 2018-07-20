@@ -41,15 +41,15 @@ class IndexStrat2(BaseStrategy):
         :return: <DataFrame> index data
         """
 
-        full_mkt_data = full_mkt_data.drop(full_mkt_data[full_mkt_data['coin'].isin(self.blacklist)].index)
+        full_mkt_data = full_mkt_data.drop(full_mkt_data[full_mkt_data['id'].isin(self.blacklist)].index)
 
         if self.whitelist is not None:
-            full_mkt_data = full_mkt_data[full_mkt_data['coin'].isin(self.whitelist)]
+            full_mkt_data = full_mkt_data[full_mkt_data['id'].isin(self.whitelist)]
 
         if index_coins is None:
             index_data = full_mkt_data.sort_values(self.stat_key, ascending=False).head(self.index_depth)
         else:
-            index_data = full_mkt_data[full_mkt_data['coin'].isin(index_coins)]
+            index_data = full_mkt_data[full_mkt_data['id'].isin(index_coins)]
             # if len(index_data) != self.index_depth:
             #     err = 'given coins (%s) / index depth (%s) mismatch' % len(index_coins), len(index_data)
             #     raise StratError(self.name, "calc_index", err)
@@ -66,7 +66,8 @@ class IndexStrat2(BaseStrategy):
         :param holdings_data: <Dataframe> columns = ['id', 'balance', 'balance_btc']
         :return: <Dataframe> columns = ['id', 'balance', 'index_pct', 'balance_btc', 'index_btc', 'delta_btc', 'delta_pct', 'should_trade']
         """
-        dataset = pd.merge(index_data, holdings_data, on='coin', how='outer')
+        dataset = pd.merge(index_data, holdings_data, on='id', how='outer')
+        dataset = dataset.rename(columns={'coin_x': 'coin'}).drop(columns=['coin_y'])
         dataset['balance'] = dataset['balance'].replace(numpy.NaN, 0)
         dataset['balance_usd'] = dataset['balance'] * dataset['rate_usd']
         total_usd = dataset.head(self.index_depth)['balance_usd'].sum()
