@@ -110,13 +110,13 @@ EMA = merge_2_dicts(index_base_options, ema_index)
 #     except NoDataError:
 #         continue
 
-# for crypto_index in crypto_indexes:
-#     try:
-#         index_strat = IndexStrat2(crypto_index)
-#         bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
-#         bot.run_cmc_index_test()
-#     except NoDataError:
-#         continue
+for crypto_index in crypto_indexes:
+    try:
+        index_strat = IndexStrat2(crypto_index)
+        bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
+        bot.run_cmc_index_test()
+    except NoDataError:
+        continue
 
 for stock_index in stock_indexes:
     try:
@@ -136,4 +136,4 @@ index_list = ['CC20 (Chrisyviro Crypto Index)','Bitcoin', 'DJI']
 #     if i > 90:
 #         j = '0' + str(j)
 #     index_list.append('MC_EMA_DIFF_0.%s/0.%s' % (str(i), str(j)))
-# rep.compare_indexes(index_id_list=index_list)
+rep.compare_indexes(index_id_list=index_list)

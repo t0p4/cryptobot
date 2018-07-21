@@ -157,8 +157,11 @@ class CryptoBot:
         self.stock_index = True
         self.balances = self.init_balances()
         while self.test_date < datetime.date.today():
-            self.tick_step_stock_index()
-            self.test_date += self.one_day
+            try:
+                self.tick_step_stock_index()
+                self.test_date += self.one_day
+            except NoDataError as e:
+                self.test_date += self.one_day
 
     def run_cmc_index_test(self):
         log.info('* * * ! * * * BEGIN CMC INDEX TEST RUN * * * ! * * *')
