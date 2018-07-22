@@ -318,14 +318,14 @@ class PortfolioReporter():
             self.plot_index_pcts(index_id, cur_time_series_index)
             index_title = index_id + " :: " + cur_index.loc[cur_index.index[0], 'index_date']
             cur_plot = cur_index.set_index('coin').plot.pie(x='coin', y='index_pct', figsize=(6, 6), title=index_title, labels=None, startangle=90)
-            labels = ['{0:<{coin_width}}{1:>{pct_width}}'.format(row['coin'], str(row['index_pct']) + '%', coin_width=10, pct_width=10) for idx, row in cur_index.iterrows()]
+            labels = ['{0:<{coin_width}} : {1:<{id_width}}{2:>{pct_width}}'.format(row['coin'], str(row['id']), str(row['index_pct']) + '%', coin_width=10, id_width=30, pct_width=10) for idx, row in cur_index.iterrows()]
             plt.axis('off')
             plt.axis('equal')
             plt.subplots_adjust(right=1.1)
-            plt.legend(cur_plot.patches, labels, loc='center left', fontsize=8, bbox_to_anchor=(0.15, 0.8))
+            plt.legend(cur_plot.patches, labels, loc='best', fontsize=8, bbox_to_anchor=(0.15, 0.8))
 
     def plot_index_pcts(self, index_id, index_data):
-        index_data[index_data['index_date'] < '2017-06-01'].pivot_table(index='index_date', columns='coin', values='index_pct').plot.area()
+        index_data[index_data['index_date'] < '2017-06-01'].sort_values(by=['index_pct']).pivot_table(index='index_date', columns='coin', values='index_pct').plot.area()
         # cur_plot = index_data.set_index('coin').plot.area(x='index_date', y='index_pct')
 
     def plot_index_value(self, index_id_list, index_metadata):
@@ -353,7 +353,7 @@ class PortfolioReporter():
 
         ax_lines = ax.get_lines()
         ax.legend(ax_lines, index_id_list, loc='best', bbox_to_anchor=[.45, .95])
-        ax.set_yscale('log')
+        ax.set_yscale('linear')
         ax.get_yaxis().set_visible(False)
 
     @staticmethod

@@ -38,7 +38,7 @@ index_base_options = {
 ## CRYPTO INDEX OPTIONS
 
 cc20_options = {
-    'name': 'CC20 (Chrisyviro Crypto Index)',
+    'name': 'CC20 (Chrisyviro Crypto Index) daily',
     'index_depth': 20
 }
 bitwise_options = {
@@ -62,7 +62,8 @@ Bitcoin = merge_2_dicts(index_base_options, bitcoin_options)
 # Coinbase = merge_2_dicts(index_base_options, coinbase_options)
 # Bitwise = merge_2_dicts(index_base_options, bitwise_options)
 
-crypto_indexes = [Bitcoin, CC20]
+# crypto_indexes = [Bitcoin, CC20]
+crypto_indexes = [CC20, Bitcoin]
 
 ## STOCK INDEX OPTIONS
 
@@ -151,7 +152,7 @@ rep = PortfolioReporter([])
 # index_list = ['Bitcoin_1', 'DJI']
 # for i in range(1, 5):
 #     index_list.append('CC20 (Chrisyviro Crypto Index)' + '_' + str(i))
-index_list = ['CC20 (Chrisyviro Crypto Index)','Bitcoin', 'DJI']
+index_list = ['CC20 (Chrisyviro Crypto Index)', 'Bitcoin', 'DJI']
 # for i in range(95, 100):
 #     j = 100 - i
 #     if i > 90:
