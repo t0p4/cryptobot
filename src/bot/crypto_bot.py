@@ -60,6 +60,7 @@ class CryptoBot:
         self.has_index = False
         self.current_stock = 'SP500'
         self.stock_index = False
+        self.rebalance_frequency = False
 
         # self.tradeable_markets = self.init_tradeable_markets()
         self.active_currencies = {}
@@ -152,7 +153,8 @@ class CryptoBot:
         self.cash_out()
         self.analyze_performance()
 
-    def run_stock_index_test(self):
+    def run_stock_index_test(self, opts):
+        self.rebalance_frequency = opts["rebalance_frequency"]
         log.info('* * * ! * * * BEGIN STOCK INDEX TEST RUN * * * ! * * *')
         self.stock_index = True
         self.balances = self.init_balances()
@@ -163,7 +165,8 @@ class CryptoBot:
             except NoDataError as e:
                 self.test_date += self.one_day
 
-    def run_cmc_index_test(self):
+    def run_cmc_index_test(self, opts):
+        self.rebalance_frequency = opts["rebalance_frequency"]
         log.info('* * * ! * * * BEGIN CMC INDEX TEST RUN * * * ! * * *')
         self.stock_index = False
         self.balances = self.init_balances()
@@ -186,7 +189,14 @@ class CryptoBot:
             self.test_date += self.one_day
 
     def should_rebalance_index(self):
-        return is_day_of_the_month(self.test_date, 1) or is_day_of_the_month(self.test_date, 15)
+        if self.rebalance_frequency == 4:
+            return is_day_of_the_month(self.test_date, 1) or is_day_of_the_month(self.test_date, 7) or is_day_of_the_month(self.test_date, 15), is_day_of_the_month(self.test_date, 22)
+        elif self.rebalance_frequency == 3:
+            return is_day_of_the_month(self.test_date, 1) or is_day_of_the_month(self.test_date, 10) or is_day_of_the_month(self.test_date, 20)
+        elif self.rebalance_frequency == 2:
+            return is_day_of_the_month(self.test_date, 1) or is_day_of_the_month(self.test_date, 15)
+        else:
+            return is_day_of_the_month(self.test_date, 1)
 
     def run_collect_cmc(self):
         self.rate_limiter_reset()
@@ -300,7 +310,7 @@ class CryptoBot:
         if is_day_of_the_month(self.test_date, 1):
             self.has_index = False
             self.current_index_coins = None
-        self.cmc_historical_data = self.get_cmc_historical_data(self.test_date.__str__())
+        self.cmc_historical_data = self.get_cmc_historical_data(self.test_date.__str__(), start_date=self.test_date.__str__())
         historical_data = self.cmc_historical_data
         self.cmc_coin_metadata = self.psql.get_cmc_coin_metadata()
         balances = self.get_compressed_balances()

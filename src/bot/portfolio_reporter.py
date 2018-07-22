@@ -331,7 +331,7 @@ class PortfolioReporter():
     def plot_index_value(self, index_id_list, index_metadata):
         # value line graph
         fig, ax = plt.subplots()
-        index_title = 'CC20 vs ...'
+        index_title = 'CC20 vs Bitcoin vs DJI'
         legend = []
         i = 0
         for index_id in index_id_list:

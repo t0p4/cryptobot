@@ -110,26 +110,47 @@ EMA = merge_2_dicts(index_base_options, ema_index)
 #     except NoDataError:
 #         continue
 
-for crypto_index in crypto_indexes:
-    try:
-        index_strat = IndexStrat2(crypto_index)
-        bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
-        bot.run_cmc_index_test()
-    except NoDataError:
-        continue
+index_run_opts = {'rebalance_frequency': 1}
 
-for stock_index in stock_indexes:
-    try:
-        index_strat = IndexStrat2(stock_index)
-        bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
-        bot.run_stock_index_test()
-    except NoDataError:
-        continue
+# TODO USE THIS ONCE SLIPPAGE IS FACTORED IN
+#
+# for crypto_index in crypto_indexes:
+#     for i in range(1,5):
+#         if i > 1 and crypto_index['name'] == 'Bitcoin':
+#             continue
+#         else:
+#             index_run_opts['rebalance_frequency'] = i
+#             crypto_index['name'] = crypto_index['name'] + '_' + str(i)
+#             try:
+#                 index_strat = IndexStrat2(crypto_index)
+#                 bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
+#                 bot.run_cmc_index_test(index_run_opts)
+#             except NoDataError:
+#                 continue
+#
+# for crypto_index in crypto_indexes:
+#     try:
+#         index_strat = IndexStrat2(crypto_index)
+#         bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
+#         bot.run_cmc_index_test(index_run_opts)
+#     except NoDataError:
+#         continue
+#
+# for stock_index in stock_indexes:
+#     try:
+#         index_strat = IndexStrat2(stock_index)
+#         bot = CryptoBot({'v1_strats': [], 'index_strats': [index_strat]})
+#         bot.run_stock_index_test(index_run_opts)
+#     except NoDataError:
+#         continue
 
 # bot.load_stock_csv_into_db(['dji', 'sp500'])
 
 rep = PortfolioReporter([])
 # rep.compare_indexes(index_id_list=['CC20 (Chrisyviro Crypto Index)', 'Coinbase Index', 'Bitcoin', 'DJI', 'MC_EMA_DIFF_0.95/0.05'])
+# index_list = ['Bitcoin_1', 'DJI']
+# for i in range(1, 5):
+#     index_list.append('CC20 (Chrisyviro Crypto Index)' + '_' + str(i))
 index_list = ['CC20 (Chrisyviro Crypto Index)','Bitcoin', 'DJI']
 # for i in range(95, 100):
 #     j = 100 - i
