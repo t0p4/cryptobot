@@ -89,7 +89,7 @@ class PortfolioReporter():
 
     def load_portfolio_balances(self):
         self.load_aggregate_exchange_balances()
-        self.load_off_exchange_balances()
+        # self.load_off_exchange_balances()
 
     def load_all_exchange_pairs(self):
         pairs = pd.DataFrame()
@@ -355,6 +355,10 @@ class PortfolioReporter():
         ax.legend(ax_lines, index_id_list, loc='best', bbox_to_anchor=[.45, .95])
         ax.set_yscale('linear')
         ax.get_yaxis().set_visible(False)
+        ax.get_xaxis().set_visible(False)
+        # ax.xticks()
+        # import matplotlib.ticker as ticker
+        # ax.xaxis.set_major_locator(ticker.MultipleLocator(30))
 
     @staticmethod
     def make_patch_spines_invisible(ax):
