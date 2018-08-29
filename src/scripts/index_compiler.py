@@ -38,7 +38,7 @@ index_base_options = {
 ## CRYPTO INDEX OPTIONS
 
 cc20_options = {
-    'name': 'CC20 (Chrisyviro Crypto Index) daily',
+    'name': 'CC20 (Chrisyviro Crypto Index)',
     'index_depth': 20
 }
 bitwise_options = {
