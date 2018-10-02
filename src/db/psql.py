@@ -125,16 +125,16 @@ class PostgresConnection:
         query = """ INSERT INTO """ + self.table_name('save_currencies') + """ (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
-    def save_historical_data(self, data):
-        log.debug('{PSQL} == SAVE historical data ==')
-        fmt_str = '(%s,%s,%s,%s,%s,%s,%s,%s)'
-        columns = 'timestamp,open,high,low,close,volume_btc,volume_usd,weighted_price'
-        values = AsIs(','.join(fmt_str % tuple(row) for row in data))
+    def save_historical_tickers(self, data):
+        log.debug('{PSQL} == SAVE historical historical ==')
+        fmt_str = "({timestamp},{open},{high},{low},{close},{volume},'{pair}','{base_coin}','{mkt_coin}')"
+        columns = 'timestamp,open,high,low,close,volume,pair,base_coin,mkt_coin'
+        values = AsIs(','.join(fmt_str.format(**row) for row in data))
         params = {
             "columns": AsIs(columns),
             "values": values
         }
-        query = """ INSERT INTO btc_historical (%(columns)s) VALUES %(values)s ; """
+        query = """ INSERT INTO historical_candles (%(columns)s) VALUES %(values)s ; """
         self._exec_query(query, params)
 
     def get_historical_data(self, start_date, end_date):

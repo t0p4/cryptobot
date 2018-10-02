@@ -884,6 +884,23 @@ class CryptoBot:
             })
         self.psql.save_cmc_coin_metadata(metadata)
 
+    def collect_historical_tickers(self, exchange):
+        interval = '1m'
+        pair = {'pair': 'tBTCUSD', 'base_coin': 'USD', 'mkt_coin': 'BTC'}
+        start = int(datetime.datetime(2016, 1, 1).strftime("%s"))
+        end = int(datetime.datetime.now().strftime("%s"))
+        current_end = end
+        while current_end > start:
+            current_start = current_end - (60 * 120)
+
+            # import pytz
+            # tz = pytz.timezone('America/Los_Angeles')
+
+            log.info("collecting %s :: %s (%s) - %s (%s)" % (pair['pair'], str(datetime.datetime.fromtimestamp(current_end).isoformat()), str(current_end), str(datetime.datetime.fromtimestamp(current_start).isoformat()), str(current_start)))
+            ticks = self.ex.get_historical_tickers(exchange, pair=pair, start_time=start, end_time=end, interval=interval)
+            self.psql.save_historical_tickers(ticks)
+            current_end = current_start
+
     # # BACKTESTING TOOLS # #
 
     # TODO refactor backtesting to work w/ generally

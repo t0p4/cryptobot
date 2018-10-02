@@ -6,7 +6,7 @@ log = Logger(__name__)
 
 
 class RateLimiter:
-    def __init__(self, name, rate_limit=timedelta(0, 2, 0)):
+    def __init__(self, name, rate_limit=timedelta(0, 4, 0)):
         self.name = name
         self.rate_limit = rate_limit
         self.tick = None

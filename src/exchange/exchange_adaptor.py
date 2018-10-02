@@ -1,5 +1,6 @@
 from src.exchange.binance.binance_api import BinanceAPI
 from src.exchange.bittrex.bittrex_api import BittrexAPI
+from src.exchange.bitfinex.bitfinex_api import BitfinexAPI
 from src.exchange.backtest_exchange import BacktestExchange
 from src.exchange.coinigy.coinigy_api import CoinigyAPI
 from src.exchange.gemini.gemini_api import GeminiAPI
@@ -11,12 +12,14 @@ import pandas as pd
 from src.utils.conversion_utils import convert_str_columns_to_num, get_usd_rate
 from src.utils.utils import is_eth, is_btc
 from src.exchange.gdax.gdax_public import PublicClient as GDaxPub
-from datetime import datetime
+from datetime import datetime, timedelta
 from src.utils.logger import Logger
 from src.utils.rate_limiter import RateLimiter
 from src.exceptions import APIRequestError, InvalidCoinError, APIDoesNotExistError
 from src.exchange.exchange_utils.binance_utils import create_normalized_trade_data_binance
 from src.data_structures.historical_prices import HistoricalRates
+
+
 
 log = Logger(__name__)
 
@@ -45,7 +48,8 @@ class ExchangeAdaptor:
             'gdax': GDAXAPI,
             'cryptopia': CryptopiaAPI,
             'gateio': GateIOAPI,
-            'cmc': Market
+            'cmc': Market,
+            'bitfinex': BitfinexAPI
         }
         self.rate_limiters = {
             'binance': RateLimiter('binance'),
@@ -54,7 +58,8 @@ class ExchangeAdaptor:
             'gemini': RateLimiter('gemini'),
             'cryptopia': RateLimiter('cryptopia'),
             'gateio': RateLimiter('gateio'),
-            'cmc': RateLimiter('cmc')
+            'cmc': RateLimiter('cmc'),
+            'bitfinex': RateLimiter('bitfinex', rate_limit=timedelta(0, 2, 0))
         }
         self.exchange_pairs = {
             'binance': {},
@@ -62,7 +67,8 @@ class ExchangeAdaptor:
             'gemini': {},
             'cryptopia': {},
             'gateio': {},
-            'cmc': {}
+            'cmc': {},
+            'bitfinex': {}
         }
         self.balances = {
             'binance': {},
@@ -70,7 +76,8 @@ class ExchangeAdaptor:
             'gemini': {},
             'cryptoptia': {},
             'gateio': {},
-            'cmc': {}
+            'cmc': {},
+            'bitfinex': {}
         }
         self.exchange_divisors = {
             'binance': 1,
@@ -79,7 +86,8 @@ class ExchangeAdaptor:
             'gdax': 1000,
             'cryptopia': 1,
             'gateio': 1,
-            'cmc': 1
+            'cmc': 1,
+            'bitfinex': 1
         }
         self.historical_rates = HistoricalRates('gemini')
 
@@ -234,7 +242,7 @@ class ExchangeAdaptor:
             log.error(e.error_msg)
             return []
 
-    def get_historical_tickers(self, exchange, start_time=None, end_time=None, interval='1m'):
+    def get_historical_tickers(self, exchange, pair=None, start_time=None, end_time=None, interval='1m'):
         """
             gets the tickers for a given exchange over a given time period with a specified interval
         :param exchange:
@@ -242,6 +250,19 @@ class ExchangeAdaptor:
         :param end_time:
         :return:
         """
+        try:
+            if pair is None:
+                raise APIRequestError(exchange, 'get_historical_trades', 'pair missing')
+            ex = self.exchange_adaptors[exchange]()
+            self.rate_limiters[exchange].limit()
+            trade_data = ex.get_historical_tickers(pair, start_time=start_time, end_time=end_time, interval=interval)
+            if isinstance(trade_data, list):
+                return trade_data
+            else:
+                raise APIRequestError(exchange, 'get_historical_trades', 'no trade data')
+        except APIRequestError as e:
+            log.error(e.error_msg)
+            return []
 
     def get_current_tickers(self, exchange, ohlc):
         """

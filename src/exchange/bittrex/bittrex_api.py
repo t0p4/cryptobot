@@ -22,32 +22,31 @@ class BittrexAPI(object):
     def __init__(self):
         self.key = os.getenv('BITTREX_API_KEY', '')
         self.secret = str(os.getenv('BITTREX_API_SECRET', ''))
-        self.public = ['getmarkets', 'getcurrencies', 'getticker', 'getmarketsummaries', 'getmarketsummary', 'getorderbook', 'getmarkethistory']
-        self.market = ['buylimit', 'buymarket', 'selllimit', 'sellmarket', 'cancel', 'getopenorders']
-        self.account = ['getbalances', 'getbalance', 'getdepositaddress', 'withdraw', 'getorder', 'getorderhistory', 'getwithdrawalhistory', 'getdeposithistory']
-        self.collect_fixtures = os.getenv('COLLECT_FIXTURES', 'FALSE')
+        self.url = 'https://api.bitfinex.com/v2/'
+        self.public = {
+            'tickers': 'tickers?symbol=%s',
+            'ticker': 'ticker/%s',
+            'trades': 'trades/%s',
+            'book': 'book/%s/%s',
+            'stats1': 'stats',
+            'candles': 'candles/trade:%s:%s/%s',
+            'status': 'platform/status'
+        }
         self.BACKTESTING = os.getenv('BACKTESTING', 'FALSE')
         self.PROD_TESTING = os.getenv('PROD_TESTING', 'TRUE')
 
     def query(self, method, values={}):
-        if method in self.public:
-            url = 'https://bittrex.com/api/v1.1/public/'
-        elif method in self.market:
-            url = 'https://bittrex.com/api/v1.1/market/'
-        elif method in self.account: 
-            url = 'https://bittrex.com/api/v1.1/account/'
-        else:
-            return 'Something went wrong, sorry.'
-        
+        url = self.url
+
         url += method + '?' + urlencode(values)
         
-        if method not in self.public:
-            url += '&apikey=' + self.key
-            url += '&nonce=' + str(int(time.time()))
-            signature = hmac.new(self.secret.encode(), url.encode(), hashlib.sha512).hexdigest()
-            headers = {'apisign': signature}
-        else:
-            headers = {}
+        # if method not in self.public:
+        #     url += '&apikey=' + self.key
+        #     url += '&nonce=' + str(int(time.time()))
+        #     signature = hmac.new(self.secret.encode(), url.encode(), hashlib.sha512).hexdigest()
+        #     headers = {'apisign': signature}
+        # else:
+        headers = {}
         
         req = Request(url, headers=headers)
         response = json.loads(urlopen(req).read())
